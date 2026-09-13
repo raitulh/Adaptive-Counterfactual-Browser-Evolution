@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+venv/
+.venv/
+ENV/
+
+# Local databases and runtime state
+.acbe/
+*.db
+*.db-journal
+traces/
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Node.js and Frontend
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

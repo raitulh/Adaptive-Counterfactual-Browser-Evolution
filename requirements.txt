@@ -1,0 +1,7 @@
+# The ACBE core has zero required third-party dependencies (see
+# docs/mvp_status.md). This file is intentionally empty; install extras
+# from pyproject.toml as needed, e.g.:
+#
+#   pip install -e ".[browser]"   # Playwright
+#   pip install -e ".[server]"   # Flask dashboard
+#   pip install -e ".[full]"     # the complete stack from the original spec

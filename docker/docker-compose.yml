@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        EXTRAS: "server,models"
+    container_name: acbe-backend
+    restart: unless-stopped
+    ports:
+      - "8420:8420"
+    environment:
+      - ACBE_DB_PATH=/data/acbe.db
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - acbe-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8420/api/overview')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+      args:
+        BACKEND_URL: "http://backend:8420"
+    container_name: acbe-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=http://backend:8420
+      - PORT=3000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  acbe-data:
+    driver: local

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acbe"
+version = "0.1.0"
+description = "ACBE (Adaptive Counterfactual Browser Evolution) -- the self-improvement layer for AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "ACBE contributors" }]
+keywords = ["agents", "self-improvement", "browser-automation", "computer-use", "llm"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries",
+]
+# Deliberately empty: the core package has zero required third-party
+# dependencies. See docs/mvp_status.md for why, and the extras below for
+# the "full" stack described in the original spec (Section 19).
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["playwright>=1.40"]
+server = ["flask>=3.0", "waitress>=3.0"]
+models = ["requests>=2.31"]
+full = [
+  "pydantic>=2.6",
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "typer>=0.9",
+  "rich>=13.7",
+  "httpx>=0.26",
+  "playwright>=1.40",
+  "flask>=3.0",
+  "waitress>=3.0",
+  "requests>=2.31",
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4", "mypy>=1.9"]
+
+[project.scripts]
+acbe = "acbe.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["acbe*", "benchmarks*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

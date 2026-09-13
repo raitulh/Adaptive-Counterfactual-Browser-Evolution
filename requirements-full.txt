@@ -1,0 +1,17 @@
+# The full technology stack from the original spec (Section 19), for
+# environments with normal package-registry access. Equivalent to
+# `pip install -e ".[full]"`.
+pydantic>=2.6
+fastapi>=0.110
+uvicorn>=0.27
+typer>=0.9
+rich>=13.7
+httpx>=0.26
+playwright>=1.40
+flask>=3.0
+waitress>=3.0
+requests>=2.31
+pytest>=8.0
+pytest-asyncio>=0.23
+ruff>=0.4
+mypy>=1.9

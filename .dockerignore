@@ -1,0 +1,35 @@
+# Git and IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+venv/
+.venv/
+
+# Local databases and runtime state
+.acbe/
+*.db
+*.db-journal
+traces/
+
+# Node and frontend build artifacts
+frontend/node_modules/
+frontend/.next/
+frontend/out/
