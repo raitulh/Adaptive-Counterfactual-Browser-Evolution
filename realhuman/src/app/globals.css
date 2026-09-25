@@ -1,0 +1,395 @@
+@import "tailwindcss";
+
+/*
+ * RealHuman design system
+ * ─────────────────────────────────────────────────────────────────────────────
+ * All colors, radii, shadows, type, motion and layout values live here as
+ * semantic tokens. Components consume tokens (bg-surface, text-muted,
+ * border-border, text-success …) and never hard-code raw values.
+ *
+ * Color semantics
+ *   success  → verified states only
+ *   accent   → system intelligence / neutral technical states
+ *   warning  → caution, retries, timeouts, recoverable errors
+ *   danger   → explicitly negative risk states (blocked, high risk)
+ */
+
+@theme {
+  /* Reset Tailwind's default palette so only semantic tokens exist. */
+  --color-*: initial;
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* Surfaces — near-black, cool neutral steps */
+  --color-background: #060709;
+  --color-surface: #0c0e11;
+  --color-surface-raised: #111419;
+  --color-surface-overlay: #171a20;
+  --color-surface-hover: #1c2027;
+
+  /* Lines */
+  --color-border: rgb(255 255 255 / 0.075);
+  --color-border-strong: rgb(255 255 255 / 0.12);
+  --color-border-bright: rgb(255 255 255 / 0.2);
+
+  /* Text */
+  --color-foreground: #eceef1;
+  --color-muted: #a3a9b3;
+  --color-subtle: #7f8693;
+  --color-faint: #4a505a; /* decorative only — never body text */
+
+  /* Inverse (primary action) */
+  --color-inverse: #eceef1;
+  --color-inverse-foreground: #07080a;
+
+  /* Semantic states */
+  --color-success: #3ee39a;
+  --color-accent: #5ea9f7;
+  --color-warning: #f3b64b;
+  --color-danger: #f2665e;
+  --color-focus: #7cb9ff;
+
+  /* Syntax highlighting (code blocks only) */
+  --color-syntax-keyword: #7fadf7;
+  --color-syntax-string: #9be3bf;
+  --color-syntax-number: #f1c27d;
+  --color-syntax-comment: #767d8a;
+  --color-syntax-function: #eceef1;
+  --color-syntax-property: #b7c7e3;
+  --color-syntax-type: #a9b8ff;
+  --color-syntax-variable: #f3b64b;
+  --color-syntax-punctuation: #7b828e;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-pill: 9999px;
+
+  /* Shadows — restrained, depth comes mostly from borders */
+  --shadow-subtle: inset 0 1px 0 0 rgb(255 255 255 / 0.04), 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-elevated:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.5),
+    0 24px 60px -24px rgb(0 0 0 / 0.75);
+  --shadow-glow-success: 0 0 0 1px rgb(62 227 154 / 0.3), 0 0 36px -6px rgb(62 227 154 / 0.45);
+  --shadow-glow-accent: 0 0 0 1px rgb(94 169 247 / 0.28), 0 0 36px -8px rgb(94 169 247 / 0.4);
+
+  /* Typography scale — fluid, tight tracking on display sizes */
+  --text-display: clamp(2.6rem, 1.45rem + 5.1vw, 5.6rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.045em;
+  --text-display--font-weight: 600;
+
+  --text-h1: clamp(2.25rem, 1.55rem + 3vw, 3.9rem);
+  --text-h1--line-height: 1.04;
+  --text-h1--letter-spacing: -0.04em;
+  --text-h1--font-weight: 600;
+
+  --text-h2: clamp(1.9rem, 1.4rem + 2.1vw, 3rem);
+  --text-h2--line-height: 1.08;
+  --text-h2--letter-spacing: -0.035em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 1.1875rem;
+  --text-h3--line-height: 1.35;
+  --text-h3--letter-spacing: -0.015em;
+  --text-h3--font-weight: 600;
+
+  --text-body-lg: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+  --text-body-lg--line-height: 1.65;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.65;
+
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.14em;
+  --text-label--font-weight: 500;
+
+  --text-code: 0.8125rem;
+  --text-code--line-height: 1.75;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Layout widths → max-w-narrow / max-w-content / max-w-wide */
+  --container-narrow: 42rem;
+  --container-content: 72rem;
+  --container-wide: 84rem;
+
+  /* Section rhythm → py-section */
+  --spacing-section: clamp(4.5rem, 2.8rem + 5.5vw, 7.5rem);
+  --spacing-gutter: clamp(1rem, 0.6rem + 1.8vw, 2rem);
+
+  /* Animations */
+  --animate-spin-slow: spin 40s linear infinite;
+  --animate-shimmer: shimmer 1.6s var(--ease-standard) infinite;
+  --animate-pulse-soft: pulse-soft 2.4s var(--ease-standard) infinite;
+
+  --animate-rise-in: rise-in 900ms var(--ease-out-expo) both;
+  /* Transform-only entrance for the LCP text: it paints on the first frame. */
+  --animate-settle: settle 900ms var(--ease-out-expo) both;
+  --animate-fade-in: fade-in 180ms var(--ease-standard);
+  --animate-fade-out: fade-out 140ms var(--ease-exit);
+  --animate-dialog-in: dialog-in 280ms var(--ease-out-expo);
+  --animate-dialog-out: dialog-out 150ms var(--ease-exit);
+  --animate-sheet-in: sheet-in 340ms var(--ease-out-expo);
+  --animate-sheet-out: sheet-out 200ms var(--ease-exit);
+  --animate-sheet-in-left: sheet-in-left 340ms var(--ease-out-expo);
+  --animate-sheet-out-left: sheet-out-left 200ms var(--ease-exit);
+  --animate-accordion-down: accordion-down 260ms var(--ease-out-expo);
+  --animate-accordion-up: accordion-up 180ms var(--ease-exit);
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes settle {
+    from {
+      transform: translateY(10px);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 8px)) scale(0.98);
+    }
+  }
+  @keyframes dialog-out {
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.98);
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes sheet-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes sheet-out-left {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+}
+
+@theme inline {
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root {
+  /* Motion durations (mirrored in src/lib/constants/motion.ts) */
+  --duration-micro: 120ms;
+  --duration-standard: 220ms;
+  --duration-cinematic: 700ms;
+
+  /* Z-index layers */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+
+  --nav-height: 4rem;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--color-background);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background-color: rgb(94 169 247 / 0.32);
+    color: var(--color-white);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  section[id],
+  [data-anchor] {
+    scroll-margin-top: calc(var(--nav-height) + 1rem);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Micro-label: uppercase monospace eyebrow used sparingly for technical context. */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: var(--text-label--font-weight);
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+/* Technical grid, faded toward the edges. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 75%);
+}
+
+/* Soft radial glow behind focal elements. Color via --glow. */
+@utility glow {
+  background: radial-gradient(closest-side, var(--glow, rgb(94 169 247 / 0.16)), transparent);
+}
+
+/* Faint film grain for depth on cinematic surfaces. */
+@utility grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+}
+
+/* Hairline top highlight used on raised surfaces. */
+@utility hairline {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+}
+
+/* Skeleton shimmer. */
+@utility skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-raised) 0%,
+    var(--color-surface-overlay) 50%,
+    var(--color-surface-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Heading text gradient for the hero emphasis. */
+@utility text-gradient-verified {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-foreground) 10%,
+    #9ff0c9 60%,
+    var(--color-success) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Chevron for native <select> elements. */
+@utility select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237f8693' stroke-width='1.5'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
