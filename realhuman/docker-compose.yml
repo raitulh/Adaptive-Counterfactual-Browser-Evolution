@@ -1,0 +1,53 @@
+# Full stack for local development:
+#   docker compose up --build
+# Web app:  http://localhost:3000   (live mode, talks to the API below)
+# API:      http://localhost:8000   (OpenAPI docs at /docs)
+# Demo login: demo@realhuman.dev / realhuman-demo-password
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: realhuman
+      POSTGRES_PASSWORD: realhuman
+      POSTGRES_DB: realhuman
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U realhuman -d realhuman"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg://realhuman:realhuman@db:5432/realhuman
+      SECRET_KEY: ${SECRET_KEY:-local-dev-only-secret-change-me-0123456789abcdef}
+      CORS_ORIGINS: http://localhost:3000
+      SEED_DEMO: "true"
+      DEMO_EMAIL: demo@realhuman.dev
+      DEMO_PASSWORD: realhuman-demo-password
+      DEMO_SITE_KEY: pk_test_demo_5f2c81a9e04b
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Inlined at build time; the browser calls the API directly.
+        NEXT_PUBLIC_VERIFICATION_MODE: live
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_SITE_KEY: pk_test_demo_5f2c81a9e04b
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
