@@ -67,6 +67,9 @@ class ToolSpec(BaseModel):
     verification_method: str = VerificationMethod.OUTPUT_SCHEMA
     output_trust: TrustLevel = TrustLevel.CONTROLLED_AGENT_OUTPUT
     async_execution: bool = False  # executed out-of-band by a dedicated worker (browser)
+    # Provider lookups used by ``reconcile`` may lag the write (search indexes). An empty lookup is
+    # only trusted this long after the attempt started; before that the check is repeated later.
+    reconcile_settle_seconds: int = Field(default=0, ge=0, le=3600)
     input_schema: dict[str, Any] = Field(default_factory=dict)
     output_schema: dict[str, Any] = Field(default_factory=dict)
 

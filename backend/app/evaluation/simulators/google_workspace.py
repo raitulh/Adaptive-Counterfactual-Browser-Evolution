@@ -52,7 +52,10 @@ class FakeGoogleWorkspace:
     revoked_refresh_tokens: set[str] = field(default_factory=set)
     failures: dict[str, list[Failure]] = field(default_factory=dict)
     event_tamper: Callable[[dict[str, Any]], None] | None = None
+    # Search-index lag: a newly stored message is missed by this many Message-ID searches.
+    search_lag: int = 0
     calls: list[tuple[str, str]] = field(default_factory=list)
+    _search_misses: dict[str, int] = field(default_factory=dict)
     _ids: Any = field(default_factory=lambda: itertools.count(1))
 
     # ------------------------------------------------------------------ setup helpers
@@ -268,6 +271,8 @@ class FakeGoogleWorkspace:
                    "payload": {"mimeType": "text/plain", "headers": headers,
                                "body": {"data": base64.urlsafe_b64encode(text.encode()).decode().rstrip("=")}}}
         self.messages[mid] = message
+        if self.search_lag:
+            self._search_misses[mid] = self.search_lag
         return message
 
     def _send(self, request: httpx.Request, path: str, query: dict[str, str]) -> httpx.Response:
@@ -288,6 +293,10 @@ class FakeGoogleWorkspace:
             wanted = q.split(":", 1)[1].strip()
             items = [m for m in items if any(h["name"].lower() == "message-id" and h["value"].strip() == wanted
                                              for h in m["payload"]["headers"])]
+            lagging = [m for m in items if self._search_misses.get(m["id"], 0) > 0]
+            for m in lagging:
+                self._search_misses[m["id"]] -= 1
+            items = [m for m in items if m not in lagging]
         elif "in:inbox" in q:
             items = [m for m in items if "INBOX" in m["labelIds"]]
         limit = int(query.get("maxResults", 10))

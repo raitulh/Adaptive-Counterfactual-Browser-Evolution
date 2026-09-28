@@ -191,7 +191,11 @@ by `"<task>:<tool>:<action_hash[:32]>"`:
 Tools make retries converge on the same external object:
 `calendar.create_event` derives the Google Calendar event id from the idempotency key
 (a repeated insert hits `409` instead of duplicating), and `gmail.send` sets a deterministic
-`Message-ID` header so reconciliation can search `rfc822msgid:`.
+`Message-ID` header so reconciliation can search `rfc822msgid:` (including trash and spam — a
+sent message the user already deleted was still sent). Because that lookup goes through a
+search index, an empty result within `reconcile_settle_seconds` (120 s) of the attempt is not
+trusted: the step stays `requires_reconciliation` (`reconciliation_pending`), the task is
+re-queued for the end of the window, and only a second empty lookup allows the retry.
 
 ### Verification
 
@@ -221,7 +225,7 @@ row; verified failures become `failure_records` for ACBE):
 | Situation | Decision | Resulting state |
 |---|---|---|
 | needs information (e.g. unknown contact) | `request_user` | step/task `waiting_input` |
-| side effect with ambiguous outcome (timeout, network, crash) | `reconcile` | `requires_reconciliation` → tool `reconcile()` → found: verify; not found: retry; unknown: ask the user |
+| side effect with ambiguous outcome (timeout, network, crash) | `reconcile` | `requires_reconciliation` → tool `reconcile()` → found: verify; not found: retry (but inside the tool's `reconcile_settle_seconds` window — 120 s for `gmail.send`, whose lookup is a search index — it is re-checked once after the window instead); unknown: ask the user |
 | expired/revoked/missing connection | `block` | `blocked` (resume after reconnecting) |
 | missing OAuth scope | `block` | `blocked` |
 | policy / unsafe URL / invalid approval | `fail` | `failed` |
@@ -346,6 +350,7 @@ Each row is covered by `tests/e2e/test_failure_scenarios.py`.
 | Calendar insert times out *after* the write | reconciliation finds the event (deterministic id) → verified; no second insert | completed, exactly 1 event |
 | Gmail returns 503 before sending | ledger marked failed (definitely not sent) → reconciled → retried once | completed, exactly 1 e-mail |
 | Gmail times out *after* sending | reconciliation finds the message by `Message-ID` | completed, exactly 1 e-mail |
+| Gmail times out after sending **and search lags** | first lookup finds nothing inside the settle window → `not_visible_yet`, task re-queued for the window's end → re-check finds it | completed, exactly 1 e-mail |
 | Worker crashes right after the calendar write | lease expires; next worker finds the step `running` with a `pending` ledger → reconciles instead of re-running | completed, exactly 1 event |
 | Created event read back with a different title | `verification_mismatch` → `requires_reconciliation`; the e-mail is **not** sent; after `POST /tasks/{id}/steps/{step}/confirm` (`succeeded`) execution continues | completed |
 | Approval expires | task `expired`; approving later returns 409; resume requests a fresh approval | waiting_approval |

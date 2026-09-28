@@ -167,11 +167,13 @@ class GmailAdapter:
     def __init__(self, client: GoogleApiClient) -> None:
         self.c = client
 
-    async def list_messages(self, *, query: str, max_results: int = 10, label_ids: list[str] | None = None
-                            ) -> list[dict[str, Any]]:
+    async def list_messages(self, *, query: str, max_results: int = 10, label_ids: list[str] | None = None,
+                            include_spam_trash: bool = False) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"q": query, "maxResults": max_results}
         if label_ids:
             params["labelIds"] = label_ids
+        if include_spam_trash:
+            params["includeSpamTrash"] = "true"
         data = await self.c.request("GET", f"{GMAIL_BASE}/messages", params=params)
         return list(data.get("messages", []))
 
@@ -200,8 +202,10 @@ class GmailAdapter:
                                          params={"format": "metadata"}))
 
     async def find_by_message_id_header(self, message_id_header: str) -> list[dict[str, Any]]:
-        """Look up a message by its RFC 822 Message-ID (used for send reconciliation)."""
-        return await self.list_messages(query=f"rfc822msgid:{message_id_header}", max_results=5)
+        """Look up a message by its RFC 822 Message-ID (used for send reconciliation). Trash and spam
+        are included: a sent message the user already deleted was still sent."""
+        return await self.list_messages(query=f"rfc822msgid:{message_id_header}", max_results=5,
+                                        include_spam_trash=True)
 
 
 class DriveAdapter:

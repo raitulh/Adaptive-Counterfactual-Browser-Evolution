@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 import uuid
 from collections.abc import AsyncIterator
 from typing import Any
@@ -34,6 +35,8 @@ from app.tasks.schemas import (
 )
 from app.tasks.state import TERMINAL
 from app.verification.models import VerificationResult
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 events_router = APIRouter(prefix="/events", tags=["events"])
@@ -152,16 +155,29 @@ def _sse(event: str, data: Any, event_id: int | None = None) -> str:
     return "\n".join(lines) + "\n\n"
 
 
-async def _next_wakeup(sub: AsyncIterator[dict[str, Any]], timeout: float) -> None:
-    with contextlib.suppress(TimeoutError, StopAsyncIteration):
-        deadline = asyncio.get_running_loop().time() + timeout
+# Events are durable in task_events; pub/sub only shortens latency. Without it, streams poll the database.
+_POLL_FALLBACK_SECONDS = 2.0
+
+
+async def _next_wakeup(sub: AsyncIterator[dict[str, Any]], timeout: float) -> bool:
+    """Wait for a pub/sub wake-up or the timeout. Returns False once the bus has failed or closed, so the
+    caller switches to plain database polling instead of spinning on a dead subscription."""
+    deadline = asyncio.get_running_loop().time() + timeout
+    try:
         while True:
             remaining = deadline - asyncio.get_running_loop().time()
             if remaining <= 0:
-                return
+                return True
             message = await asyncio.wait_for(sub.__anext__(), timeout=remaining)
             if message.get("type") != "__idle__":
-                return
+                return True
+    except TimeoutError:
+        return True
+    except StopAsyncIteration:
+        return False
+    except Exception as exc:  # Redis unavailable: degrade, do not break the stream
+        logger.warning("event bus unavailable; task stream falls back to polling", extra={"error": type(exc).__name__})
+        return False
 
 
 @router.get("/{task_id}/events/stream", summary="Server-Sent Events stream of task events (resumable)",
@@ -181,6 +197,7 @@ async def stream_events(task_id: uuid.UUID, request: Request, db: DbSession,
     async def generator() -> AsyncIterator[str]:
         last = start_seq
         sub = get_event_bus().subscribe(task_channel(task_id))
+        bus_ok = True
         sf = get_session_factory()
         try:
             yield ": connected\n\n"
@@ -200,7 +217,10 @@ async def stream_events(task_id: uuid.UUID, request: Request, db: DbSession,
                     return
                 if not rows:
                     yield ": keep-alive\n\n"
-                    await _next_wakeup(sub, 15.0)
+                    if bus_ok:
+                        bus_ok = await _next_wakeup(sub, 15.0)
+                    else:
+                        await asyncio.sleep(_POLL_FALLBACK_SECONDS)
         finally:
             with contextlib.suppress(Exception):
                 await sub.aclose()  # type: ignore[attr-defined]
@@ -225,6 +245,11 @@ async def user_stream(request: Request, db: DbSession, ctx: RequestContext = Dep
                 except TimeoutError:
                     yield ": keep-alive\n\n"
                     continue
+                except Exception as exc:  # Redis unavailable or subscription closed
+                    logger.warning("event bus unavailable; closing user stream", extra={"error": type(exc).__name__})
+                    # Ask the client to reconnect later; durable state stays readable through the REST API.
+                    yield "retry: 5000\n" + _sse("stream_unavailable", {"reason": "event_bus_unavailable"})
+                    return
                 if message.get("type") == "__idle__":
                     continue
                 yield _sse(str(message.get("type", "event")), message)

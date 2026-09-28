@@ -30,7 +30,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from pydantic import ValidationError
@@ -102,6 +102,7 @@ MAX_PARALLEL = 4
 MAX_OUTPUT_JSON_ITEMS = 200
 MAX_ARGUMENT_BYTES = 1_000_000
 RECON_UNKNOWN = "reconciliation_unknown"
+RECON_PENDING = "reconciliation_pending"  # lookup came back empty inside the tool's settle window; re-check later
 VERIFY_INCONCLUSIVE = "verification_inconclusive"
 AWAITING_USER_CODES = (RECON_UNKNOWN, VERIFY_INCONCLUSIVE, "verification_mismatch")
 
@@ -348,7 +349,8 @@ class ExecutionEngine:
                     state = StepStatus(st.status)
                 if state == StepStatus.VERIFYING:
                     it.verify.append(st.id)
-                elif state == StepStatus.REQUIRES_RECONCILIATION and st.error_code not in AWAITING_USER_CODES:
+                elif (state == StepStatus.REQUIRES_RECONCILIATION and st.error_code not in AWAITING_USER_CODES
+                      and (st.next_attempt_at is None or ensure_aware(st.next_attempt_at) <= now)):
                     it.reconcile.append(st.id)
             # Cascade: steps whose dependencies can no longer complete are skipped.
             changed = True
@@ -940,7 +942,20 @@ class ExecutionEngine:
                 return
             ledger = (await s.execute(select(ExternalAction).where(
                 ExternalAction.idempotency_key == step.idempotency_key).with_for_update())).scalar_one_or_none()
-            if outcome.status == ReconcileStatus.FOUND and outcome.result is not None:
+            recheck_at = (await self._settle_deadline(s, tool, step)
+                          if outcome.status == ReconcileStatus.NOT_FOUND and step.error_code != RECON_PENDING else None)
+            step.next_attempt_at = None
+            if recheck_at is not None:
+                # "Not found" this soon after the attempt may be indexing lag, not absence: retrying now
+                # could duplicate the action (e.g. send an e-mail twice). Check once more after the window.
+                step.error_code = RECON_PENDING
+                step.next_attempt_at = recheck_at
+                await append_event(s, task, EventType.RECONCILIATION_REQUIRED, step_id=step.id,
+                                   payload={"step": step.step_key, "outcome": "not_visible_yet",
+                                            "recheck_at": recheck_at.isoformat()})
+                self._log(s, task, step, "info", "The provider does not show the result yet; checking again "
+                                                 "before deciding whether it is safe to retry.")
+            elif outcome.status == ReconcileStatus.FOUND and outcome.result is not None:
                 if ledger is not None:
                     ledger.status = "succeeded"
                     ledger.external_ref = outcome.result.external_ref
@@ -979,6 +994,18 @@ class ExecutionEngine:
         if outcome.status == ReconcileStatus.FOUND:
             await self._verify_step(rc, step_id)
 
+    async def _settle_deadline(self, s: AsyncSession, tool: Tool[Any, Any], step: TaskStep) -> datetime | None:
+        """When an empty reconciliation lookup is still inside the tool's settle window, its end."""
+        settle = tool.spec.reconcile_settle_seconds
+        if settle <= 0:
+            return None
+        started = (await s.execute(select(func.max(TaskAttempt.started_at))
+                                   .where(TaskAttempt.step_id == step.id))).scalar_one_or_none()
+        if started is None:
+            return None
+        deadline = ensure_aware(started) + timedelta(seconds=settle)
+        return deadline if deadline > utcnow() else None
+
     # ------------------------------------------------------------------ settle / finalize
     async def _settle(self, rc: RunContext) -> str:
         async with self._session(rc.tenant_id) as s:
@@ -1015,6 +1042,11 @@ class ExecutionEngine:
                 await notify(s, tenant_id=task.tenant_id, user_id=task.user_id, event=NotificationEvent.TASK_FAILED,
                              title="Your task is blocked", body=blocked.error_message or "Action required",
                              data={"task_id": str(task.id)}, idempotency_key=f"blocked:{task.id}:{blocked.id}")
+            elif rechecks := [ensure_aware(st.next_attempt_at) for st in steps
+                              if st.status == StepStatus.REQUIRES_RECONCILIATION.value
+                              and st.error_code == RECON_PENDING and st.next_attempt_at]:
+                await transition_task(s, task, TaskStatus.QUEUED, reason="waiting to re-check an action's outcome")
+                await self._enqueue_execute(s, task, delay_seconds=max(0.0, (min(rechecks) - utcnow()).total_seconds()))
             elif StepStatus.REQUIRES_RECONCILIATION in statuses:
                 await transition_task(s, task, TaskStatus.REQUIRES_RECONCILIATION,
                                       reason="an action's outcome needs confirmation")

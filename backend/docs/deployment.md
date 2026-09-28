@@ -305,8 +305,8 @@ provider before anything is retried, so a restore cannot silently duplicate side
   `job.run`; exported over OTLP/HTTP when `OTEL_ENABLED=true` and
   `OTEL_EXPORTER_OTLP_ENDPOINT` is the full traces URL (`…/v1/traces`); requires the `otlp`
   extra (included in the image).
-* **Errors**: set `SENTRY_DSN` and install `sentry-sdk` to report exceptions; otherwise they
-  are logged.
+* **Errors**: set `SENTRY_DSN` and install the `sentry` extra (`pip install ".[sentry]"`) to
+  report exceptions (`send_default_pii=False`); otherwise they are logged.
 * **Health**: `/api/v1/live`, `/api/v1/ready`, `/api/v1/health`; platform view:
   `GET /api/v1/admin/system` (workers, queue depth per status, oldest pending job, tasks by
   state) and `GET /api/v1/admin/jobs/dead`.

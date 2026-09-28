@@ -38,6 +38,7 @@ dependencies = [
 # Browser workers only. API/worker images do not need Chromium.
 browser = ["playwright>=1.49,<2"]
 otlp = ["opentelemetry-exporter-otlp-proto-http>=1.28,<2"]
+sentry = ["sentry-sdk>=2,<3"]
 dev = [
   "pytest>=8.3,<10",
   "pytest-asyncio>=0.24,<2",

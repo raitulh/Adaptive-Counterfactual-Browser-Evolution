@@ -25,6 +25,25 @@ async def test_health_endpoints(client):
     assert ready.status_code in (200, 503)  # 503 until migrations are applied (create_all mode)
 
 
+async def test_readiness_treats_redis_as_non_critical_unless_configured(client, monkeypatch):
+    import app.api.health as health
+    from app.core.config import get_settings
+
+    async def redis_down() -> None:
+        raise ConnectionError("redis unavailable")
+
+    async def migrated() -> None:
+        return None
+
+    monkeypatch.setattr(health, "check_redis", redis_down)
+    monkeypatch.setattr(health, "_migrations_probe", migrated)
+    ready = await client.get("/api/v1/ready")
+    assert ready.status_code == 200, ready.text
+    assert ready.json()["degraded"] == ["redis"] and ready.json()["checks"]["redis"]["status"] == "error"
+    monkeypatch.setattr(get_settings(), "readiness_requires_redis", True)
+    assert (await client.get("/api/v1/ready")).status_code == 503
+
+
 async def test_agents_are_versioned(client, make_user):
     user = await make_user()
     created = await client.post("/api/v1/agents", json={"name": "scheduler", "instructions": "Be brief.",

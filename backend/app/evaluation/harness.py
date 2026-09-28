@@ -117,12 +117,14 @@ async def claim_tenant_jobs(tenant_id: uuid.UUID, *, worker_id: str, job_types: 
 
 
 async def fast_forward_tenant(tenant_id: uuid.UUID) -> None:
-    """Simulated passage of time for one tenant: delayed jobs and scheduled step retries become due."""
+    """Simulated passage of time for one tenant: delayed jobs, scheduled step retries and reconciliation
+    re-checks become due."""
     async with system_session() as session:
         await session.execute(text("UPDATE jobs SET run_at = now() WHERE status = 'pending' AND tenant_id = :t "
                                    "AND run_at > now()"), {"t": tenant_id})
         await session.execute(text("UPDATE task_steps SET next_attempt_at = now() WHERE tenant_id = :t "
-                                   "AND status = 'retry_scheduled' AND next_attempt_at > now()"), {"t": tenant_id})
+                                   "AND status IN ('retry_scheduled', 'requires_reconciliation') "
+                                   "AND next_attempt_at > now()"), {"t": tenant_id})
         await session.commit()
 
 

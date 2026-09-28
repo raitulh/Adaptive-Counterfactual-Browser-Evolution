@@ -60,6 +60,24 @@ def test_password_hashing_and_jwt() -> None:
         decode_access_token(stream)  # stream tokens are not access tokens
 
 
+def test_jwt_previous_secrets_accepted_only_for_verification() -> None:
+    from app.core.config import get_settings
+
+    base = get_settings()
+    old = "old-secret-" + "o" * 40
+    signed_with_old, _ = create_access_token(uuid.uuid4(), uuid.uuid4(), uuid.uuid4(),
+                                             base.model_copy(update={"jwt_secret": base.jwt_secret.__class__(old)}))
+    rotating = base.model_copy(update={"jwt_previous_secrets": base.jwt_secret.__class__(f" {old} ,")})
+    assert decode_access_token(signed_with_old, rotating).token_type == "access"
+    with pytest.raises(Unauthorized):
+        decode_access_token(signed_with_old, base)  # overlap window closed: old tokens are rejected
+    fresh, _ = create_access_token(uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), rotating)
+    assert decode_access_token(fresh, base).token_type == "access"  # new tokens are signed with the primary
+    too_short = base.model_copy(update={"jwt_previous_secrets": base.jwt_secret.__class__("short")})
+    with pytest.raises(Exception, match="JWT_PREVIOUS_SECRETS"):
+        too_short.validate_for_startup()
+
+
 def test_totp_and_replay() -> None:
     secret = totp.generate_secret()
     now = time.time()

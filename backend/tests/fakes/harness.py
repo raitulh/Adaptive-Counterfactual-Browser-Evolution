@@ -124,7 +124,8 @@ class Harness:
             await s.execute(update(Job).where(Job.status == "pending", Job.run_at > utcnow())
                             .values(run_at=utcnow()))
             await s.execute(text("UPDATE task_steps SET next_attempt_at = now() "
-                                 "WHERE status = 'retry_scheduled' AND next_attempt_at > now()"))
+                                 "WHERE status IN ('retry_scheduled', 'requires_reconciliation') "
+                                 "AND next_attempt_at > now()"))
             await s.commit()
 
     async def dead_jobs(self) -> list[Job]:

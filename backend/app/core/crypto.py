@@ -46,7 +46,10 @@ class LocalFernetKeyManager:
             raise DecryptionError("credential could not be decrypted with any configured key") from exc
 
     def rotate(self, ciphertext: str) -> str:
-        return self._fernet.rotate(ciphertext.encode("ascii")).decode("ascii")
+        try:
+            return self._fernet.rotate(ciphertext.encode("ascii")).decode("ascii")
+        except InvalidToken as exc:
+            raise DecryptionError("credential could not be decrypted with any configured key") from exc
 
 
 def build_key_manager(settings: Settings) -> KeyManager:

@@ -1,6 +1,7 @@
 """Background worker process.
 
-    python -m app.workers.worker --queues planning,execution,memory,notifications,files,maintenance,evaluation
+    python -m app.workers.worker --queues planning,execution,memory,notifications,files,maintenance
+    python -m app.workers.worker --queues evaluation --concurrency 1   # dedicated evaluation/ACBE worker
 
 * Stateless: all durable state is in PostgreSQL; a crashed worker's leases expire
   and its jobs (and task leases) are picked up by another worker.

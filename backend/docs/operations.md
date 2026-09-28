@@ -111,14 +111,21 @@ browser worker, scheduler) must have the keys of a phase before the next phase s
    `TOKEN_ENCRYPTION_PREVIOUS_KEYS=<old>`. New and refreshed secrets (e.g. every refreshed
    Google access token) are now written under the new key; old ciphertexts still decrypt.
 3. **Re-encrypt old ciphertexts.** Rows not rewritten naturally (refresh tokens, MFA secrets,
-   tool/MCP credentials) must be re-encrypted with `KeyManager.rotate()`
-   (`app.core.crypto.get_key_manager().rotate(ciphertext)`) over
-   `oauth_connections.access_token_enc`, `oauth_connections.refresh_token_enc`,
+   tool/MCP credentials) are re-encrypted under the new primary key by
+
+   ```bash
+   python -m app.cli rotate-encryption --dry-run   # every value decryptable? (writes nothing)
+   python -m app.cli rotate-encryption             # re-encrypt in batches (idempotent, audited)
+   ```
+
+   It covers `oauth_connections.access_token_enc`, `oauth_connections.refresh_token_enc`,
    `mfa_factors.secret_encrypted`, `tool_credentials.secret_encrypted` and
-   `mcp_servers.auth_header_enc`, in small batches. This build does not ship that batch job —
-   see [limitations.md](limitations.md).
-4. **Retire the old key** only after step 3 is complete: deploy with
-   `TOKEN_ENCRYPTION_PREVIOUS_KEYS` empty. Anything still encrypted under the old key would
+   `mcp_servers.auth_header_enc`, is safe while the platform runs (each value is rewritten
+   with a compare-and-set, so a concurrent token refresh is never overwritten) and exits
+   non-zero listing `table.column:id` of values no configured key can decrypt. Run it where
+   the phase-2 configuration is set (e.g. `kubectl -n agentos exec deploy/agentos-api -- python -m app.cli rotate-encryption`).
+4. **Retire the old key** only after step 3 reports no failures (re-run `--dry-run` with only
+   the new key configured to confirm): deploy with `TOKEN_ENCRYPTION_PREVIOUS_KEYS` empty. Anything still encrypted under the old key would
    now fail to decrypt (connections show errors and must be reconnected).
 
 **If the key leaked**: rotate as above *and* treat stored provider tokens as compromised —
@@ -128,19 +135,23 @@ providers.
 ## Rotate JWT_SECRET
 
 `JWT_SECRET` signs access and stream tokens only; refresh tokens are opaque database tokens.
-Changing it invalidates every access token at once: clients get `401`, call
-`POST /auth/refresh`, and continue with a token signed by the new secret. There is a single
-active secret (no overlap), so during a rolling deploy pods with different secrets reject each
-other's tokens for the few minutes the rollout takes — roll out quickly (high `maxSurge`) or
-in a quiet period.
+Only `JWT_SECRET` signs; secrets listed in `JWT_PREVIOUS_SECRETS` (comma separated) are still
+accepted for *verification*, which gives a rotation without `401`s:
 
-1. `python -c "import secrets; print(secrets.token_urlsafe(64))"` → new version of the
-   `agentos-jwt-secret` secret.
-2. Restart/roll out every process (API validates tokens; workers do not).
+1. Generate the new secret: `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
+2. **Accept it everywhere:** roll out `JWT_SECRET=<old>`, `JWT_PREVIOUS_SECRETS=<new>`.
+3. **Sign with it:** roll out `JWT_SECRET=<new>`, `JWT_PREVIOUS_SECRETS=<old>`. During both
+   rollouts every pod accepts tokens minted by every other pod, so clients see no `401`s.
+4. **Retire the old secret** after one access-token lifetime (`ACCESS_TOKEN_TTL_SECONDS`,
+   15 min): roll out with `JWT_PREVIOUS_SECRETS` empty.
+
+Without the overlap, changing the secret simply invalidates all access tokens: clients get
+`401`, call `POST /auth/refresh` (refresh tokens are opaque database tokens) and continue.
+**Do not use the overlap when the old secret leaked** — remove it at once:
 
 **If the secret leaked**, a forger could mint access tokens for any session ID it knows; each
-request is still checked against the session row and the membership. Rotate immediately and,
-to be safe, revoke all sessions (everyone signs in again):
+request is still checked against the session row and the membership. Rotate immediately
+(no `JWT_PREVIOUS_SECRETS`) and, to be safe, revoke all sessions (everyone signs in again):
 
 ```sql
 BEGIN;
@@ -153,7 +164,7 @@ COMMIT;
 
 | Situation | Behaviour | Action |
 |---|---|---|
-| Redis down | rate limiting fails open (metric `rate_limited_total{scope=~".*:redis_error"}`), SSE streams lose their wake-ups and may disconnect (clients reconnect with `Last-Event-ID` or poll `/tasks/{id}/events`), in-flight OAuth connects fail (state lost), `/ready` reports `redis: error` (pods leave load balancing) | restore Redis; users retry connecting; set `RATE_LIMIT_FAIL_OPEN=false` if you prefer rejecting traffic |
+| Redis down | rate limiting fails open (metric `rate_limited_total{scope=~".*:redis_error"}`), per-task SSE streams fall back to polling the database every 2 s, the user-wide stream sends `stream_unavailable` with `retry: 5000` and closes, in-flight OAuth connects fail (state lost), `/ready` stays 200 with `"degraded": ["redis"]` (set `READINESS_REQUIRES_REDIS=true` to take pods out of load balancing instead) | restore Redis; users retry connecting; set `RATE_LIMIT_FAIL_OPEN=false` if you prefer rejecting traffic |
 | PostgreSQL failover | requests fail briefly; workers back off; leases expire and work resumes | none; check for dead-lettered jobs afterwards |
 | Model provider rate limit / outage | planning retries with backoff, then tasks fail with `model_rate_limited` / model errors | raise quota, lower concurrency, resume affected tasks |
 | Google API outage | transient errors retried; persistent ones fail/block steps; writes with unknown outcome are reconciled | resume tasks after recovery |

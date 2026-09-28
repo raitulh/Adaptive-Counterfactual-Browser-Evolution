@@ -188,6 +188,21 @@ async def test_email_timeout_after_send_is_found_by_message_id(client, make_user
     assert len(sent_messages(harness)) == 1, "the e-mail must not be sent twice"
 
 
+async def test_email_timeout_with_search_lag_is_rechecked_not_resent(client, make_user, harness):
+    """Right after an ambiguous send, Gmail search may not show the message yet. "Not found" inside the
+    tool's settle window must trigger a later re-check, not a second send."""
+    harness.google.search_lag = 1
+    harness.google.fail("gmail.send", Failure(kind="timeout", after_effect=True))
+    user, task_id = await start(client, make_user, harness)
+    task = await drive(client, user, harness, task_id)
+    assert task["status"] == "completed", task
+    assert len(sent_messages(harness)) == 1, "the e-mail must not be sent twice"
+    assert len([c for c in harness.google.calls if c[0] == "gmail.send"]) == 1
+    outcomes = [e["payload"].get("outcome") for e in await _events(client, user, task_id)
+                if e["event_type"] in ("RECONCILIATION_REQUIRED", "RECONCILIATION_RESOLVED")]
+    assert outcomes == [None, "not_visible_yet", "found"], outcomes  # timeout -> too early to trust -> found
+
+
 async def test_worker_crash_mid_write_recovers_without_duplicate(client, make_user, harness, monkeypatch):
     class WorkerCrash(BaseException):
         pass

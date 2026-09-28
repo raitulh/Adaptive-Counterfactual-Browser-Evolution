@@ -5,12 +5,11 @@
 
 Creates (or leaves as is, when already present):
 
-* the demo user ``demo@agentos.local`` with a generated password (printed ONCE,
+* the demo user ``demo@agentos.example.com`` with a generated password (printed ONCE,
   only when the user is created or the password is reset) — via ``auth.service.register``,
-  which also creates the "AgentOS Demo" organization with the user as owner. The API's
-  e-mail validation currently rejects special-use domains such as ``.local`` at sign-in,
-  so while that is the case the script uses ``demo@agentos.example.com`` instead (it
-  says so), because a demo user that cannot sign in is useless;
+  which also creates the "AgentOS Demo" organization with the user as owner. The address
+  uses the reserved ``example.com`` domain: the API's e-mail validation (deliberately)
+  rejects special-use domains such as ``.local``;
 * an agent "demo-assistant" with its first immutable version (``agents.service.create_agent``);
 * an organization policy that treats the demo user's domain as the internal e-mail domain
   (``organizations.service.update_policy``; bumps the policy version only on change);
@@ -33,8 +32,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-DEMO_EMAIL = "demo@agentos.local"
-FALLBACK_EMAIL = "demo@agentos.example.com"
+DEMO_EMAIL = "demo@agentos.example.com"
 DEMO_NAME = "Demo User"
 DEMO_ORG = "AgentOS Demo"
 DEMO_TIMEZONE = "UTC"
@@ -69,19 +67,6 @@ def say(message: str) -> None:
     print(message, flush=True)
 
 
-def accepted_by_api(email: str) -> bool:
-    """Whether POST /auth/login would accept this address (same schema as the API)."""
-    from pydantic import ValidationError
-
-    from app.auth.schemas import LoginRequest
-
-    try:
-        LoginRequest(email=email, password="x")
-    except ValidationError:
-        return False
-    return True
-
-
 async def seed(reset_password: bool) -> int:
     from sqlalchemy import select
 
@@ -113,16 +98,7 @@ async def seed(reset_password: bool) -> int:
         async with sf() as session:
             set_system_scope(session)
             email = DEMO_EMAIL
-            user = None
-            for candidate in (DEMO_EMAIL, FALLBACK_EMAIL):
-                user = await auth_service.get_user_by_email(session, candidate)
-                if user is not None:
-                    email = candidate
-                    break
-            if user is None and not accepted_by_api(DEMO_EMAIL):
-                email = FALLBACK_EMAIL
-                say(f"note: the API rejects {DEMO_EMAIL} at sign-in (special-use '.local' domain); "
-                    f"using {FALLBACK_EMAIL}")
+            user = await auth_service.get_user_by_email(session, email)
             if user is None:
                 password = generate_password(settings.password_min_length)
                 try:

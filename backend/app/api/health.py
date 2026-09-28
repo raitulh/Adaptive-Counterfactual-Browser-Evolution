@@ -61,10 +61,17 @@ async def ready(response: Response) -> dict[str, Any]:
         _probe(check_database()), _probe(check_redis()), _probe(_queue_probe()), _probe(_migrations_probe())
     )
     checks = {"database": db, "redis": redis, "queue": queue, "migrations": migrations}
-    ok = all(c["status"] == "ok" for c in checks.values())
+    critical = ["database", "queue", "migrations"]
+    if get_settings().readiness_requires_redis:
+        critical.append("redis")
+    ok = all(checks[name]["status"] == "ok" for name in critical)
     if not ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    return {"status": "ready" if ok else "not_ready", "checks": checks}
+    degraded = sorted(name for name, c in checks.items() if c["status"] != "ok" and name not in critical)
+    body: dict[str, Any] = {"status": "ready" if ok else "not_ready", "checks": checks}
+    if degraded:
+        body["degraded"] = degraded
+    return body
 
 
 @router.get("/health", summary="Detailed health: dependencies and provider configuration")

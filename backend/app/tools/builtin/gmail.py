@@ -239,6 +239,7 @@ class GmailSendTool(Tool[ComposeIn, SendOut]):
         idempotency_strategy=IdempotencyStrategy.RECONCILE_LOOKUP, timeout_seconds=30,
         retry_policy=RetryPolicy(max_attempts=2), parallel_safe=False,
         verification_method=VerificationMethod.PROVIDER_CONFIRMATION,
+        reconcile_settle_seconds=120,
     )
 
     def assess(self, args: ComposeIn, policy: OrganizationPolicy) -> RiskAssessment:
@@ -332,6 +333,7 @@ class GmailDraftTool(Tool[ComposeIn, DraftOut]):
         provider="google", permission_level=PermissionLevel.WRITE, risk_level=RiskLevel.LOW,
         required_scopes=COMPOSE_SCOPES, idempotency_strategy=IdempotencyStrategy.RECONCILE_LOOKUP,
         timeout_seconds=20, parallel_safe=False, verification_method=VerificationMethod.READ_BACK,
+        reconcile_settle_seconds=60,
     )
 
     def describe(self, args: ComposeIn) -> str:

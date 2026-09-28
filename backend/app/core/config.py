@@ -74,6 +74,8 @@ class Settings(BaseSettings):
 
     # ------------------------------------------------------ auth / sessions
     jwt_secret: SecretStr = SecretStr("dev-only-insecure-jwt-secret-change-me-0123456789")
+    # Comma-separated secrets still accepted for verification during a JWT_SECRET rotation (never used to sign).
+    jwt_previous_secrets: SecretStr = SecretStr("")
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     jwt_issuer: str = "agentos"
     jwt_audience: str = "agentos-api"
@@ -217,6 +219,9 @@ class Settings(BaseSettings):
     otel_exporter_otlp_endpoint: str | None = None
     otel_service_name: str = "agentos-backend"
     metrics_enabled: bool = True
+    # When false, a Redis outage is reported by /ready but does not take API pods out of load balancing
+    # (rate limits fail open and task streams fall back to database polling; OAuth flows need Redis).
+    readiness_requires_redis: bool = False
     metrics_bearer_token: SecretStr = SecretStr("")
     worker_metrics_port: int | None = None
     sentry_dsn: SecretStr = SecretStr("")
@@ -269,12 +274,19 @@ class Settings(BaseSettings):
         keys = [self.token_encryption_key.get_secret_value(), *(k.strip() for k in previous.split(","))]
         return [k.encode() for k in keys if k]
 
+    def jwt_verification_secrets(self) -> list[str]:
+        """Primary secret first (the only one used to sign), then previous secrets accepted during rotation."""
+        previous = self.jwt_previous_secrets.get_secret_value()
+        return [self.jwt_secret.get_secret_value(), *(k.strip() for k in previous.split(",") if k.strip())]
+
     def validate_for_startup(self) -> None:
         """Fail fast on unsafe or incomplete critical configuration."""
         errors: list[str] = []
         jwt_secret = self.jwt_secret.get_secret_value()
         if len(jwt_secret) < 32:
             errors.append("JWT_SECRET must be at least 32 characters")
+        if any(len(k) < 32 for k in self.jwt_verification_secrets()[1:]):
+            errors.append("JWT_PREVIOUS_SECRETS entries must be at least 32 characters")
         if not self.database_url.startswith("postgresql+asyncpg://"):
             errors.append("DATABASE_URL must use the postgresql+asyncpg:// driver")
         keys = self.encryption_keys()

@@ -91,23 +91,34 @@ def create_access_token(user_id: uuid.UUID, session_id: uuid.UUID, tenant_id: uu
     return token, expires
 
 
+def _decode_with_rotation(token: str, settings: Settings) -> dict[str, Any]:
+    """Verify against the current secret, then any previous secrets (rotation overlap window)."""
+    secrets_to_try = settings.jwt_verification_secrets()
+    for index, secret in enumerate(secrets_to_try):
+        try:
+            return dict(jwt.decode(
+                token,
+                secret,
+                algorithms=[settings.jwt_algorithm],
+                audience=settings.jwt_audience,
+                issuer=settings.jwt_issuer,
+                options={"require": ["exp", "iat", "sub", "sid", "tid", "typ", "jti"]},
+                leeway=5,
+            ))
+        except jwt.InvalidSignatureError as exc:
+            if index == len(secrets_to_try) - 1:
+                raise Unauthorized("Invalid access token", code="invalid_token") from exc
+        except jwt.ExpiredSignatureError as exc:
+            raise Unauthorized("Access token expired", code="token_expired") from exc
+        except jwt.PyJWTError as exc:
+            raise Unauthorized("Invalid access token", code="invalid_token") from exc
+    raise Unauthorized("Invalid access token", code="invalid_token")  # pragma: no cover - list is never empty
+
+
 def decode_access_token(token: str, settings: Settings | None = None, *, expected_type: str = "access"
                         ) -> AccessTokenClaims:
     settings = settings or get_settings()
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret.get_secret_value(),
-            algorithms=[settings.jwt_algorithm],
-            audience=settings.jwt_audience,
-            issuer=settings.jwt_issuer,
-            options={"require": ["exp", "iat", "sub", "sid", "tid", "typ", "jti"]},
-            leeway=5,
-        )
-    except jwt.ExpiredSignatureError as exc:
-        raise Unauthorized("Access token expired", code="token_expired") from exc
-    except jwt.PyJWTError as exc:
-        raise Unauthorized("Invalid access token", code="invalid_token") from exc
+    payload = _decode_with_rotation(token, settings)
     if payload.get("typ") != expected_type:
         raise Unauthorized("Invalid token type", code="invalid_token")
     try:
