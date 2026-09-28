@@ -29,6 +29,7 @@ router = APIRouter(prefix="/search", tags=["search"])
              responses={403: {"description": "Web search disabled"}, 429: {"description": "Rate limited"},
                         503: {"description": "Web search not configured"}})
 async def search_web(body: WebSearchRequest, ctx: Ctx, db: DbSession) -> WebSearchResponse:
+    ctx.require(P.SEARCH_USE)
     await require_enabled(db, Flags.WEB_SEARCH, ctx.tenant_id)
     settings = get_settings()
     await get_rate_limiter().enforce("search", str(ctx.user_id), settings.rate_limit_search_per_minute)

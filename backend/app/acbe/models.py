@@ -50,7 +50,10 @@ class StrategyCandidate(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     rolled_back_at: Mapped[datetime | None] = mapped_column(nullable=True)
     rollback_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (Index("ix_strategy_candidates_status", "status", "scope"),)
+    __table_args__ = (
+        Index("ix_strategy_candidates_status", "status", "scope"),
+        Index("ix_strategy_candidates_tenant_fingerprint", "tenant_id", "failure_fingerprint"),
+    )
 
 
 class StrategyExperiment(UUIDPrimaryKeyMixin, TimestampMixin, Base):

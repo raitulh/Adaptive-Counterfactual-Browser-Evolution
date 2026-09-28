@@ -186,6 +186,7 @@ async def test_transient_failure_is_retried_with_backoff(sf, register_user, make
     assert run.task_id is not None and run.status == "created" and run.attempts == 2
     assert run.error is None and run.next_attempt_at is None
     assert (await _one(sf, Task, id=run.task_id)).source == "automation"
+    assert (await _one(sf, Automation, id=automation.id)).run_count == 1
 
 
 async def test_exhausted_retries_fail_the_run(sf, register_user, make_automation):
@@ -280,3 +281,14 @@ async def test_open_runs_stay_open_until_the_task_settles(sf, register_user, mak
         await _set_task_status(sf, run.task_id, status)
         await _sync(sf)
         assert (await _one(sf, AutomationRun, id=run.id)).status == "created"
+
+
+async def test_scheduler_tick_materializes_due_automations(sf, register_user, make_automation):
+    from app.workers.scheduler.scheduler import run_tick
+
+    user = await register_user()
+    automation = await make_automation(user.tenant_id, user.user_id)
+    await run_tick()
+    run = await _one(sf, AutomationRun, automation_id=automation.id)
+    assert run.task_id is not None
+    assert (await _one(sf, Task, id=run.task_id)).source == "automation"

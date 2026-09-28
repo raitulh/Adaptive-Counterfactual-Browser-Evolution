@@ -278,10 +278,14 @@ async def _materialize_due(session: AsyncSession, automation: Automation, now: d
     task = await _attempt(session, automation, run, now)
     if task is None:
         return False
+    _count_scheduled_run(automation)
+    return True
+
+
+def _count_scheduled_run(automation: Automation) -> None:
     automation.run_count = (automation.run_count or 0) + 1
     if automation.max_runs is not None and automation.run_count >= automation.max_runs:
         _disable(automation, REASON_MAX_RUNS)
-    return True
 
 
 async def _lock_automation(session: AsyncSession, automation_id: uuid.UUID, *, skip_locked: bool = True
@@ -315,6 +319,8 @@ async def _retry_pending_runs(session: AsyncSession, now: datetime, limit: int) 
             if automation.deleted_at is not None or (not automation.enabled and run.trigger == "schedule"):
                 _finish(run, RunStatus.SKIPPED, "automation_disabled", now)
             elif await _attempt(session, automation, run, now) is not None:
+                if run.trigger == "schedule":
+                    _count_scheduled_run(automation)
                 created += 1
             await session.commit()
         except Exception:
@@ -330,7 +336,8 @@ async def enqueue_due_automations(session: AsyncSession, *, now: datetime, limit
     be created yet. Returns the number of tasks created. Never executes the workflow."""
     now = ensure_aware(now)
     due_ids = list((await session.execute(
-        select(Automation.id).where(Automation.enabled.is_(True), Automation.deleted_at.is_(None),
+        # Plain ``enabled`` (not ``enabled IS true``) so the partial index predicate matches.
+        select(Automation.id).where(Automation.enabled, Automation.deleted_at.is_(None),
                                     Automation.next_run_at.is_not(None), Automation.next_run_at <= now)
         .order_by(Automation.next_run_at).limit(limit), execution_options=_NO_SCOPE,
     )).scalars().all())

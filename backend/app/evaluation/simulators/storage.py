@@ -1,4 +1,4 @@
-"""In-memory ObjectStorage for tests."""
+"""In-memory object storage for evaluation runs (never touches the real bucket)."""
 
 from __future__ import annotations
 
@@ -11,10 +11,6 @@ class MemoryStorage:
         self.objects[key] = (data, content_type)
 
     async def get_bytes(self, key: str) -> bytes:
-        from app.files.storage import ObjectNotFound
-
-        if key not in self.objects:
-            raise ObjectNotFound()
         return self.objects[key][0]
 
     async def delete(self, key: str) -> None:

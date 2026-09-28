@@ -25,6 +25,9 @@ ROUTERS: tuple[tuple[str, str], ...] = (
     ("app.billing.router", "router"),
     ("app.admin.router", "router"),
     ("app.memory.router", "router"),
+    ("app.automations.router", "router"),
+    ("app.files.router", "router"),
+    ("app.search.router", "router"),
     ("app.mcp.router", "router"),
     ("app.integrations.webhook_router", "router"),
 )

@@ -57,4 +57,6 @@ class Job(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             postgresql_where=text("status = 'pending' AND dedupe_key IS NOT NULL"),
         ),
         Index("ix_jobs_status_finished", "status", "finished_at"),
+        Index("ix_jobs_dedupe_key_created", "dedupe_key", "created_at",
+              postgresql_where=text("dedupe_key IS NOT NULL")),
     )

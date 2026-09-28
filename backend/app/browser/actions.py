@@ -108,6 +108,21 @@ class _Action(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def validate_http_url(value: str) -> str:
+    """Syntax gate for URLs the browser may open (the egress policy is checked separately)."""
+    value = value.strip()
+    try:
+        parts = urlsplit(value)
+        host = parts.hostname
+    except ValueError as exc:
+        raise ValueError("invalid URL") from exc
+    if parts.scheme.lower() not in ("http", "https") or not host:
+        raise ValueError("only absolute http(s) URLs can be opened")
+    if parts.username or parts.password:
+        raise ValueError("credentials in URLs are not allowed")
+    return value
+
+
 class Navigate(_Action):
     type: Literal["navigate"] = "navigate"
     url: str = Field(min_length=8, max_length=MAX_URL_LENGTH)
@@ -115,13 +130,7 @@ class Navigate(_Action):
     @field_validator("url")
     @classmethod
     def _http_only(cls, value: str) -> str:
-        value = value.strip()
-        parts = urlsplit(value)
-        if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
-            raise ValueError("only absolute http(s) URLs can be opened")
-        if parts.username or parts.password:
-            raise ValueError("credentials in URLs are not allowed")
-        return value
+        return validate_http_url(value)
 
 
 class Click(_Action):

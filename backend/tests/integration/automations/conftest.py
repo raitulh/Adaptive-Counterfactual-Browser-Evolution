@@ -70,12 +70,6 @@ def sf() -> async_sessionmaker[AsyncSession]:
     return get_session_factory()
 
 
-async def system_session(sf: async_sessionmaker[AsyncSession]) -> AsyncSession:
-    session = sf()
-    session.info["system"] = True
-    return session
-
-
 @pytest.fixture
 def add_member(sf: async_sessionmaker[AsyncSession]) -> Callable[..., Awaitable[None]]:
     async def _add(tenant_id: uuid.UUID, user_id: uuid.UUID, role: str = "member") -> None:

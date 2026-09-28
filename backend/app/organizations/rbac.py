@@ -29,6 +29,7 @@ class P:
     MCP_MANAGE = "mcp:manage"
     BILLING_MANAGE = "billing:manage"
     EXPERIMENTS_MANAGE = "experiments:manage"
+    SEARCH_USE = "search:use"
 
 
 PERMISSION_DESCRIPTIONS: dict[str, str] = {
@@ -55,12 +56,13 @@ PERMISSION_DESCRIPTIONS: dict[str, str] = {
     P.MCP_MANAGE: "Register and approve MCP servers",
     P.BILLING_MANAGE: "Manage billing",
     P.EXPERIMENTS_MANAGE: "Manage experiments and ACBE strategy promotion",
+    P.SEARCH_USE: "Run web searches",
 }
 
 _MEMBER = {
     P.TASKS_CREATE, P.TASKS_READ, P.TASKS_CANCEL, P.APPROVALS_DECIDE, P.AGENTS_READ, P.AGENTS_MANAGE,
     P.MEMORY_READ, P.MEMORY_WRITE, P.TOOLS_READ, P.INTEGRATIONS_MANAGE, P.AUTOMATIONS_MANAGE,
-    P.FILES_READ, P.FILES_WRITE, P.USAGE_READ,
+    P.FILES_READ, P.FILES_WRITE, P.USAGE_READ, P.SEARCH_USE,
 }
 _VIEWER = {P.TASKS_READ, P.AGENTS_READ, P.MEMORY_READ, P.TOOLS_READ, P.FILES_READ}
 _ADMIN = _MEMBER | {

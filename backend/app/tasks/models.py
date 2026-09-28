@@ -201,4 +201,5 @@ class ExecutionLog(UUIDPrimaryKeyMixin, TenantScopedMixin, Base):
     data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=text("now()"))
 
-    __table_args__ = (Index("ix_execution_logs_task_created", "task_id", "created_at"),)
+    __table_args__ = (Index("ix_execution_logs_task_created", "task_id", "created_at"),
+                      Index("ix_execution_logs_created", "created_at"))

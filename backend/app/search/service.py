@@ -76,7 +76,7 @@ _BLOCK_TAGS = frozenset({
 })
 _CELL_TAGS = frozenset({"td", "th"})
 _TITLE_START = re.compile(r"<title\b", re.I)
-_INLINE_WS = re.compile(r"[ \t\r\f\v\xa0​]+")
+_INLINE_WS = re.compile(r"[ \t\r\f\v\xa0\u200b]+")
 _MANY_NEWLINES = re.compile(r"\n{3,}")
 # Only the ``<`` of a would-be prompt-boundary tag is neutralised here, in linear time, so the
 # shared sanitizer's ``<tag[^>]*>`` pattern never has to scan an unterminated tag.

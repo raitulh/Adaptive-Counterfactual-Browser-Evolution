@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -154,7 +155,7 @@ def test_quarter_hour_schedule_is_strictly_increasing_across_dst() -> None:
         runs = [start]
         for _ in range(16):
             runs.append(next_run_after("*/15 * * * *", tz, runs[-1]))
-        gaps = [b - a for a, b in zip(runs[1:], runs[2:], strict=False)]
+        gaps = [b - a for a, b in itertools.pairwise(runs[1:])]
         assert all(gap >= timedelta(minutes=15) for gap in gaps)
         assert len(set(runs)) == len(runs)
 

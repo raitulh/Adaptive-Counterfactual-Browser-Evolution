@@ -9,26 +9,63 @@ from __future__ import annotations
 
 import html
 import re
+from html.parser import HTMLParser
 from typing import Any
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-_SCRIPT_STYLE = re.compile(r"<(script|style|noscript|iframe|object|embed)[^>]*>.*?</\1\s*>", re.I | re.S)
-_TAGS = re.compile(r"<[^>]+>")
 _WS = re.compile(r"[ \t\r\f\v]+")
 _BLANK_LINES = re.compile(r"\n{3,}")
-# Sequences an attacker could use to impersonate our prompt boundaries.
-_BOUNDARY_SPOOF = re.compile(r"</?\s*(untrusted_content|system_policy|agent_policy|user_instruction|tool_result)"
-                             r"[^>]*>", re.I)
+# Sequences an attacker could use to impersonate our prompt boundaries. The tail is bounded
+# and excludes '<' so the pattern stays linear on adversarial input (no catastrophic scans).
+_BOUNDARY_SPOOF = re.compile(
+    r"</?\s{0,10}(?:untrusted_content|system_policy|agent_policy|user_instruction|tool_result|execution_state|memory)"
+    r"[^<>]{0,200}>?", re.I)
+_SKIP_CONTENT_TAGS = frozenset({"script", "style", "noscript", "iframe", "object", "embed", "template", "svg"})
+_BLOCK_TAGS = frozenset({"p", "div", "br", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article",
+                         "header", "footer", "table", "ul", "ol", "blockquote", "pre"})
+# Hard ceiling on how much raw markup is parsed at all (callers bound output separately).
+MAX_MARKUP_INPUT = 4_000_000
+
+
+class _TextExtractor(HTMLParser):
+    """Linear-time HTML → text using the stdlib tokenizer (no backtracking regexes)."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in _SKIP_CONTENT_TAGS:
+            self._skip_depth += 1
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in _SKIP_CONTENT_TAGS and self._skip_depth:
+            self._skip_depth -= 1
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip_depth:
+            self.parts.append(data)
 
 
 def strip_markup(text: str) -> str:
-    text = _SCRIPT_STYLE.sub(" ", text)
-    text = _TAGS.sub(" ", text)
-    text = html.unescape(text)
-    return text
+    parser = _TextExtractor()
+    try:
+        parser.feed(text[:MAX_MARKUP_INPUT])
+        parser.close()
+    except Exception:  # malformed markup: fall back to escaping-free text
+        return html.unescape(text[:MAX_MARKUP_INPUT].replace("<", " <"))
+    return "".join(parser.parts)
 
 
 def clean_text(text: str, *, max_chars: int = 20_000, strip_html: bool = False) -> str:
+    # Pre-truncate: we never return more than max_chars, so bound the work done on huge inputs.
+    original_length = len(text)
+    text = text[: max(max_chars * 4, 1024)]
     if strip_html:
         text = strip_markup(text)
     text = _CONTROL_CHARS.sub("", text)
@@ -36,7 +73,7 @@ def clean_text(text: str, *, max_chars: int = 20_000, strip_html: bool = False) 
     text = _WS.sub(" ", text)
     text = _BLANK_LINES.sub("\n\n", text).strip()
     if len(text) > max_chars:
-        text = text[:max_chars] + f"… [truncated {len(text) - max_chars} chars]"
+        text = text[:max_chars] + f"… [truncated {max(len(text), original_length) - max_chars} chars]"
     return text
 
 

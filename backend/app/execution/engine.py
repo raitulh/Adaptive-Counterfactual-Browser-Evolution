@@ -1050,6 +1050,7 @@ class ExecutionEngine:
         await transition_task(s, task, TaskStatus.COMPLETED, reason="all steps verified")
         task.result_summary = await build_summary(s, task)
         metrics.task_completed_total.inc()
+        await self._sync_automation(s, task)
         audit.record(s, category=AuditCategory.TASK, action="task.completed", tenant_id=task.tenant_id,
                      user_id=task.user_id, actor_type="worker", task_id=task.id,
                      result_summary=(task.result_summary or {}).get("headline"))
@@ -1061,12 +1062,18 @@ class ExecutionEngine:
                                                 payload={"task_id": str(task.id), "tenant_id": str(task.tenant_id)},
                                                 dedupe_key=f"memory.extract:{task.id}", tenant_id=task.tenant_id))
 
+    async def _sync_automation(self, s: AsyncSession, task: Task) -> None:
+        if task.automation_run_id is not None:
+            await self.queue.enqueue(s, JobSpec(queue=Queues.MAINTENANCE, job_type="automation.sync_runs",
+                                                payload={}, dedupe_key="automation.sync_runs", delay_seconds=1))
+
     async def _fail_task(self, s: AsyncSession, task: Task, code: str, message: str) -> None:
         task.failure_code = code[:80]
         task.failure_message = message[:2000]
         await self._force_status(s, task, TaskStatus.FAILED, code)
         task.result_summary = await build_summary(s, task)
         metrics.task_failed_total.labels(code[:40]).inc()
+        await self._sync_automation(s, task)
         audit.record(s, category=AuditCategory.TASK, action="task.failed", status="failure", tenant_id=task.tenant_id,
                      user_id=task.user_id, actor_type="worker", task_id=task.id, result_summary=message[:500])
         await notify(s, tenant_id=task.tenant_id, user_id=task.user_id, event=NotificationEvent.TASK_FAILED,

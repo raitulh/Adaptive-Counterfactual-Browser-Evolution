@@ -103,7 +103,8 @@ async def aggregate_usage_job(ctx: JobContext, payload: dict[str, Any]) -> None:
 _DEAD_LETTERED_SQL = text("""
     SELECT DISTINCT ON (t.id) t.id AS task_id, t.tenant_id, t.status, j.id AS job_id, j.job_type
     FROM jobs j
-    JOIN tasks t ON t.id::text = j.payload->>'task_id'
+    JOIN tasks t ON t.id = CASE WHEN j.payload->>'task_id' ~ '^[0-9a-fA-F-]{36}$'
+                                THEN (j.payload->>'task_id')::uuid END
     WHERE j.status = 'dead' AND j.job_type IN ('task.execute', 'task.plan') AND j.finished_at > :since
       AND t.status = ANY(:active)
       AND NOT EXISTS (SELECT 1 FROM jobs lj WHERE lj.status IN ('pending', 'running')
