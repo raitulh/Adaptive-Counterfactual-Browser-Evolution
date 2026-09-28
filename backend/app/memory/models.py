@@ -97,6 +97,7 @@ class MemoryItem(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
               postgresql_where=text("status = 'active'")),
         Index("ix_memory_items_source_reference", "tenant_id", "source_reference"),
         Index("ix_memory_items_deleted_at", "deleted_at", postgresql_where=text("deleted_at IS NOT NULL")),
+        Index("ix_memory_items_expires_at", "expires_at", postgresql_where=text("expires_at IS NOT NULL")),
         Index("ix_memory_items_search_vector", "search_vector", postgresql_using="gin"),
     )
 

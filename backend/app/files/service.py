@@ -22,12 +22,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.service import AuditCategory, record
 from app.common.context import RequestContext
-from app.common.enums import SystemRole
 from app.common.ids import new_id
 from app.common.pagination import Page, apply_keyset, build_page, clamp_limit
 from app.common.time import utcnow
 from app.core.config import get_settings
-from app.core.exceptions import Forbidden, NotFound, PayloadTooLarge, ServiceUnavailable, ValidationFailed
+from app.core.exceptions import NotFound, PayloadTooLarge, ServiceUnavailable, ValidationFailed
 from app.files.models import ExtractionStatus, File, FileMetadata, FilePurpose, FileStatus
 from app.files.processing import TEXT_TYPES, WRITABLE_TEXT_TYPES, reconstruct_text, sniff_content_type
 from app.files.scanning import MalwareScanner, ScanStatus, get_scanner
@@ -55,10 +54,6 @@ class AsyncReadable(Protocol):
 
 
 # ---------------------------------------------------------------------------- helpers
-def is_file_admin(ctx: RequestContext) -> bool:
-    return ctx.role in (SystemRole.OWNER.value, SystemRole.ADMIN.value)
-
-
 def expiry_for(purpose: str, now: datetime | None = None) -> datetime | None:
     settings = get_settings()
     now = now or utcnow()
@@ -199,14 +194,15 @@ async def upload_file(
 
 # ---------------------------------------------------------------------------- read access
 async def get_file_for(session: AsyncSession, ctx: RequestContext, file_id: uuid.UUID, *,
-                       allow_admin: bool = True, for_update: bool = False) -> File:
-    """Load a live file the caller may access. Other tenants' and (for non-admins) other
-    users' files are reported as not found so their existence does not leak."""
-    stmt = select(File).where(File.id == file_id, File.tenant_id == ctx.tenant_id, File.deleted_at.is_(None))
+                       for_update: bool = False) -> File:
+    """Load a live file owned by the caller. Other tenants' and other users' files are
+    reported as not found so their existence does not leak."""
+    stmt = select(File).where(File.id == file_id, File.tenant_id == ctx.tenant_id,
+                              File.user_id == ctx.user_id, File.deleted_at.is_(None))
     if for_update:
         stmt = stmt.with_for_update()
     file = (await session.execute(stmt)).scalar_one_or_none()
-    if file is None or (file.user_id != ctx.user_id and not (allow_admin and is_file_admin(ctx))):
+    if file is None:
         raise NotFound("File not found.")
     return file
 
@@ -220,15 +216,12 @@ async def get_file_detail(session: AsyncSession, ctx: RequestContext, file_id: u
 
 
 async def list_files(session: AsyncSession, ctx: RequestContext, *, cursor: str | None = None,
-                     limit: int | None = None, scope: str = "mine", purpose: str | None = None,
+                     limit: int | None = None, purpose: str | None = None,
                      status: str | None = None) -> Page[FileOut]:
+    """The caller's own live files, newest first (keyset pagination)."""
     lim = clamp_limit(limit)
-    stmt = select(File).where(File.tenant_id == ctx.tenant_id, File.deleted_at.is_(None))
-    if scope == "all":
-        if not is_file_admin(ctx):
-            raise Forbidden("Only organization admins can list all files.")
-    else:
-        stmt = stmt.where(File.user_id == ctx.user_id)
+    stmt = select(File).where(File.tenant_id == ctx.tenant_id, File.user_id == ctx.user_id,
+                              File.deleted_at.is_(None))
     if purpose:
         stmt = stmt.where(File.purpose == purpose)
     if status:
@@ -244,11 +237,8 @@ async def get_download_url(session: AsyncSession, ctx: RequestContext, file_id: 
     if file.status not in FileStatus.READABLE:
         raise NotFound("File not found.")
     ttl = max(1, min(get_settings().signed_url_ttl_seconds, MAX_DOWNLOAD_URL_TTL))
-    if file.user_id != ctx.user_id:
-        record(session, ctx=ctx, category=AuditCategory.DATA, action="file.download_url_issued",
-               resource_type="file", resource_id=file.id, metadata={"owner_user_id": str(file.user_id)})
-        await session.commit()
     key, filename = file.object_key, file.filename
+    await session.commit()  # end the read transaction before any storage IO (S3 presigning)
     url = await storage.signed_download_url(key, filename=filename, ttl_seconds=ttl)
     return DownloadUrlOut(url=url, expires_at=utcnow() + timedelta(seconds=ttl), filename=filename)
 

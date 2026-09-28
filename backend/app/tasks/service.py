@@ -187,21 +187,20 @@ async def resume_task(session: AsyncSession, ctx: RequestContext, task_id: uuid.
         audit.record(session, ctx=ctx, category=AuditCategory.TASK, action="task.resume", task_id=task.id)
         await session.commit()
         return task
+    reopened = False
     for st in await repo.current_steps(session, task, lock=True):
         state = StepStatus(st.status)
         if state in (StepStatus.BLOCKED, StepStatus.FAILED) and st.error_class != ErrorClass.POLICY_BLOCKED.value:
             transition_step(st, StepStatus.PENDING)
             st.error_class = st.error_code = st.error_message = None
-        elif state == StepStatus.SKIPPED:
-            continue
+            reopened = True
         elif state == StepStatus.WAITING_APPROVAL:
             transition_step(st, StepStatus.PENDING)  # a fresh approval will be requested
         elif state == StepStatus.REQUIRES_RECONCILIATION:
             st.error_code = None  # let the engine try automatic reconciliation again
-    # Previously skipped dependants of a resumed step get another chance.
-    for st in await repo.current_steps(session, task, lock=True):
-        if st.status == StepStatus.SKIPPED.value and st.error_message == \
-                "Skipped because a step it depends on did not complete.":
+        elif state == StepStatus.SKIPPED and reopened and \
+                st.error_message == "Skipped because a step it depends on did not complete.":
+            # Dependants of a re-opened step get another chance (terminal only for scheduling).
             transition_step(st, StepStatus.PENDING)
             st.completed_at = None
             st.error_message = None

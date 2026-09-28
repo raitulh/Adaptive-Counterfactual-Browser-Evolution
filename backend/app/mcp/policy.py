@@ -13,11 +13,17 @@ Nothing a remote MCP server says is trusted by itself. This module decides:
 JSON Schema validation never retrieves remote ``$ref`` targets (jsonschema's legacy
 default would fetch them with ``urllib`` — an SSRF vector), and format assertions
 are off.
+
+Sandbox boundary: tenant servers are reached only over Streamable HTTP through
+``MCPEgressPolicy`` (re-vetted and IP-pinned on every request, metadata/link-local
+addresses always refused). The stdio transport is not offered to tenants because it
+means executing a tenant-chosen local process on our workers.
 """
 
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import re
 import uuid
@@ -36,7 +42,7 @@ from jsonschema.exceptions import SchemaError
 from referencing import Registry
 
 from app.common.enums import PermissionLevel
-from app.common.sanitize import clean_text
+from app.common.sanitize import bound_structure, clean_text
 from app.core.config import get_settings
 from app.core.exceptions import PolicyDenied, ToolInputInvalid, UnsafeURL
 from app.mcp.models import MCPServerStatus, MCPToolStatus
@@ -57,6 +63,8 @@ _ALWAYS_BLOCKED_HOSTS = frozenset({
     "169.254.169.254", "fd00:ec2::254", "169.254.170.2", "100.100.100.200", "metadata.google.internal",
     "metadata", "metadata.azure.com", "instance-data",
 })
+# Cloud metadata / instance-identity addresses outside the link-local ranges.
+_METADATA_ADDRESSES = frozenset({"100.100.100.200", "fd00:ec2::254"})
 _ADVISORY_HINTS = ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint")
 _REF_KEYS = ("$ref", "$dynamicRef", "$recursiveRef")
 # Remote refs are refused: a registry without a retriever resolves only local/embedded resources.
@@ -82,8 +90,14 @@ class MCPLimits:
     max_list_pages: int = 20
     max_response_bytes: int = 2 * 1024 * 1024
     max_structured_output_bytes: int = 512 * 1024
+    # Stricter than the execution engine's own re-bounding of step output (depth 10 incl. the
+    # wrapper, 200 items), so what the verifier checks is exactly what the engine stores.
+    max_structured_depth: int = 8
+    max_structured_items: int = 200
+    max_structured_string: int = 16_000
     max_text_output_chars: int = 20_000
     max_content_blocks: int = 50
+    max_call_seconds: float = 120.0
 
 
 DEFAULT_LIMITS = MCPLimits()
@@ -296,6 +310,35 @@ def normalize_remote_tool(raw: Any, server_name: str, limits: MCPLimits = DEFAUL
                           annotations=annotations, schema_hash=digest)
 
 
+# ---------------------------------------------------------------------------- network
+def is_metadata_address(address: str) -> bool:
+    """Link-local (169.254/16, fe80::/10) and known cloud metadata addresses: never an MCP server."""
+    try:
+        ip = ipaddress.ip_address(address.split("%", 1)[0])
+    except ValueError:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip.is_link_local or str(ip) in _METADATA_ADDRESSES
+
+
+class MCPEgressPolicy(EgressPolicy):
+    """Egress policy for MCP traffic. ``safe_request`` calls ``check_url`` for every request, so the
+    metadata refusal also holds at connect time (e.g. a trusted host whose DNS later points at
+    169.254.169.254), not only when the server is registered or approved."""
+
+    __slots__ = ()
+
+    async def check_url(self, url: str) -> VettedURL:
+        host = (urlsplit(url).hostname or "").lower().rstrip(".")
+        if host in _ALWAYS_BLOCKED_HOSTS:
+            raise UnsafeURL("Cloud metadata endpoints are never allowed", details={"host": host})
+        vetted = await super().check_url(url)
+        if any(is_metadata_address(address) for address in vetted.addresses):
+            raise UnsafeURL("Cloud metadata endpoints are never allowed", details={"host": vetted.host})
+        return vetted
+
+
 # ---------------------------------------------------------------------------- checker
 def _host_in(host: str, patterns: list[str]) -> bool:
     for pattern in patterns:
@@ -315,8 +358,8 @@ class MCPPolicyChecker:
     # -- network
     def egress_policy(self) -> EgressPolicy:
         settings = get_settings()
-        return EgressPolicy(allow_private_network=settings.allow_private_network_egress,
-                            trusted_private_hosts=list(settings.mcp_allowed_hosts))
+        return MCPEgressPolicy(allow_private_network=settings.allow_private_network_egress,
+                               trusted_private_hosts=list(settings.mcp_allowed_hosts))
 
     def check_url_syntax(self, url: str) -> tuple[str, str, int]:
         parts = urlsplit(url)
@@ -336,10 +379,7 @@ class MCPPolicyChecker:
         """Full egress check including DNS resolution (private/reserved addresses refused unless the
         host is listed in MCP_ALLOWED_HOSTS)."""
         self.check_url_syntax(url)
-        vetted = await self.egress_policy().check_url(url)
-        if any(address in _ALWAYS_BLOCKED_HOSTS for address in vetted.addresses):
-            raise UnsafeURL("Cloud metadata endpoints are never allowed", details={"host": vetted.host})
-        return vetted
+        return await self.egress_policy().check_url(url)
 
     # -- usability
     def server_problems(self, server: MCPServer) -> list[str]:
@@ -399,6 +439,16 @@ class MCPPolicyChecker:
                     and json_depth(value) <= self.limits.max_schema_depth)
         except (TypeError, ValueError):
             return False
+
+    def bound_structured_output(self, value: dict[str, Any]) -> dict[str, Any]:
+        limits = self.limits
+        bounded: dict[str, Any] = bound_structure(value, max_depth=limits.max_structured_depth,
+                                                  max_items=limits.max_structured_items,
+                                                  max_string=limits.max_structured_string)
+        return bounded
+
+    def call_timeout(self, seconds: float) -> float:
+        return max(0.5, min(float(seconds), self.limits.max_call_seconds))
 
     @staticmethod
     def is_read_only(permission_level: PermissionLevel | str) -> bool:

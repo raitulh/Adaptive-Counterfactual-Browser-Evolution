@@ -36,7 +36,8 @@ WriteCtx = Annotated[RequestContext, Depends(require(P.FILES_WRITE))]
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=FileOut, summary="Upload a file",
              responses={413: {"description": "File too large"},
-                        415: {"description": "Unsupported file type"}})
+                        422: {"description": "Unsupported file type, empty file or malware detected"},
+                        503: {"description": "Malware scanning unavailable"}})
 async def upload_file(
     ctx: WriteCtx,
     db: DbSession,
@@ -59,20 +60,17 @@ async def upload_file(
     return JSONResponse(result.body, status_code=result.status_code, headers=headers)
 
 
-@router.get("", response_model=Page[FileOut], summary="List files")
+@router.get("", response_model=Page[FileOut], summary="List your files")
 async def list_files(
     ctx: ReadCtx,
     db: DbSession,
     cursor: str | None = None,
     limit: int = Query(50, ge=1, le=200),
-    scope: Literal["mine", "all"] = Query("mine",
-                                          description="'all' lists every file in the org (admins only)"),
     purpose: Literal["user_upload", "task_artifact", "browser_artifact", "temp"] | None = None,
     file_status: Literal["uploaded", "processing", "ready", "quarantined", "failed"] | None = Query(
         None, alias="status"),
 ) -> Page[FileOut]:
-    return await service.list_files(db, ctx, cursor=cursor, limit=limit, scope=scope, purpose=purpose,
-                                    status=file_status)
+    return await service.list_files(db, ctx, cursor=cursor, limit=limit, purpose=purpose, status=file_status)
 
 
 @router.get("/download", summary="Download a file via a signed link (local storage backend)",

@@ -251,13 +251,16 @@ class WriteTextTool(Tool[WriteTextIn, WriteTextOut]):
         file_id = uuid.UUID(str(result.output.get("file_id")))
         key = object_key_for(tctx.tenant_id, file_id)
         row = await _load_file(tctx, file_id)
+        storage = tctx.services.storage
+        missing = VerificationOutcome.failed_with(
+            VerificationMethod.CHECKSUM, [Difference(field="object", expected="exists", observed="missing")],
+            expected={"sha256": expected_sha}, evidence={"file_id": str(file_id)})
+        if not await storage.exists(key):
+            return missing
         try:
-            stored = await tctx.services.storage.get_bytes(key)
-        except ObjectNotFound:
-            return VerificationOutcome.failed_with(
-                VerificationMethod.CHECKSUM,
-                [Difference(field="object", expected="exists", observed="missing")],
-                expected={"sha256": expected_sha}, evidence={"file_id": str(file_id)})
+            stored = await storage.get_bytes(key)
+        except ObjectNotFound:  # deleted between the existence check and the read
+            return missing
         expected = {"sha256": expected_sha, "record_sha256": expected_sha,
                     "size_bytes": len(args.content.encode("utf-8")), "record_live": True}
         observed = {"sha256": hashlib.sha256(stored).hexdigest(),

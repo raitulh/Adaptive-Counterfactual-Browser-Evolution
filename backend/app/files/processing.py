@@ -32,7 +32,6 @@ from xml.etree import ElementTree
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.common.sanitize import clean_text
 from app.core.database import set_tenant_scope
 from app.core.exceptions import ValidationFailed
 from app.files.models import ExtractionStatus, File, FileMetadata, FileStatus
@@ -85,7 +84,6 @@ _EXECUTABLE_MAGIC = (
 
 class UnsupportedFileType(ValidationFailed):
     code = "unsupported_file_type"
-    status_code = 415
     message = "This file type is not supported."
 
 
@@ -163,15 +161,17 @@ def _decode_text(data: bytes) -> str | None:
     return text
 
 
+# Every pattern is linear-time on adversarial input (no unbounded class that can re-scan text
+# already consumed by an earlier attempt): sniffing runs in the upload request path.
 _MD_SIGNALS = (
-    re.compile(r"^#{1,6}\s+\S", re.M),
-    re.compile(r"^\s{0,3}[-*+]\s+\S", re.M),
-    re.compile(r"^\s{0,3}\d+\.\s+\S", re.M),
+    re.compile(r"^#{1,6}[ \t]+\S", re.M),
+    re.compile(r"^[ \t]{0,3}[-*+][ \t]+\S", re.M),
+    re.compile(r"^[ \t]{0,3}\d{1,9}\.[ \t]+\S", re.M),
     re.compile(r"^```", re.M),
-    re.compile(r"\[[^\]\n]+\]\([^)\s]+\)"),
-    re.compile(r"(\*\*|__)[^*_\n]+(\*\*|__)"),
-    re.compile(r"^>\s", re.M),
-    re.compile(r"^\|?\s*:?-{3,}:?\s*\|", re.M),
+    re.compile(r"\[[^\[\]\n]{1,300}\]\([^()\s]{1,1000}\)"),
+    re.compile(r"(\*\*|__)[^*_\n]{1,300}(\*\*|__)"),
+    re.compile(r"^>[ \t]", re.M),
+    re.compile(r"^\|?[ \t]{0,20}:?-{3,}:?[ \t]{0,20}\|", re.M),
 )
 
 
@@ -219,7 +219,7 @@ def _looks_like_csv(text: str) -> bool:
 def _looks_like_markdown(text: str) -> bool:
     sample = text[:32768]
     first = next((line for line in sample.splitlines() if line.strip()), "")
-    if re.match(r"^#{1,6}\s+\S", first):
+    if re.match(r"^#{1,6}[ \t]+\S", first):
         return True
     return sum(1 for pattern in _MD_SIGNALS if pattern.search(sample)) >= 2
 
@@ -314,6 +314,7 @@ class ExtractionResult:
 
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_W_PROPS = frozenset({f"{_W}pPr", f"{_W}rPr", f"{_W}sectPr", f"{_W}tblPr"})
 _S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
@@ -325,14 +326,21 @@ def _extract_docx(data: bytes, max_chars: int) -> str:
         raise DocumentUnreadable("The document is corrupted.") from exc
     paragraphs: list[str] = []
     stack: list[list[str]] = []
+    props_depth = 0  # inside w:pPr / w:rPr (tab-stop definitions are not content)
     total = 0
     for event, elem in _iterparse(xml):
         tag = elem.tag
         if event == "start":
             if tag == f"{_W}p":
                 stack.append([])
+            elif tag in _W_PROPS:
+                props_depth += 1
             continue
-        if tag == f"{_W}t" and stack:
+        if tag in _W_PROPS:
+            props_depth -= 1
+        elif props_depth:
+            continue
+        elif tag == f"{_W}t" and stack:
             stack[-1].append(elem.text or "")
         elif tag == f"{_W}tab" and stack:
             stack[-1].append("\t")
@@ -449,8 +457,9 @@ def _decode_for_extraction(data: bytes) -> str:
 
 
 def normalize_extracted_text(text: str, max_chars: int = MAX_EXTRACTED_CHARS) -> tuple[str, bool]:
+    """Bound, normalise newlines and sanitise (control chars, boundary spoofing, whitespace)."""
     text = text[: max_chars * 2].replace("\r\n", "\n").replace("\r", "\n")
-    text = clean_text(text, max_chars=len(text) + 1)
+    text = search_service.clean_untrusted_text(text, max_chars=max_chars + 1)
     truncated = len(text) > max_chars
     return (text[:max_chars] if truncated else text), truncated
 
@@ -679,9 +688,13 @@ async def process_file(session_factory: async_sessionmaker[AsyncSession], *, ten
         result = await asyncio.to_thread(extract_text, data, content_type)
     except (UnsafeDocument, DocumentUnreadable) as exc:
         return await _mark_failed(session_factory, tenant_id, file_id, f"{exc.code}: {exc.message}")
+    except Exception:  # deterministic parser failure: retrying the same bytes cannot help
+        logger.exception("file extraction failed", extra={"file_id": str(file_id)})
+        return await _mark_failed(session_factory, tenant_id, file_id,
+                                  "document_unreadable: extraction failed")
     chunks = chunk_text(result.text) if result.text else []
     embeddings = await _embed_chunks(model_router, chunks, tenant_id=tenant_id, user_id=user_id)
-    summary = clean_text(result.text[:600], max_chars=500) if result.text else None
+    summary = search_service.clean_untrusted_text(result.text[:600], max_chars=500) if result.text else None
 
     async with session_factory() as session:
         set_tenant_scope(session, tenant_id)

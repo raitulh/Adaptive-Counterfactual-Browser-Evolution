@@ -9,8 +9,8 @@ Retrieval (``search_memories``)::
 
     query embedding (network, before any DB access) → keyword candidates (PostgreSQL full text)
     + semantic candidates (``VectorIndex``, pgvector by default) → union → hydrate live rows
-    (explicit tenant AND user filter) → score (relevance, importance, confidence, recency,
-    stale/conflict penalties) → rerank with near-duplicate suppression → top-k
+    (explicit tenant AND user filter) → score (query relevance, importance, confidence, recency,
+    task relevance prior, stale/conflict penalties) → rerank with near-duplicate suppression → top-k
 
 The vector store sits behind the small ``VectorIndex`` protocol so a dedicated vector database
 can replace pgvector without touching the pipeline. Keyword search stays in PostgreSQL, the
@@ -36,7 +36,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
-from sqlalchemy import ColumnElement, Text, cast, delete, func, literal_column, or_, select, text, update
+from sqlalchemy import ColumnElement, Text, and_, cast, delete, func, literal_column, or_, select, text, update
 from sqlalchemy.dialects.postgresql import TSQUERY, insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,6 +87,7 @@ __all__ = [
     "create_memory",
     "create_user_memory",
     "delete_memory",
+    "deterministic_outcome",
     "extract_emails",
     "extract_memories_from_task",
     "find_contacts",
@@ -105,6 +106,8 @@ __all__ = [
     "search_memories",
     "select_candidates",
     "set_vector_index",
+    "split_query",
+    "task_prior",
     "to_memory_out",
     "trusted_task_text",
     "verify_memory",
@@ -147,7 +150,20 @@ MIN_SEMANTIC_SIMILARITY = 0.25  # cosine similarity below this is noise, not rel
 QUERY_EMBED_TIMEOUT_SECONDS = 5.0
 HNSW_EF_SEARCH = 200  # widen the ANN candidate pool: results are post-filtered by tenant/user/status
 RECENCY_HALF_LIFE_DAYS = 30.0
-W_RELEVANCE, W_IMPORTANCE, W_CONFIDENCE, W_RECENCY = 0.55, 0.15, 0.15, 0.15
+W_RELEVANCE, W_IMPORTANCE, W_CONFIDENCE, W_RECENCY, W_TASK = 0.50, 0.15, 0.15, 0.10, 0.10
+# Task relevance prior: how directly each layer informs *executing* a task. Durable, actionable
+# knowledge (preferences, contacts, verified facts) outranks background facts and chatter.
+TASK_PRIOR: dict[str, float] = {
+    MemoryType.PREFERENCE: 1.0,
+    MemoryType.CONTACT: 1.0,
+    MemoryType.VERIFIED_FACT: 1.0,
+    MemoryType.SHORT_TERM: 0.8,
+    MemoryType.SEMANTIC: 0.8,
+    MemoryType.LONG_TERM: 0.8,
+    MemoryType.TASK_HISTORY: 0.7,
+    MemoryType.CONVERSATIONAL: 0.4,
+}
+DEFAULT_TASK_PRIOR = 0.6
 STALE_PENALTY = 0.15
 CONFLICT_PENALTY = 0.20
 NEAR_DUPLICATE_JACCARD = 0.8
@@ -299,13 +315,18 @@ def calibrate_similarity(similarity: float) -> float:
     return max(0.0, min(1.0, (similarity - MIN_SEMANTIC_SIMILARITY) / (1.0 - MIN_SEMANTIC_SIMILARITY)))
 
 
+def task_prior(memory_type: str) -> float:
+    return TASK_PRIOR.get(memory_type, DEFAULT_TASK_PRIOR)
+
+
 def score_memory(*, semantic: float, keyword: float, importance: float, confidence: float, recency: float,
-                 freshness: Freshness, status: str) -> float:
-    """Weighted blend. Relevance is a noisy-OR of the (calibrated) semantic similarity and the
+                 freshness: Freshness, status: str, task_relevance: float = DEFAULT_TASK_PRIOR) -> float:
+    """Weighted blend of query relevance, importance, confidence, recency and task relevance, minus
+    stale/conflict penalties. Relevance is a noisy-OR of the (calibrated) semantic similarity and the
     normalized keyword rank, so either signal alone can surface a memory and both reinforce."""
     relevance = 1.0 - (1.0 - max(0.0, min(1.0, semantic))) * (1.0 - max(0.0, min(1.0, keyword)))
     score = (W_RELEVANCE * relevance + W_IMPORTANCE * importance + W_CONFIDENCE * confidence
-             + W_RECENCY * recency)
+             + W_RECENCY * recency + W_TASK * max(0.0, min(1.0, task_relevance)))
     if freshness == "stale":
         score -= STALE_PENALTY
     if status == MemoryStatus.CONFLICTED.value:
@@ -474,8 +495,8 @@ async def create_memory(session: AsyncSession, *, tenant_id: uuid.UUID, user_id:
     for attempt in range(2):
         duplicate = await _find_duplicate(session, tenant_id, user_id, digest)
         if duplicate is not None:
-            await _reinforce(session, duplicate, confidence=conf, importance=imp, subject_key=key,
-                             expires_at=expiry, source_type=stype, reference=reference, now=now)
+            await _reinforce(session, duplicate, memory_type=mtype, confidence=conf, importance=imp,
+                             subject_key=key, expires_at=expiry, source_type=stype, reference=reference, now=now)
             return duplicate
         try:
             async with session.begin_nested():
@@ -556,12 +577,16 @@ async def _insert_new(session: AsyncSession, *, tenant_id: uuid.UUID, user_id: u
     return item
 
 
-async def _reinforce(session: AsyncSession, item: MemoryItem, *, confidence: float, importance: float,
-                     subject_key: str | None, expires_at: datetime | None, source_type: MemorySourceType,
-                     reference: str, now: datetime) -> None:
+async def _reinforce(session: AsyncSession, item: MemoryItem, *, memory_type: MemoryType, confidence: float,
+                     importance: float, subject_key: str | None, expires_at: datetime | None,
+                     source_type: MemorySourceType, reference: str, now: datetime) -> None:
+    """Corroboration of an existing memory by an identical statement. Confidence takes the max (a
+    repeated, equally-trusted source must not inflate trust), freshness is renewed."""
     item.confidence = max(item.confidence, confidence)
     item.importance = max(item.importance, importance)
     item.last_verified_at = now
+    if item.memory_type in DEFAULT_TTL and memory_type.value not in DEFAULT_TTL:
+        item.memory_type = memory_type.value  # a short-lived note restated as durable knowledge
     if item.expires_at is not None:
         item.expires_at = None if expires_at is None else max(ensure_aware(item.expires_at), expires_at)
     if subject_key and not item.subject_key:
@@ -715,20 +740,45 @@ async def verify_memory(session: AsyncSession, ctx: RequestContext, memory_id: u
 
 
 # ---------------------------------------------------------------------------- retrieval
+_QUERY_TOKEN = re.compile(r'-?"[^"]*"?|\S+')
+_TS_CONFIG = "'english'::regconfig"
+
+
+def split_query(query: str) -> tuple[str, list[str]]:
+    """Separate excluded terms (``-word`` / ``-"a phrase"``) from the terms to search for."""
+    positive: list[str] = []
+    excluded: list[str] = []
+    for token in _QUERY_TOKEN.findall(query):
+        if len(token) > 1 and token[0] == "-":
+            term = token[1:].strip('"').strip()
+            if term:
+                excluded.append(term)
+        else:
+            positive.append(token)
+    return " ".join(positive).strip(), excluded[:10]
+
+
 def _tsquery(query: str) -> ColumnElement[Any]:
-    """``websearch_to_tsquery`` parsing (quotes, negation, stemming, stop words), with AND turned
-    into OR so a natural-language query matches memories containing *some* of its terms;
-    ``ts_rank_cd`` then rewards memories that cover more of them."""
-    parsed = func.websearch_to_tsquery(literal_column("'english'::regconfig"), query)
+    """``websearch_to_tsquery`` parsing (quotes, stemming, stop words), with AND turned into OR so a
+    natural-language query matches memories containing *some* of its terms; ``ts_rank_cd`` then
+    rewards memories that cover more of them. Exclusions are applied separately (``_exclusions``)."""
+    parsed = func.websearch_to_tsquery(literal_column(_TS_CONFIG), query)
     return cast(func.replace(cast(parsed, Text), " & ", " | "), TSQUERY)
 
 
+def _exclusions(excluded: Sequence[str]) -> list[ColumnElement[bool]]:
+    """A memory mentioning any excluded term (or phrase) is dropped from every retrieval path."""
+    return [~MemoryItem.search_vector.bool_op("@@")(func.phraseto_tsquery(literal_column(_TS_CONFIG), term))
+            for term in excluded]
+
+
 async def _keyword_candidates(session: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID, query: str,
-                              memory_types: Sequence[str] | None, now: datetime) -> dict[uuid.UUID, float]:
+                              excluded: Sequence[str], memory_types: Sequence[str] | None, now: datetime
+                              ) -> dict[uuid.UUID, float]:
     tsq = _tsquery(query)
     rank = func.ts_rank_cd(MemoryItem.search_vector, tsq).label("rank")
     stmt = (select(MemoryItem.id, rank)
-            .where(*_live_filters(tenant_id, user_id, memory_types, now),
+            .where(*_live_filters(tenant_id, user_id, memory_types, now), *_exclusions(excluded),
                    MemoryItem.search_vector.bool_op("@@")(tsq))
             .order_by(rank.desc())
             .limit(KEYWORD_CANDIDATES))
@@ -738,7 +788,7 @@ async def _keyword_candidates(session: AsyncSession, tenant_id: uuid.UUID, user_
     except SQLAlchemyError:
         logger.warning("memory keyword search failed", exc_info=True)
         return {}
-    return {memory_id: float(r or 0.0) for memory_id, r in rows}
+    return {memory_id: float(r) for memory_id, r in rows if r is not None and float(r) > 0.0}
 
 
 async def _semantic_candidates(session: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID,
@@ -804,24 +854,26 @@ async def search_memories(session: AsyncSession, *, tenant_id: uuid.UUID, user_i
     An embedding/vector failure degrades to keyword-only retrieval. Does not commit (access
     statistics are persisted when the caller commits).
     """
-    q = clean_text(query or "", max_chars=MAX_QUERY_CHARS)
+    q, excluded = split_query(clean_text(query or "", max_chars=MAX_QUERY_CHARS))
     size = max(1, min(int(limit), MAX_SEARCH_LIMIT))
     types = _validate_types(memory_types)
     if not q:
-        return []
+        return []  # nothing to look for (empty, or only exclusions)
     vector = (await _embed_query(model_router, q, tenant_id=tenant_id, user_id=user_id)
               if model_router is not None else None)
 
     now = utcnow()
-    keyword = await _keyword_candidates(session, tenant_id, user_id, q, types, now)
+    keyword = await _keyword_candidates(session, tenant_id, user_id, q, excluded, types, now)
     semantic = await _semantic_candidates(session, tenant_id, user_id, vector, types) if vector else {}
     candidate_ids = set(keyword) | {mid for mid, sim in semantic.items() if sim >= MIN_SEMANTIC_SIMILARITY}
     if not candidate_ids:
         return []
 
+    # Hydration re-applies every guard (tenant AND user, status, expiry, exclusions): whatever a
+    # vector store returned, only this user's live rows can come back.
     rows = (await session.execute(
         select(MemoryItem).where(MemoryItem.id.in_(candidate_ids),
-                                 *_live_filters(tenant_id, user_id, types, now))
+                                 *_live_filters(tenant_id, user_id, types, now), *_exclusions(excluded))
     )).scalars().all()
     top_rank = max(keyword.values(), default=0.0)
     scored: list[RetrievedMemory] = []
@@ -833,7 +885,8 @@ async def search_memories(session: AsyncSession, *, tenant_id: uuid.UUID, user_i
             semantic=calibrate_similarity(similarity) if similarity is not None else 0.0,
             keyword=keyword.get(item.id, 0.0) / top_rank if top_rank > 0 else 0.0,
             importance=item.importance, confidence=item.confidence,
-            recency=recency_weight(item.last_verified_at, now), freshness=freshness, status=item.status)
+            recency=recency_weight(item.last_verified_at, now), freshness=freshness, status=item.status,
+            task_relevance=task_prior(item.memory_type))
         scored.append(RetrievedMemory(
             id=item.id, content=item.content, memory_type=item.memory_type, confidence=item.confidence,
             importance=item.importance, score=round(score, 4), freshness=freshness,
@@ -992,14 +1045,31 @@ async def _already_extracted(session: AsyncSession, tenant_id: uuid.UUID, refere
     return source is not None
 
 
+def deterministic_outcome(result_summary: Any) -> dict[str, Any]:
+    """The backend-authored part of a task's ``result_summary``: status, headline and what changed.
+    Model-written text (``direct_response``) and per-step read summaries are left out."""
+    if not isinstance(result_summary, dict):
+        return {}
+    outcome: dict[str, Any] = {}
+    for key in ("status", "headline"):
+        if isinstance(result_summary.get(key), str):
+            outcome[key] = result_summary[key]
+    changed = result_summary.get("what_changed")
+    if isinstance(changed, list):
+        outcome["what_changed"] = [{"tool": c.get("tool"), "description": c.get("description")}
+                                   for c in changed[:10] if isinstance(c, dict)]
+    return outcome
+
+
 def _extraction_prompt(goal: str, answers: list[tuple[str, str]], result_summary: Any) -> str:
     lines = [f"Goal: {goal}"]
     if answers:
         lines.append("Answers the user gave to the assistant's questions:")
         lines.extend(f"- Q: {q}\n  A: {a}" if q else f"- A: {a}" for q, a in answers)
     parts = ["<user_instruction>\n" + "\n".join(lines) + "\n</user_instruction>"]
-    if result_summary:
-        summary = json.dumps(bound_structure(result_summary, max_depth=4, max_items=20, max_string=500),
+    outcome = deterministic_outcome(result_summary)
+    if outcome:
+        summary = json.dumps(bound_structure(outcome, max_depth=4, max_items=20, max_string=500),
                              default=str)[:4000]
         parts.append(f'<tool_result source="task_result_summary">\n{summary}\n</tool_result>')
     parts.append("Return the memories JSON now.")
@@ -1010,8 +1080,9 @@ async def extract_memories_from_task(session: AsyncSession, *, task_id: uuid.UUI
                                      ) -> int:
     """Propose memories from a finished task and persist the ones that pass the deterministic gate.
 
-    Only trusted user text reaches the model: the goal, the user's answers
-    (``input_context["user_inputs"]``) and the backend-generated ``result_summary``. Raw tool
+    Only trusted text reaches the model: the goal, the user's answers
+    (``input_context["user_inputs"]``) and the deterministic, backend-authored part of
+    ``result_summary`` (status, headline, what changed). Raw tool
     outputs (e-mails, web pages, documents) are never included, so injected content cannot plant
     memories; e-mail addresses must additionally appear in the user's own text.
 
@@ -1091,16 +1162,19 @@ async def purge_user_memories(session: AsyncSession, *, tenant_id: uuid.UUID, us
 
 async def purge_deleted_memories(session: AsyncSession, *, older_than: datetime | timedelta,
                                  batch_size: int = 1000) -> int:
-    """Hard-delete soft-deleted memories whose ``deleted_at`` is before ``older_than`` (a cutoff
-    datetime, or an age relative to now). Intended for a system-scoped maintenance session
-    (spans tenants). Does NOT commit."""
+    """Hard-delete memories soft-deleted before ``older_than`` (a cutoff datetime, or an age relative
+    to now), together with memories whose ``expires_at`` passed before that cutoff (expired
+    short-term/conversational notes are never retrieved again). Intended for a system-scoped
+    maintenance session (spans tenants). Does NOT commit."""
     cutoff = utcnow() - older_than if isinstance(older_than, timedelta) else ensure_aware(older_than)
     total = 0
     while True:
         ids = list((await session.execute(
-            select(MemoryItem.id).where(MemoryItem.status == MemoryStatus.DELETED.value,
-                                        MemoryItem.deleted_at.is_not(None), MemoryItem.deleted_at < cutoff)
-            .limit(batch_size)
+            select(MemoryItem.id).where(or_(
+                and_(MemoryItem.status == MemoryStatus.DELETED.value, MemoryItem.deleted_at.is_not(None),
+                     MemoryItem.deleted_at < cutoff),
+                and_(MemoryItem.expires_at.is_not(None), MemoryItem.expires_at < cutoff),
+            )).limit(batch_size)
         )).scalars().all())
         if not ids:
             return total

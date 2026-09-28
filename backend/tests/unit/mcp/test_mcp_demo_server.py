@@ -23,7 +23,8 @@ from app.tools.base import ToolResult
 def _load_demo() -> ModuleType:
     path = Path(__file__).resolve().parents[3] / "scripts" / "demo_mcp_server.py"
     spec = importlib.util.spec_from_file_location("agentos_demo_mcp_server", path)
-    assert spec is not None and spec.loader is not None
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -81,7 +82,8 @@ async def test_demo_server_requires_token_and_session() -> None:
     app = demo.create_app(token="demo-token")
     with pytest.raises(IntegrationExpired):
         await _manager(app).discover(_endpoint(token="wrong"))
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://127.0.0.1") as client:
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1") as client:
         no_session = await client.post("/mcp", headers={"Authorization": "Bearer demo-token"},
                                        json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
         assert no_session.status_code == 400

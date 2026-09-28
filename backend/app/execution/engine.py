@@ -601,7 +601,8 @@ class ExecutionEngine:
                     return None
                 if ledger is None:
                     ledger = ExternalAction(tenant_id=task.tenant_id, task_id=task.id, step_id=step.id,
-                                            tool_name=tool.spec.name, idempotency_key=idem, request_hash=action_hash)
+                                            tool_name=tool.spec.name, idempotency_key=idem, request_hash=action_hash,
+                                            status="pending", attempts=0)
                     s.add(ledger)
                 ledger.status = "pending"
                 ledger.attempts += 1
@@ -1045,8 +1046,8 @@ class ExecutionEngine:
         task.progress = 1.0
         task.pending_questions = None
         task.failure_code = task.failure_message = None
-        task.result_summary = await build_summary(s, task)
         await transition_task(s, task, TaskStatus.COMPLETED, reason="all steps verified")
+        task.result_summary = await build_summary(s, task)
         metrics.task_completed_total.inc()
         audit.record(s, category=AuditCategory.TASK, action="task.completed", tenant_id=task.tenant_id,
                      user_id=task.user_id, actor_type="worker", task_id=task.id,
@@ -1062,8 +1063,8 @@ class ExecutionEngine:
     async def _fail_task(self, s: AsyncSession, task: Task, code: str, message: str) -> None:
         task.failure_code = code[:80]
         task.failure_message = message[:2000]
-        task.result_summary = await build_summary(s, task)
         await self._force_status(s, task, TaskStatus.FAILED, code)
+        task.result_summary = await build_summary(s, task)
         metrics.task_failed_total.labels(code[:40]).inc()
         audit.record(s, category=AuditCategory.TASK, action="task.failed", status="failure", tenant_id=task.tenant_id,
                      user_id=task.user_id, actor_type="worker", task_id=task.id, result_summary=message[:500])
@@ -1084,7 +1085,6 @@ class ExecutionEngine:
                 transition_step(st, StepStatus.CANCELLED)
         await approvals.cancel_for_task(s, task, reason="task cancelled")
         # Anything in flight (RUNNING/WAITING_EXTERNAL/REQUIRES_RECONCILIATION) is reported honestly.
-        task.result_summary = await build_summary(s, task)
         if task.status != TaskStatus.CANCEL_REQUESTED.value:
             await self._force_status(s, task, TaskStatus.CANCEL_REQUESTED, "cancel requested")
         unresolved = [st for st in steps if st.status in (StepStatus.REQUIRES_RECONCILIATION.value,
@@ -1094,6 +1094,7 @@ class ExecutionEngine:
                                   reason="cancelled with an action of unknown outcome")
         else:
             await transition_task(s, task, TaskStatus.CANCELLED, reason="cancelled by user")
+        task.result_summary = await build_summary(s, task)
         audit.record(s, category=AuditCategory.TASK, action="task.cancelled", tenant_id=task.tenant_id,
                      user_id=task.user_id, actor_type="worker", task_id=task.id)
 

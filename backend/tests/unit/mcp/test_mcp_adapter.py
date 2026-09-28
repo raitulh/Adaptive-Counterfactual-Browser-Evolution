@@ -22,23 +22,30 @@ def _result(adapter: MCPToolAdapter, raw: dict[str, Any]) -> ToolResult:
 
 # ---------------------------------------------------------------------------- spec
 def test_spec_comes_from_admin_row_not_server_hints() -> None:
-    # The server says readOnlyHint=true, the admin left the default HIGH_RISK_WRITE: the hint must not lower it.
+    # The server says readOnlyHint=true, the admin left the default HIGH_RISK_WRITE:
+    # the hint must not lower it.
     adapter = MCPToolAdapter(binding_for(ECHO_TOOL))
     spec = adapter.spec
-    assert spec.name == "mcp.demo.echo" and adapter.name == "mcp.demo.echo"
-    assert spec.provider == "mcp" and spec.category == "mcp"
+    assert spec.name == "mcp.demo.echo"
+    assert adapter.name == "mcp.demo.echo"
+    assert spec.provider == "mcp"
+    assert spec.category == "mcp"
     assert spec.permission_level is PermissionLevel.HIGH_RISK_WRITE
-    assert spec.risk_level is RiskLevel.HIGH and spec.requires_approval
+    assert spec.risk_level is RiskLevel.HIGH
+    assert spec.requires_approval
     assert spec.output_trust is TrustLevel.UNTRUSTED_EXTERNAL_CONTENT
     assert spec.verification_method == VerificationMethod.PROVIDER_CONFIRMATION
-    assert spec.retry_policy.max_attempts == 1 and not spec.parallel_safe
+    assert spec.retry_policy.max_attempts == 1
+    assert not spec.parallel_safe
     assert spec.input_schema == adapter.binding.input_schema
     assert spec.output_schema == adapter.binding.output_schema
     assert spec.timeout_seconds == 5.0
 
-    reader = MCPToolAdapter(binding_for(ECHO_TOOL, permission_level=PermissionLevel.READ, risk_level=RiskLevel.LOW))
+    reader = MCPToolAdapter(binding_for(ECHO_TOOL, permission_level=PermissionLevel.READ,
+                                        risk_level=RiskLevel.LOW))
     assert reader.spec.verification_method == VerificationMethod.OUTPUT_SCHEMA
-    assert reader.spec.parallel_safe and not reader.spec.has_side_effects
+    assert reader.spec.parallel_safe
+    assert not reader.spec.has_side_effects
 
 
 def test_instances_have_independent_specs() -> None:
@@ -50,22 +57,26 @@ def test_instances_have_independent_specs() -> None:
 
 def test_destructive_hint_only_escalates() -> None:
     raw = {**copy.deepcopy(PLAIN_WRITE_TOOL), "annotations": {"destructiveHint": True}}
-    adapter = MCPToolAdapter(binding_for(raw, permission_level=PermissionLevel.WRITE, risk_level=RiskLevel.LOW))
+    adapter = MCPToolAdapter(binding_for(raw, permission_level=PermissionLevel.WRITE,
+                                         risk_level=RiskLevel.LOW))
     assessment = adapter.assess(MCPArguments({"to": "x"}), OrganizationPolicy())
-    assert assessment.risk_level is RiskLevel.HIGH and assessment.requires_approval
+    assert assessment.risk_level is RiskLevel.HIGH
+    assert assessment.requires_approval
     assert assessment.permission_level is PermissionLevel.WRITE
 
     read_hint = MCPToolAdapter(binding_for(ECHO_TOOL, permission_level=PermissionLevel.WRITE,
                                            risk_level=RiskLevel.MEDIUM))
     assessment = read_hint.assess(MCPArguments({"text": "x"}), OrganizationPolicy())
-    assert assessment.permission_level is PermissionLevel.WRITE and assessment.risk_level is RiskLevel.MEDIUM
+    assert assessment.permission_level is PermissionLevel.WRITE
+    assert assessment.risk_level is RiskLevel.MEDIUM
 
 
 # ---------------------------------------------------------------------------- arguments
 def test_parse_args_validates_against_input_schema() -> None:
     adapter = MCPToolAdapter(binding_for(ECHO_TOOL))
     args = adapter.parse_args({"text": "hello"})
-    assert isinstance(args, MCPArguments) and args.root == {"text": "hello"}
+    assert isinstance(args, MCPArguments)
+    assert args.root == {"text": "hello"}
     assert args.model_dump() == {"text": "hello"}
 
 
@@ -118,17 +129,22 @@ def test_output_is_cleaned_and_bounded() -> None:
         "structuredContent": {"text": "Hello", "length": 5, "items": list(range(600))},
     }
     output = normalize_call_result(raw, adapter.binding)
-    assert "\x00" not in output.text and "<tool_result>" not in output.text
+    assert "\x00" not in output.text
+    assert "<tool_result>" not in output.text
     assert output.content_blocks == 1
-    assert "image content omitted" in output.notes and "resource content omitted" in output.notes
+    assert "image content omitted" in output.notes
+    assert "resource content omitted" in output.notes
     assert "root:x" not in str(output.model_dump())
-    assert output.structured is not None and len(output.structured["items"]) == 501  # 500 + truncation marker
-    assert output.structured_modified and not output.is_error
+    assert output.structured is not None
+    assert len(output.structured["items"]) == 201  # 200 + truncation marker (engine-compatible bound)
+    assert output.structured_modified
+    assert not output.is_error
 
 
 def test_oversized_structured_content_dropped() -> None:
     adapter = MCPToolAdapter(binding_for(ECHO_TOOL))
-    output = normalize_call_result({"content": [], "structuredContent": {"blob": "x" * 600_000}}, adapter.binding)
+    raw = {"content": [], "structuredContent": {"blob": "x" * 600_000}}
+    output = normalize_call_result(raw, adapter.binding)
     assert output.structured is None
     assert any("size limit" in note for note in output.notes)
 
@@ -163,7 +179,7 @@ async def test_write_with_valid_structured_content_passes() -> None:
 
 @pytest.mark.parametrize("raw", [
     {"content": [{"type": "text", "text": "saved"}]},                                  # no structured content
-    {"content": [], "structuredContent": {"title": "T"}},                              # missing required field
+    {"content": [], "structuredContent": {"title": "T"}},                              # missing field
     {"content": [], "structuredContent": {"note_id": 1, "title": "T"}},                # wrong type
     {"content": [], "structuredContent": {"note_id": "n1", "title": "T"}, "isError": True},
 ])
@@ -181,11 +197,14 @@ async def test_read_tool_output_schema_check() -> None:
     assert (await adapter.verify(tctx, MCPArguments({"text": "a"}), good)).status is VerificationStatus.PASSED
     bad = _result(adapter, {"content": [], "structuredContent": {"text": "a"}})
     outcome = await adapter.verify(tctx, MCPArguments({"text": "a"}), bad)
-    assert outcome.status is VerificationStatus.FAILED and outcome.method == VerificationMethod.OUTPUT_SCHEMA
+    assert outcome.status is VerificationStatus.FAILED
+    assert outcome.method == VerificationMethod.OUTPUT_SCHEMA
     missing = _result(adapter, {"content": [{"type": "text", "text": "a"}]})
-    assert (await adapter.verify(tctx, MCPArguments({"text": "a"}), missing)).status is VerificationStatus.FAILED
+    outcome = await adapter.verify(tctx, MCPArguments({"text": "a"}), missing)
+    assert outcome.status is VerificationStatus.FAILED
     garbage = ToolResult(output={"unexpected": True}, summary="x")
-    assert (await adapter.verify(tctx, MCPArguments({"text": "a"}), garbage)).status is VerificationStatus.FAILED
+    outcome = await adapter.verify(tctx, MCPArguments({"text": "a"}), garbage)
+    assert outcome.status is VerificationStatus.FAILED
 
     no_schema = {**copy.deepcopy(ECHO_TOOL)}
     no_schema.pop("outputSchema")

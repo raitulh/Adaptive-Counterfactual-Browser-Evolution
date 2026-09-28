@@ -3,34 +3,28 @@ and a fake MCP server installed as the process-wide connection manager."""
 
 from __future__ import annotations
 
+import asyncio
+import socket
 import sys
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 
-_FAKES = str(Path(__file__).resolve().parents[2] / "unit" / "mcp")
-if _FAKES not in sys.path:
-    sys.path.insert(0, _FAKES)
+_HERE = Path(__file__).resolve().parent
+for _path in (str(_HERE.parents[1] / "unit" / "mcp"), str(_HERE)):
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
 
 from mcp_fakes import FakeMCPServer  # noqa: E402
+from mcp_gateway_helpers import ApiUser  # noqa: E402
 
 from app.mcp.client import set_mcp_connection_manager  # noqa: E402
-
-
-class ApiUser:
-    def __init__(self, data: dict[str, Any]) -> None:
-        self.access_token: str = data["access_token"]
-        self.user_id = uuid.UUID(data["user_id"])
-        self.tenant_id = uuid.UUID(data["tenant_id"])
-
-    @property
-    def headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.access_token}"}
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -48,7 +42,8 @@ async def mcp_app() -> FastAPI:
 
 @pytest_asyncio.fixture
 async def api(mcp_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mcp_app), base_url="http://testserver") as c:
+    transport = httpx.ASGITransport(app=mcp_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
         yield c
 
 
@@ -67,6 +62,31 @@ async def register_user(api: httpx.AsyncClient) -> Any:
 @pytest_asyncio.fixture
 async def fake_mcp() -> AsyncIterator[FakeMCPServer]:
     server = FakeMCPServer()
-    set_mcp_connection_manager(server.manager())
+    manager = server.manager()
+    set_mcp_connection_manager(manager)
     yield server
     set_mcp_connection_manager(None)
+    if manager.http_client is not None:
+        await manager.http_client.aclose()
+
+
+@pytest_asyncio.fixture
+async def patch_dns(monkeypatch: pytest.MonkeyPatch) -> Callable[[dict[str, str]], None]:
+    """Make hostnames resolve to chosen addresses (simulates DNS, incl. rebinding between calls)."""
+    loop = asyncio.get_running_loop()
+    table: dict[str, str] = {}
+    original = loop.getaddrinfo
+
+    async def fake_getaddrinfo(host: Any, port: Any, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(host, str) and host in table:
+            family = socket.AF_INET6 if ":" in table[host] else socket.AF_INET
+            return [(family, socket.SOCK_STREAM, 6, "", (table[host], int(port or 0)))]
+        return await original(host, port, *args, **kwargs)
+
+    monkeypatch.setattr(loop, "getaddrinfo", fake_getaddrinfo)
+
+    def _set(mapping: dict[str, str]) -> None:
+        table.clear()
+        table.update(mapping)
+
+    return _set

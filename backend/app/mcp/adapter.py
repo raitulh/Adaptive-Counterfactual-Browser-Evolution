@@ -19,6 +19,7 @@ Trust boundaries:
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from dataclasses import dataclass
@@ -34,7 +35,7 @@ from app.common.feature_flags import Flags
 from app.common.redaction import redact_text
 from app.common.sanitize import bound_structure, clean_text
 from app.core.database import get_session_factory, set_tenant_scope
-from app.core.exceptions import AppError, ToolError, ToolInputInvalid, ToolOutputInvalid
+from app.core.exceptions import AppError, ToolError, ToolInputInvalid, ToolOutputInvalid, ToolTimeout
 from app.mcp.client import MCPConnectionManager, get_mcp_connection_manager
 from app.mcp.policy import DEFAULT_LIMITS, MCPLimits, MCPPolicyChecker, build_validator, schema_problems
 from app.security.ratelimit import get_rate_limiter
@@ -180,7 +181,7 @@ def normalize_call_result(raw: dict[str, Any], binding: MCPToolBinding, *, limit
         elif not policy.structured_output_within_limits(raw_structured):
             notes.append("structured content exceeded the size limit and was omitted")
         else:
-            structured = bound_structure(raw_structured, max_depth=12, max_items=500, max_string=16_000)
+            structured = policy.bound_structured_output(raw_structured)
             modified = structured != raw_structured
     return MCPToolOutput(server=binding.server_name, tool=binding.remote_name, text=text,
                          content_blocks=len(texts), structured=structured, structured_modified=modified,
@@ -203,7 +204,9 @@ class MCPToolAdapter(Tool[MCPArguments, MCPToolOutput]):
         self._output_validator = build_validator(binding.output_schema) if binding.output_schema else None
 
     # ------------------------------------------------------------------ planning-time hooks
-    def parse_args(self, raw: dict[str, Any]) -> MCPArguments:
+    def _validated(self, raw: Any) -> dict[str, Any]:
+        """Size/depth limits, then the tool's JSON Schema (Draft 2020-12 unless it declares
+        another draft); ``additionalProperties: false`` rejects unknown keys."""
         arguments = self._policy.check_arguments({} if raw is None else raw)
         problems = schema_problems(self._input_validator, arguments)
         if problems:
@@ -211,7 +214,10 @@ class MCPToolAdapter(Tool[MCPArguments, MCPToolOutput]):
                 "tool": self.binding.qualified_name,
                 "errors": [{"path": p.path, "message": p.message} for p in problems],
             })
-        return MCPArguments(arguments)
+        return arguments
+
+    def parse_args(self, raw: dict[str, Any]) -> MCPArguments:
+        return MCPArguments(self._validated(raw))
 
     def assess(self, args: MCPArguments, policy: OrganizationPolicy) -> RiskAssessment:
         """Server hints are untrusted: they may escalate, never relax, the admin-assigned levels."""
@@ -242,7 +248,7 @@ class MCPToolAdapter(Tool[MCPArguments, MCPToolOutput]):
 
         binding = self.binding
         self._policy.ensure_tenant(binding.tenant_id, tctx.tenant_id)
-        arguments = self._policy.check_arguments(args.root)
+        arguments = self._validated(args.root)
         session_factory = self._session_factory or get_session_factory()
         # Re-check approval state right before the call, then release the DB before network I/O.
         async with session_factory() as session:
@@ -251,8 +257,15 @@ class MCPToolAdapter(Tool[MCPArguments, MCPToolOutput]):
         await get_rate_limiter().enforce("mcp_server", str(binding.server_id), binding.rate_limit_per_minute)
 
         started = time.monotonic()
+        deadline = self._policy.call_timeout(binding.timeout_seconds)
         try:
-            raw = await self._manager().call_tool(endpoint, binding.remote_name, arguments)
+            try:
+                # One deadline for handshake + call: a slow initialize cannot extend the budget.
+                async with asyncio.timeout(deadline):
+                    raw = await self._manager().call_tool(endpoint, binding.remote_name, arguments)
+            except TimeoutError as exc:
+                raise ToolTimeout("The MCP tool did not respond in time",
+                                  details={"timeout_seconds": deadline}) from exc
             output = normalize_call_result(raw, binding, limits=self._policy.limits, policy=self._policy)
         except AppError as exc:
             await self._audit(tctx, arguments, started, status="failure", error_code=exc.code)
@@ -266,7 +279,7 @@ class MCPToolAdapter(Tool[MCPArguments, MCPToolOutput]):
         await self._audit(tctx, arguments, started, status="success", error_code=None)
         summary = f"MCP tool {binding.qualified_name} returned {output.content_blocks} text block(s)" + (
             " and structured content" if output.structured is not None else "")
-        return ToolResult(output=output.model_dump(), summary=summary,
+        return ToolResult(output=output.model_dump(mode="json"), summary=summary,
                           trust=TrustLevel.UNTRUSTED_EXTERNAL_CONTENT)
 
     async def _audit(self, tctx: ToolContext, arguments: dict[str, Any], started: float, *, status: str,

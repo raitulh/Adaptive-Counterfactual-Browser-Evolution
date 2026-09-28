@@ -73,13 +73,15 @@ async def run_idempotent(ctx: RequestContext, key: str | None, method: str, path
                 await session.delete(existing)
                 await session.commit()
                 return await run_idempotent(ctx, key, method, path, payload, handler)
-            await session.rollback()
-            if existing.request_hash != request_hash:
+            snapshot = (existing.request_hash, existing.status, existing.response_status, existing.response_body)
+            await session.rollback()  # expires ORM state: use the snapshot below
+            stored_hash, stored_status, response_status, response_body = snapshot
+            if stored_hash != request_hash:
                 raise ValidationFailed("Idempotency-Key was already used with a different request",
                                        code="idempotency_key_reused")
-            if existing.status != "completed":
+            if stored_status != "completed":
                 raise IdempotencyConflict()
-            return IdempotentResult(existing.response_status or 200, existing.response_body, True)
+            return IdempotentResult(response_status or 200, response_body, True)
         await session.commit()
 
     try:

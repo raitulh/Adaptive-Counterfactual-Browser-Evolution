@@ -206,13 +206,16 @@ def create_app(*, token: str | None = None, response_mode: str = "json") -> Fast
             return Response(status_code=202)
         request_id = message["id"]
         if method == "initialize":
-            result, session_id = server.initialize(params if isinstance(params, dict) else {})
-            return reply(_rpc_response(request_id, result=result), headers={"Mcp-Session-Id": session_id})
+            result, new_session_id = server.initialize(params if isinstance(params, dict) else {})
+            return reply(_rpc_response(request_id, result=result), headers={"Mcp-Session-Id": new_session_id})
         session_id = request.headers.get("mcp-session-id")
         if not session_id:
             return Response(status_code=400)
         if session_id not in server.sessions:
             return Response(status_code=404)
+        version = request.headers.get("mcp-protocol-version")
+        if version is not None and version not in SUPPORTED_VERSIONS:
+            return Response(status_code=400)
         try:
             result = server.dispatch(method, params if isinstance(params, dict) else {})
         except RpcError as exc:

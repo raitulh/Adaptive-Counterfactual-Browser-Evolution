@@ -21,6 +21,7 @@ import logging
 import re
 import uuid
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -31,6 +32,7 @@ from app.audit.service import AuditCategory
 from app.common.context import RequestContext
 from app.common.enums import ErrorClass, PermissionLevel, RiskLevel
 from app.common.feature_flags import Flags, is_enabled, require_enabled
+from app.common.redaction import REDACTED, is_sensitive_key
 from app.common.time import utcnow
 from app.core.config import get_settings
 from app.core.crypto import DecryptionError, get_key_manager
@@ -59,6 +61,7 @@ from app.mcp.schemas import (
     RejectedTool,
 )
 from app.organizations.rbac import P
+from app.security.ratelimit import get_rate_limiter
 from app.tools.base import Tool
 from app.tools.models import ToolCredential
 
@@ -111,10 +114,31 @@ def _safe_error(exc: AppError) -> str:
     return f"{exc.code}: {exc.message}"[:500]
 
 
+async def _commit_and_refresh(session: AsyncSession, *objects: Any) -> None:
+    """Commit, then reload the rows so responses carry the server-generated ``updated_at``
+    (never lazy-loaded later from async code)."""
+    await session.commit()
+    for obj in objects:
+        await session.refresh(obj)
+
+
+def display_url(url: str) -> str:
+    """The server URL with the values of credential-looking query parameters masked."""
+    parts = urlsplit(url)
+    if not parts.query:
+        return url
+    pairs = parse_qsl(parts.query, keep_blank_values=True)
+    if not any(is_sensitive_key(key) for key, _ in pairs):
+        return url
+    masked = [(key, REDACTED if is_sensitive_key(key) else value) for key, value in pairs]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(masked, safe="[]"), parts.fragment))
+
+
 def server_out(server: MCPServer) -> MCPServerOut:
     has_auth = bool(server.auth_header_enc) or server.auth_credential_id is not None
     return MCPServerOut(
-        id=server.id, name=server.name, url=server.url, transport=server.transport, status=server.status,
+        id=server.id, name=server.name, url=display_url(server.url), transport=server.transport,
+        status=server.status,
         has_auth=has_auth, auth_header_name=server.auth_header_name if has_auth else None,
         auth_credential_id=server.auth_credential_id, created_by=server.created_by,
         approved_by=server.approved_by, approved_at=server.approved_at,
@@ -214,11 +238,12 @@ async def register_server(session: AsyncSession, ctx: RequestContext, body: MCPS
     except IntegrityError as exc:
         await session.rollback()
         raise Conflict("An MCP server with this name already exists", details={"name": body.name}) from exc
+    has_auth = body.auth_header_value is not None or body.auth_credential_id is not None
     audit.record(session, ctx=ctx, category=AuditCategory.INTEGRATION, action="mcp.server.register",
                  resource_type="mcp_server", resource_id=server.id,
                  metadata={"name": server.name, "host": vetted.host, "transport": server.transport,
-                           "has_auth": server_out(server).has_auth})
-    await session.commit()
+                           "has_auth": has_auth})
+    await _commit_and_refresh(session, server)
     return server
 
 
@@ -240,7 +265,7 @@ async def approve_server(session: AsyncSession, ctx: RequestContext, server_id: 
     audit.record(session, ctx=ctx, category=AuditCategory.INTEGRATION, action="mcp.server.approve",
                  resource_type="mcp_server", resource_id=server.id,
                  metadata={"name": server.name, "previous_status": previous})
-    await session.commit()
+    await _commit_and_refresh(session, server)
     return server
 
 
@@ -253,7 +278,7 @@ async def disable_server(session: AsyncSession, ctx: RequestContext, server_id: 
         audit.record(session, ctx=ctx, category=AuditCategory.INTEGRATION, action="mcp.server.disable",
                      resource_type="mcp_server", resource_id=server.id,
                      metadata={"name": server.name, "previous_status": previous})
-    await session.commit()
+    await _commit_and_refresh(session, server)
     return server
 
 
@@ -333,8 +358,11 @@ async def sync_tools(session: AsyncSession, ctx: RequestContext, server_id: uuid
                                      details={"status": server.status})
     endpoint = await endpoint_for(session, server)
     server_name = server.name
+    rate_limit = server.rate_limit_per_minute
     await _end_transaction(session)
 
+    # A sync spends the same per-server budget as tool calls: the remote server is protected either way.
+    await get_rate_limiter().enforce("mcp_server", str(server_id), rate_limit)
     try:
         snapshot = await get_mcp_connection_manager().discover(endpoint)
     except AppError as exc:
@@ -437,7 +465,7 @@ async def update_tool(session: AsyncSession, ctx: RequestContext, tool_id: uuid.
     audit.record(session, ctx=ctx, category=AuditCategory.INTEGRATION, action="mcp.tool.update",
                  resource_type="mcp_tool", resource_id=tool.id, tool_name=tool.qualified_name,
                  metadata={"server": server.name, "changes": changes})
-    await session.commit()
+    await _commit_and_refresh(session, tool, server)
     return tool, server
 
 
@@ -496,3 +524,26 @@ async def load_call_endpoint(session: AsyncSession, tenant_id: uuid.UUID, tool_i
     if tool.schema_hash != expected_schema_hash:
         raise PolicyDenied("The MCP tool changed since it was planned", details={"tool": tool.qualified_name})
     return await endpoint_for(session, server)
+
+
+# ---------------------------------------------------------------------------- named facades
+class MCPServerRegistry:
+    """Tenant MCP servers: registration (SSRF-vetted, encrypted auth), admin review and lifecycle."""
+
+    register = staticmethod(register_server)
+    approve = staticmethod(approve_server)
+    disable = staticmethod(disable_server)
+    delete = staticmethod(delete_server)
+    get = staticmethod(get_server)
+    list_servers = staticmethod(list_servers)
+
+
+class MCPToolRegistry:
+    """Discovered MCP tools: sync (rug-pull protection), admin governance and per-tenant resolution."""
+
+    sync = staticmethod(sync_tools)
+    update = staticmethod(update_tool)
+    list_tools = staticmethod(list_tools)
+    resolve = staticmethod(resolve_mcp_tool)
+    list_for_tenant = staticmethod(list_mcp_tools_for_tenant)
+    load_call_endpoint = staticmethod(load_call_endpoint)

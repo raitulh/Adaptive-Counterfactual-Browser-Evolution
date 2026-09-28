@@ -34,6 +34,8 @@ from app.workers.queues.base import PermanentJobFailure, RetryJob
 logger = logging.getLogger(__name__)
 
 _TRANSIENT_MODEL_ERRORS = (ModelUnavailable, ModelTimeout, ModelRateLimited)
+# Deleted memories must never regain derived data; superseded ones are never retrieved again.
+_NOT_EMBEDDABLE = (MemoryStatus.DELETED.value, MemoryStatus.SUPERSEDED.value)
 
 
 def _embedding_model_name(router: ModelRouter) -> str:
@@ -56,7 +58,7 @@ async def embed_memory(ctx: JobContext, payload: dict[str, Any]) -> None:
     async with ctx.session_factory() as session:
         session.info["tenant_id"] = tenant_id
         item = await session.get(MemoryItem, memory_id)
-        if item is None or item.status == MemoryStatus.DELETED.value:
+        if item is None or item.status in _NOT_EMBEDDABLE:
             return
         content, digest = item.content, item.content_hash
         await session.rollback()  # no transaction across the model call
@@ -83,7 +85,7 @@ async def embed_memory(ctx: JobContext, payload: dict[str, Any]) -> None:
         current = (await session.execute(
             select(MemoryItem).where(MemoryItem.id == memory_id).with_for_update()
         )).scalar_one_or_none()
-        if current is None or current.status == MemoryStatus.DELETED.value or current.content_hash != digest:
+        if current is None or current.status in _NOT_EMBEDDABLE or current.content_hash != digest:
             await session.rollback()
             return
         await get_vector_index().upsert(session, tenant_id=tenant_id, memory_id=memory_id, vector=vector,
@@ -107,14 +109,18 @@ async def extract_memories(ctx: JobContext, payload: dict[str, Any]) -> None:
         except ModelOutputInvalid:
             logger.warning("memory extraction output invalid; skipping task", extra={"task_id": str(task_id)})
             return
+        except ModelError as exc:
+            raise PermanentJobFailure(f"memory extraction failed: {exc.code}") from exc
     logger.info("memory extraction finished", extra={"task_id": str(task_id), "stored": stored})
 
 
 @job("memory.purge_deleted")
 async def purge_deleted(ctx: JobContext, payload: dict[str, Any]) -> None:
-    days = int(payload.get("retention_days") or get_settings().retention_deleted_memory_days)
+    """Scheduled maintenance: hard-delete memories soft-deleted (or expired) longer ago than
+    ``settings.retention_deleted_memory_days``."""
+    days = max(0, int(get_settings().retention_deleted_memory_days))
     async with ctx.session_factory() as session:
         session.info["system"] = True  # cross-tenant maintenance
-        purged = await purge_deleted_memories(session, older_than=utcnow() - timedelta(days=max(0, days)))
+        purged = await purge_deleted_memories(session, older_than=utcnow() - timedelta(days=days))
         await session.commit()
     logger.info("purged deleted memories", extra={"count": purged, "retention_days": days})

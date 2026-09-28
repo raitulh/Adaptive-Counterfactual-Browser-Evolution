@@ -14,6 +14,7 @@ database statement of the same call, so no transaction is held across it.
 from __future__ import annotations
 
 import hashlib
+import html
 import logging
 import re
 import uuid
@@ -27,7 +28,7 @@ from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.sanitize import clean_text, strip_markup
+from app.common.sanitize import clean_text
 from app.common.time import utcnow
 from app.core.config import get_settings
 from app.core.exceptions import (
@@ -59,37 +60,136 @@ MAX_WEB_RESULTS = 20
 _RRF_K = 60
 
 # ---------------------------------------------------------------------------- text helpers
-_HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
-_HTML_DROP = re.compile(r"<(head|svg|template|nav|footer|form)\b[^>]*>.*?</\1\s*>", re.I | re.S)
-_HTML_BLOCK = re.compile(
-    r"<(?:br|hr|/p|/div|/li|/h[1-6]|/tr|/section|/article|/header|/ul|/ol|/table|/blockquote|/pre|/dd|/dt)"
-    r"\b[^>]*>", re.I)
-_HTML_TITLE = re.compile(r"<title\b[^>]*>(.*?)</title\s*>", re.I | re.S)
+# HTML handling is a single forward scan with ``str.find`` / anchored regexes only: web pages
+# and uploaded files are attacker controlled, and backtracking patterns such as
+# ``<(nav)>.*?</\1>`` or ``<[^>]+>`` degrade quadratically on inputs like ``"<nav>" * 10**5``.
+_TAG_NAME = re.compile(r"/?([A-Za-z][A-Za-z0-9:-]{0,40})")
+_RAW_TEXT_TAGS = frozenset({"script", "style", "title", "textarea", "xmp", "noscript", "iframe", "noembed",
+                            "noframes"})
+_RAW_TEXT_END = {tag: re.compile(rf"</{tag}\b", re.I) for tag in _RAW_TEXT_TAGS}
+_DROP_TAGS = frozenset({"svg", "math", "template", "nav", "footer", "object", "select", "datalist"})
+_BLOCK_TAGS = frozenset({
+    "address", "article", "aside", "blockquote", "body", "br", "caption", "dd", "details", "div", "dl", "dt",
+    "fieldset", "figcaption", "figure", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "html",
+    "legend", "li", "main", "ol", "p", "pre", "section", "summary", "table", "tbody", "thead", "tfoot", "tr",
+    "ul",
+})
+_CELL_TAGS = frozenset({"td", "th"})
+_TITLE_START = re.compile(r"<title\b", re.I)
+_INLINE_WS = re.compile(r"[ \t\r\f\v\xa0​]+")
+_MANY_NEWLINES = re.compile(r"\n{3,}")
+# Only the ``<`` of a would-be prompt-boundary tag is neutralised here, in linear time, so the
+# shared sanitizer's ``<tag[^>]*>`` pattern never has to scan an unterminated tag.
+_BOUNDARY_PREFIX = re.compile(
+    r"<(?=[ \t]*/?[ \t]*(?:untrusted_content|system_policy|agent_policy|user_instruction|tool_result))", re.I)
 _TERM = re.compile(r"[^\W_]+", re.U)
 _STOP_TEXT = ("a an and are as at be by for from how in is it of on or that the this to was what when where "
               "which who why with")
 _STOP = frozenset(_STOP_TEXT.split())
 
 
-def extract_html_title(document: str) -> str | None:
-    match = _HTML_TITLE.search(document[:200_000])
-    if not match:
-        return None
-    title = clean_text(strip_markup(match.group(1)), max_chars=300).replace("\n", " ").strip()
-    return title or None
+def clean_untrusted_text(text: str, *, max_chars: int) -> str:
+    """``clean_text`` for large untrusted inputs, made linear-time and without a truncation suffix."""
+    text = _BOUNDARY_PREFIX.sub("[removed-boundary-tag] ", text)
+    return clean_text(text, max_chars=max(max_chars, len(text) + 1))[:max_chars]
+
+
+def _collapse_lines(text: str) -> str:
+    lines = (_INLINE_WS.sub(" ", line).strip() for line in text.split("\n"))
+    return _MANY_NEWLINES.sub("\n\n", "\n".join(lines)).strip()
+
+
+def _skip_past(document: str, needle: str, start: int) -> int:
+    idx = document.find(needle, start)
+    return len(document) if idx == -1 else idx + len(needle)
 
 
 def html_to_text(document: str) -> str:
-    """Readable text from HTML: drops comments, head/svg/nav/forms, scripts and styles,
-    keeps block boundaries as line breaks, removes all markup and unescapes entities."""
-    text = _HTML_COMMENT.sub(" ", document)
-    text = _HTML_DROP.sub(" ", text)
-    text = _HTML_BLOCK.sub("\n", text)
-    return strip_markup(text)
+    """Readable text from HTML in one linear pass: drops comments, scripts, styles, the title
+    and navigation/SVG/templates, turns block boundaries into line breaks, removes every tag and
+    unescapes entities. The result is plain text (untrusted data), not sanitized markup."""
+    out: list[str] = []
+    n = len(document)
+    pos = 0
+    drop_depth: dict[str, int] = {}
+    pre_depth = 0
+    dropping = False
+
+    def emit(chunk: str) -> None:
+        if not dropping and chunk:
+            text = html.unescape(chunk)
+            out.append(text if pre_depth else text.replace("\n", " "))
+
+    while pos < n:
+        lt = document.find("<", pos)
+        if lt == -1:
+            emit(document[pos:])
+            break
+        emit(document[pos:lt])
+        nxt = document[lt + 1:lt + 2]
+        if document.startswith("<!--", lt):
+            pos = _skip_past(document, "-->", lt + 4)
+            continue
+        if nxt in ("!", "?"):
+            pos = _skip_past(document, ">", lt + 2)
+            continue
+        match = _TAG_NAME.match(document, lt + 1)
+        if match is None:  # a literal "<" in text, e.g. "a < b"
+            emit("<")
+            pos = lt + 1
+            continue
+        gt = document.find(">", match.end())
+        if gt == -1:  # unterminated tag at EOF: browsers drop it
+            break
+        pos = gt + 1
+        name = match.group(1).lower()
+        closing = document[lt + 1] == "/"
+        self_closing = document[gt - 1] == "/"
+        if closing:
+            if name in _DROP_TAGS and drop_depth.get(name, 0) > 0:
+                drop_depth[name] -= 1
+                dropping = any(drop_depth.values())
+            elif name == "pre" and pre_depth:
+                pre_depth -= 1
+        elif name in _RAW_TEXT_TAGS and not self_closing:
+            end = _RAW_TEXT_END[name].search(document, pos)
+            pos = n if end is None else _skip_past(document, ">", end.end())
+        elif name in _DROP_TAGS and not self_closing:
+            drop_depth[name] = drop_depth.get(name, 0) + 1
+            dropping = True
+        elif name == "pre" and not self_closing:
+            pre_depth += 1
+        if name in _BLOCK_TAGS:
+            out.append("\n")
+        elif name in _CELL_TAGS:
+            out.append(" ")
+    return _collapse_lines("".join(out))
+
+
+def extract_html_title(document: str) -> str | None:
+    """Text of the first ``<title>`` element (bounded, linear scan)."""
+    head = document[:500_000]
+    start = _TITLE_START.search(head)
+    if start is None:
+        return None
+    gt = head.find(">", start.end())
+    if gt == -1:
+        return None
+    end = _RAW_TEXT_END["title"].search(head, gt + 1)
+    raw = head[gt + 1:end.start() if end is not None else min(len(head), gt + 1 + 2000)]
+    title = _INLINE_WS.sub(" ", html.unescape(raw[:2000]).replace("\n", " ")).strip()
+    title = clean_untrusted_text(title, max_chars=300)
+    return title or None
+
+
+def plain_text_from_markup(value: str, *, max_chars: int) -> str:
+    """Provider titles/snippets may carry ``<b>`` highlights and entities: strip them to one line."""
+    return clean_untrusted_text(html_to_text(value[: max_chars * 4]), max_chars=max_chars).replace("\n", " ")
 
 
 def normalize_query(query: str) -> str:
-    cleaned = clean_text(query or "", max_chars=MAX_QUERY_CHARS * 2).replace("\n", " ")
+    cleaned = clean_untrusted_text((query or "")[: MAX_QUERY_CHARS * 4], max_chars=MAX_QUERY_CHARS * 2)
+    cleaned = cleaned.replace("\n", " ")
     cleaned = re.sub(r"\s+", " ", cleaned).strip()[:MAX_QUERY_CHARS]
     if not cleaned:
         raise ValidationFailed("The search query is empty.", code="empty_query")
@@ -167,8 +267,8 @@ def process_results(query: str, raw: Sequence[SearchResult], *, max_results: int
         canonical = canonicalize_url(item.url)
         if canonical is None:
             continue
-        title = clean_text(strip_markup(item.title), max_chars=300).replace("\n", " ") or canonical
-        snippet = clean_text(strip_markup(item.snippet), max_chars=1000).replace("\n", " ")
+        title = plain_text_from_markup(item.title, max_chars=300) or canonical
+        snippet = plain_text_from_markup(item.snippet, max_chars=1000)
         existing = by_url.get(canonical)
         if existing is not None:
             if not existing.snippet and snippet:
@@ -438,7 +538,7 @@ async def fetch_page(url: str, *, policy: EgressPolicy, max_chars: int = 20_000,
         raw_text = html_to_text(body)
     else:
         raw_text = body
-    full = clean_text(raw_text.replace("\r\n", "\n"), max_chars=len(raw_text) + 1)
+    full = clean_untrusted_text(raw_text.replace("\r\n", "\n"), max_chars=max_chars + 1)
     truncated = len(full) > max_chars
     return FetchedPage(
         url=url, final_url=response.url, status_code=response.status_code, content_type=content_type,

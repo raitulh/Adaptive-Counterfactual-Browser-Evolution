@@ -132,11 +132,14 @@ class FakeMCPServer:
         else:
             message["result"] = result
         if self.mode == "sse":
+            progress = {"jsonrpc": "2.0", "method": "notifications/message",
+                        "params": {"level": "info", "data": "working"}}
+            server_request = {"jsonrpc": "2.0", "id": "srv-1", "method": "ping"}
             events = [
                 ": keep-alive comment\n\n",
-                "event: message\ndata: " + json.dumps({"jsonrpc": "2.0", "method": "notifications/message",
-                                                        "params": {"level": "info", "data": "working"}}) + "\n\n",
-                "event: message\ndata: " + json.dumps({"jsonrpc": "2.0", "id": "srv-1", "method": "ping"}) + "\n\n",
+                "event: message\ndata: " + json.dumps(progress) + "\n\n",
+                "event: message\ndata: " + json.dumps(server_request) + "\n\n",
+                "event: message\ndata: not-json keep-alive\n\n",
                 "id: 7\nevent: message\ndata: " + json.dumps(message) + "\n\n",
             ]
             return httpx.Response(200, content="".join(events).encode(),
@@ -210,7 +213,8 @@ class FakeMCPServer:
         if name == "send_message":
             return {"content": [{"type": "text", "text": "sent"}]}
         if name == "always_fails":
-            return {"content": [{"type": "text", "text": "Upstream API refused: quota exhausted"}], "isError": True}
+            return {"content": [{"type": "text", "text": "Upstream API refused: quota exhausted"}],
+                    "isError": True}
         return None
 
 
@@ -221,7 +225,8 @@ def binding_for(raw_tool: dict[str, Any], *, server_name: str = "demo",
                 timeout_seconds: float = 5.0, rate_limit_per_minute: int = 1000) -> MCPToolBinding:
     normalized = normalize_remote_tool(raw_tool, server_name)
     return MCPToolBinding(
-        tenant_id=tenant_id or uuid.uuid4(), server_id=uuid.uuid4(), server_name=server_name, tool_id=uuid.uuid4(),
+        tenant_id=tenant_id or uuid.uuid4(), server_id=uuid.uuid4(), server_name=server_name,
+        tool_id=uuid.uuid4(),
         remote_name=normalized.remote_name, qualified_name=normalized.qualified_name, title=normalized.title,
         description=normalized.description, input_schema=normalized.input_schema,
         output_schema=normalized.output_schema, annotations=normalized.annotations,
@@ -234,6 +239,7 @@ def binding_for(raw_tool: dict[str, Any], *, server_name: str = "demo",
 def tool_context(tenant_id: uuid.UUID, user_id: uuid.UUID | None = None) -> ToolContext:
     ctx = RequestContext(user_id=user_id or uuid.uuid4(), tenant_id=tenant_id, role="owner",
                          permissions=frozenset())
-    return ToolContext(ctx=ctx, task_id=uuid.uuid4(), step_id=uuid.uuid4(), step_key="step-1", attempt_number=1,
-                       idempotency_key=f"idem-{uuid.uuid4().hex}", services=None,  # type: ignore[arg-type]
+    return ToolContext(ctx=ctx, task_id=uuid.uuid4(), step_id=uuid.uuid4(), step_key="step-1",
+                       attempt_number=1, idempotency_key=f"idem-{uuid.uuid4().hex}",
+                       services=None,  # type: ignore[arg-type]
                        org_policy=OrganizationPolicy())

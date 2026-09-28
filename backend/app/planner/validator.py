@@ -153,11 +153,6 @@ class PlanValidator:
         duplicates = {sid for sid in ids if ids.count(sid) > 1}
         for sid in duplicates:
             issues.append(PlanIssue(code="duplicate_step_id", message=f"Duplicate step id '{sid}'", step_id=sid))
-        if completed_step_ids:
-            for sid in set(ids) & completed_step_ids:
-                issues.append(PlanIssue(code="step_id_reused", step_id=sid,
-                                        message=f"Step id '{sid}' was used by an already executed step; pick a new id"))
-
         # --- DAG
         id_set = set(ids)
         for s in plan.steps:

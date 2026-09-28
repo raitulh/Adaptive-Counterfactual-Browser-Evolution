@@ -125,6 +125,10 @@ class CredentialVault:
                 if reloaded is None:
                     break
                 current, scopes = reloaded
+                if current.status == ConnectionStatus.EXPIRED:
+                    raise IntegrationExpired(provider="google", details={"connection_id": str(current.id)})
+                if current.status == ConnectionStatus.REVOKED:
+                    raise IntegrationRevoked(provider="google", details={"connection_id": str(current.id)})
                 if current.access_token_enc and current.token_expires_at and \
                         ensure_aware(current.token_expires_at) - _REFRESH_MARGIN > utcnow():
                     return AccessGrant(self._km.decrypt(current.access_token_enc), current.id,

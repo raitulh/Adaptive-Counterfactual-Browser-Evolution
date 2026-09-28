@@ -46,8 +46,10 @@ async def test_handshake_list_and_call(mode: str) -> None:
     assert init["params"]["clientInfo"]["name"]
     assert len(fake.bodies("notifications/initialized")) == 2
     init_headers = fake.headers_for("initialize")[0]
-    assert "mcp-session-id" not in init_headers and "mcp-protocol-version" not in init_headers
-    assert "text/event-stream" in init_headers["accept"] and "application/json" in init_headers["accept"]
+    assert "mcp-session-id" not in init_headers
+    assert "mcp-protocol-version" not in init_headers
+    assert "text/event-stream" in init_headers["accept"]
+    assert "application/json" in init_headers["accept"]
     for headers in fake.headers_for("tools/list") + fake.headers_for("tools/call"):
         assert headers["mcp-session-id"] == "sess-0001"
         assert headers["mcp-protocol-version"] == "2025-06-18"
@@ -68,16 +70,20 @@ async def test_pagination_is_followed_and_bounded() -> None:
     fake = FakeMCPServer(tools=tools)
     fake.page_size = 10
     listing = (await fake.manager().discover(_endpoint())).listing
-    assert len(listing.tools) == 25 and listing.pages == 3 and not listing.truncated
+    assert len(listing.tools) == 25
+    assert listing.pages == 3
+    assert not listing.truncated
     assert [b["params"].get("cursor") for b in fake.bodies("tools/list")] == [None, "10", "20"]
 
     capped = MCPConnectionManager(http_client=fake.http_client(), limits=MCPLimits(max_tools_per_server=12))
     listing = (await capped.discover(_endpoint())).listing
-    assert len(listing.tools) == 12 and listing.truncated
+    assert len(listing.tools) == 12
+    assert listing.truncated
 
     few_pages = MCPConnectionManager(http_client=fake.http_client(), limits=MCPLimits(max_list_pages=2))
     listing = (await few_pages.discover(_endpoint())).listing
-    assert len(listing.tools) == 20 and listing.truncated
+    assert len(listing.tools) == 20
+    assert listing.truncated
 
 
 async def test_cursor_loop_is_detected() -> None:
@@ -93,7 +99,8 @@ async def test_cursor_loop_is_detected() -> None:
 
     manager = MCPConnectionManager(http_client=httpx.AsyncClient(transport=httpx.MockTransport(looping)))
     listing = (await manager.discover(_endpoint())).listing
-    assert listing.truncated and listing.pages == 2
+    assert listing.truncated
+    assert listing.pages == 2
 
 
 async def test_rpc_error_maps_to_tool_error_with_code() -> None:
@@ -185,7 +192,7 @@ async def test_unsafe_url_refused_before_any_request() -> None:
 
 
 def test_sse_parser_handles_multiline_crlf_comments_and_unicode_separators() -> None:
-    message: dict[str, Any] = {"jsonrpc": "2.0", "id": 1, "result": {"text": "a b"}}
+    message: dict[str, Any] = {"jsonrpc": "2.0", "id": 1, "result": {"text": "a\u2028b"}}
     raw = json.dumps(message, ensure_ascii=False)
     stream = (": comment\r\n\r\n"
               "event: message\r\ndata: {\"jsonrpc\": \"2.0\",\r\ndata:  \"method\": \"x\"}\r\n\r\n"

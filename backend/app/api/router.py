@@ -2,21 +2,38 @@
 
 from __future__ import annotations
 
+import importlib
+
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import ip_rate_limit
 
+# (module, attribute) — every public module router mounted under /api/v1.
+ROUTERS: tuple[tuple[str, str], ...] = (
+    ("app.auth.router", "router"),
+    ("app.users.router", "router"),
+    ("app.organizations.router", "router"),
+    ("app.agents.router", "router"),
+    ("app.tasks.router", "router"),
+    ("app.tasks.router", "events_router"),
+    ("app.approvals.router", "router"),
+    ("app.tools.router", "router"),
+    ("app.integrations.router", "router"),
+    ("app.notifications.router", "router"),
+    ("app.audit.router", "router"),
+    ("app.usage.router", "router"),
+    ("app.billing.router", "router"),
+    ("app.admin.router", "router"),
+)
 
-def build_api_router() -> APIRouter:
+
+def build_api_router(extra: tuple[tuple[str, str], ...] = ()) -> APIRouter:
     from app.api import health
-    from app.auth.router import router as auth_router
-    from app.organizations.router import router as org_router
-    from app.users.router import router as users_router
 
     api = APIRouter()
     api.include_router(health.router)
     guarded = APIRouter(dependencies=[Depends(ip_rate_limit)])
-    for router in (auth_router, users_router, org_router):
-        guarded.include_router(router)
+    for module_name, attr in (*ROUTERS, *extra):
+        guarded.include_router(getattr(importlib.import_module(module_name), attr))
     api.include_router(guarded)
     return api

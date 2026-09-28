@@ -265,16 +265,16 @@ class MCPConnection:
 
     def _extract_response(self, response: SafeResponse, request_id: int, phase: str) -> dict[str, Any]:
         ctype = response.headers.get("content-type", "").split(";")[0].strip().lower()
-        try:
-            if ctype == "text/event-stream":
-                candidates = [msg for data in iter_sse_data(response.text)
-                              for msg in _messages(json.loads(data))]
-            elif ctype == "application/json" or ctype.endswith("+json"):
+        if ctype == "text/event-stream":
+            # Events that are not JSON (keep-alives, vendor extensions) are skipped, not fatal.
+            candidates = [msg for data in iter_sse_data(response.text) for msg in _parse_messages(data)]
+        elif ctype == "application/json" or ctype.endswith("+json"):
+            try:
                 candidates = _messages(json.loads(response.content))
-            else:
-                raise self._malformed(phase, "The MCP server returned an unsupported content type")
-        except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
-            raise self._malformed(phase, "The MCP server returned malformed JSON") from exc
+            except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
+                raise self._malformed(phase, "The MCP server returned malformed JSON") from exc
+        else:
+            raise self._malformed(phase, "The MCP server returned an unsupported content type")
         for message in candidates:
             if (isinstance(message, dict) and message.get("jsonrpc") == "2.0"
                     and message.get("id") == request_id and ("result" in message or "error" in message)):
@@ -284,6 +284,13 @@ class MCPConnection:
 
 def _messages(parsed: Any) -> list[Any]:
     return list(parsed) if isinstance(parsed, list) else [parsed]
+
+
+def _parse_messages(data: str) -> list[Any]:
+    try:
+        return _messages(json.loads(data))
+    except (json.JSONDecodeError, RecursionError):
+        return []
 
 
 def iter_sse_data(text: str) -> Iterator[str]:

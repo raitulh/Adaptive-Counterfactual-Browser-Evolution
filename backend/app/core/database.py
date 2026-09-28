@@ -35,6 +35,7 @@ from sqlalchemy.orm import (
 )
 
 from app.common.ids import new_id
+from app.common.time import utcnow
 from app.core.config import Settings, get_settings
 from app.core.exceptions import TenantScopeError
 
@@ -60,9 +61,11 @@ class UUIDPrimaryKeyMixin:
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False, index=False)
+    # Python-side values (with a server default for raw SQL inserts) so the ORM never has to
+    # lazily re-load an expired timestamp after an UPDATE (which is illegal in async code).
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now(), nullable=False
+        default=utcnow, server_default=func.now(), onupdate=utcnow, nullable=False
     )
 
 
@@ -124,7 +127,7 @@ def get_engine() -> AsyncEngine:
     global _engine, _session_factory
     if _engine is None:
         _engine = build_engine(get_settings())
-        _session_factory = async_sessionmaker(_engine, expire_on_commit=False, autoflush=False)
+        _session_factory = async_sessionmaker(_engine, expire_on_commit=False, autoflush=True)
     return _engine
 
 
