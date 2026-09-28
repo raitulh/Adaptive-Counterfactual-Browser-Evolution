@@ -26,10 +26,11 @@ async def test_cookie_refresh_requires_csrf_token(client, make_user):
     refresh_cookie = client.cookies.get("agentos_refresh")
     csrf = client.cookies.get("agentos_csrf")
     assert refresh_cookie and csrf
-    no_csrf = await client.post("/api/v1/auth/refresh", cookies={"agentos_refresh": refresh_cookie})
+    client.cookies.clear()  # send exactly the cookies under test (explicit Cookie headers below)
+    no_csrf = await client.post("/api/v1/auth/refresh", headers={"Cookie": f"agentos_refresh={refresh_cookie}"})
     assert no_csrf.status_code == 401 and no_csrf.json()["error"]["code"] == "csrf_failed"
-    ok = await client.post("/api/v1/auth/refresh", headers={"X-CSRF-Token": csrf},
-                           cookies={"agentos_refresh": refresh_cookie, "agentos_csrf": csrf})
+    ok = await client.post("/api/v1/auth/refresh", headers={
+        "X-CSRF-Token": csrf, "Cookie": f"agentos_refresh={refresh_cookie}; agentos_csrf={csrf}"})
     assert ok.status_code == 200, ok.text
 
 
