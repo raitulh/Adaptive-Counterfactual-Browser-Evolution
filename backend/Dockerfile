@@ -76,9 +76,11 @@ RUN groupadd --system --gid 10001 agentos \
     && useradd --system --uid 10001 --gid agentos --home-dir /home/agentos --create-home \
        --shell /usr/sbin/nologin agentos
 
-# Install exactly the wheels built above, offline, then drop them.
+# Install exactly the wheels built above, offline. The wheel directory is bind-mounted
+# from the builder, so it never becomes an image layer. Bytecode is compiled here, at
+# build time; PYTHONDONTWRITEBYTECODE only stops the (read-only) runtime from writing it.
 RUN --mount=type=bind,from=builder,source=/wheels,target=/wheels \
-    python -m pip install --no-index --no-compile /wheels/*.whl
+    python -m pip install --no-index /wheels/*.whl
 
 WORKDIR /app
 
