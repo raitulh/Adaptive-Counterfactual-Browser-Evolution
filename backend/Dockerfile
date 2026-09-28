@@ -34,6 +34,9 @@ ENV PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # Compilers are only present in this stage (for any dependency without a binary wheel).
+# Not version-pinned: Debian removes superseded package versions from its mirrors, and nothing
+# from this stage except the built wheels reaches the runtime image.
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*

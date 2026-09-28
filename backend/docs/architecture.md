@@ -29,7 +29,7 @@ flowchart LR
     api --> obj
 
     scheduler[Scheduler] -->|enqueue due jobs| pg
-    worker[Workers<br/>planning, execution, memory,<br/>notifications, files, maintenance,<br/>evaluation] -->|claim jobs, drive tasks| pg
+    worker[Workers<br/>planning, execution, memory,<br/>notifications, files, maintenance] -->|claim jobs, drive tasks| pg
     worker --> redis
     worker --> obj
     evalw[Evaluation worker<br/>evaluation queue only] --> pg
@@ -49,11 +49,11 @@ flowchart LR
 | Process | Entry point | Scales | Notes |
 |---|---|---|---|
 | API | `uvicorn --factory app.main:app_factory` | horizontally (stateless) | request/response, SSE streams, never runs long work |
-| Worker | `agentos-worker --queues …` (`app.workers.worker`) | horizontally | claims jobs under leases; any worker can resume any task |
-| Evaluation worker | `agentos-worker --queues evaluation` | 1 | required for evaluation runs and ACBE experiments (they swap process singletons) |
+| Worker | `agentos-worker --queues planning,execution,memory,notifications,files,maintenance` (`app.workers.worker`) | horizontally | claims jobs under leases; any worker can resume any task |
+| Evaluation worker | `agentos-worker --queues evaluation` | 0–1 (optional) | the only consumer of the `evaluation` queue: evaluation runs, ACBE failure analysis and experiments (the harness swaps process singletons, so it must serve that queue alone) |
 | Browser worker | `agentos-browser-worker` (`app.browser.worker`) | horizontally, isolated | only process that runs Chromium; own image and network policy |
 | Scheduler | `agentos-scheduler` (`app.workers.scheduler.scheduler`) | 1 (2 is safe) | turns time into jobs; dedupe keys make duplicates harmless |
-| Migrations | `alembic upgrade head` | one-shot | never run by application startup |
+| Migrations | `alembic upgrade head && python -m app.cli sync-tools` | one-shot | never run by application startup; `sync-tools` mirrors the built-in tool specs into `tool_definitions`/`tool_versions` |
 
 ## Module map
 
@@ -207,7 +207,7 @@ flowchart TD
     E -->|browser tool| B[(jobs: browser)] --> BW[Browser worker] -->|outcome| Q2
     E -->|all verified| S[Final verification → COMPLETED<br/>summary, audit, notification]
     S --> MEM[(jobs: memory.extract)]
-    E -->|task failed| AC[(jobs: acbe.analyze_task_failures)]
+    E -->|task failed| AC[(jobs: evaluation queue<br/>acbe.analyze_task_failures)]
 ```
 
 ## Data model (main tables)

@@ -124,7 +124,8 @@ services:
   # ------------------------------------------------------------------ one-shot migration
   migrate:
     <<: *backend
-    command: ["sh", "-c", "python scripts/wait_for_services.py --timeout 90 && alembic upgrade head"]
+    # Schema migrations, then mirror the built-in tool specs into tool_definitions/tool_versions.
+    command: ["sh", "-c", "python scripts/wait_for_services.py --timeout 90 && alembic upgrade head && python -m app.cli sync-tools"]
     restart: "no"
     depends_on:
       postgres:
@@ -159,7 +160,7 @@ services:
     command:
       - agentos-worker
       - --queues
-      - planning,execution,memory,notifications,files,maintenance,evaluation
+      - planning,execution,memory,notifications,files,maintenance
     environment:
       <<: *backend-env
       WORKER_METRICS_PORT: "9100"
@@ -200,8 +201,9 @@ services:
           cpus: "0.5"
 
   # ------------------------------------------------------------------ optional: evaluation / ACBE
-  # Evaluation runs and ACBE experiments swap process-wide singletons, so they only execute
-  # on a worker that serves the `evaluation` queue ALONE; the general worker defers them.
+  # Evaluation runs, ACBE failure analysis and experiments run only on a worker that serves the
+  # `evaluation` queue ALONE (the harness swaps process-wide singletons); the general worker
+  # does not list that queue. Without this profile, evaluation jobs wait in the queue.
   evaluation-worker:
     <<: *backend
     profiles: ["evaluation"]

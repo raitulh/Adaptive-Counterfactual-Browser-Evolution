@@ -15,7 +15,7 @@ PIP         := $(PY) -m pip
 
 HOST        ?= 127.0.0.1
 PORT        ?= 8000
-WORKER_QUEUES ?= planning,execution,memory,notifications,files,maintenance,evaluation
+WORKER_QUEUES ?= planning,execution,memory,notifications,files,maintenance
 PROFILES    ?=
 COMPOSE     ?= docker compose
 COMPOSE_PROFILES_ARGS := $(foreach p,$(PROFILES),--profile $(p))
@@ -31,7 +31,7 @@ LOAD_TAG_ARGS   := $(if $(strip $(LOAD_TAGS)),--tags $(LOAD_TAGS),)
 
 EVAL_SUITE  ?= core
 
-.PHONY: help venv install install-browser env run worker browser-worker scheduler \
+.PHONY: help venv install install-browser env run worker eval-worker browser-worker scheduler \
         test test-unit test-integration test-e2e test-security lint format typecheck \
         migrate migration seed docker-up docker-down docker-logs load-test openapi eval
 
@@ -98,8 +98,12 @@ format: ## Apply ruff's safe autofixes (import order, pyupgrade, ...); the code 
 typecheck: ## mypy
 	$(BIN)/mypy app
 
-migrate: ## Apply database migrations (alembic upgrade head)
+migrate: ## Apply database migrations and sync built-in tool definitions
 	$(PY) -m alembic upgrade head
+	$(PY) -m app.cli sync-tools
+
+eval-worker: ## Run the dedicated evaluation/ACBE worker (serves ONLY the evaluation queue)
+	$(PY) -m app.workers.worker --queues evaluation --concurrency 1
 
 migration: ## Autogenerate a migration: make migration m="describe the change"
 	@if [ -z "$(m)" ]; then echo 'usage: make migration m="describe the change"'; exit 2; fi

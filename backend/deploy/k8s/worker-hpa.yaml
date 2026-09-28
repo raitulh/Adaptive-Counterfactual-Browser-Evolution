@@ -53,7 +53,7 @@ spec:
 #       metadata:
 #         query: >-
 #           SELECT count(*) FROM jobs WHERE status = 'pending' AND run_at <= now()
-#           AND queue = ANY('{planning,execution,memory,notifications,files,maintenance,evaluation}')
+#           AND queue = ANY('{planning,execution,memory,notifications,files,maintenance}')
 #         targetQueryValue: "20"
 #       authenticationRef:
 #         name: agentos-keda-postgres

@@ -1,10 +1,10 @@
-# General background workers: planning, execution, memory, notifications, files,
-# maintenance and evaluation queues. Stateless — all durable state is in PostgreSQL; a
+# General background workers: planning, execution, memory, notifications, files and
+# maintenance queues (`evaluation` has its own worker below, `browser` its own Deployment). Stateless — all durable state is in PostgreSQL; a
 # killed worker's job and task leases expire and another worker resumes the work
 # (side-effecting steps are reconciled, never blindly re-run).
 #
 # To isolate noisy queues, run several copies of this Deployment with different
-# --queues (e.g. one for `execution`, one for `memory,files,evaluation`).
+# --queues (e.g. one for `execution`, one for `memory,files`).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -71,7 +71,7 @@ spec:
           command: ["agentos-worker"]
           args:
             - --queues
-            - planning,execution,memory,notifications,files,maintenance,evaluation
+            - planning,execution,memory,notifications,files,maintenance
           ports:
             - name: metrics
               containerPort: 9100
@@ -119,11 +119,15 @@ spec:
           emptyDir:
             sizeLimit: 512Mi
 ---
-# Dedicated evaluation worker. Evaluation runs (`evaluation.run`) and ACBE experiments
-# (`acbe.run_experiment`) swap process-wide singletons while a case runs, so they only
-# execute on a worker whose ONLY queue is `evaluation`; any other worker that claims them
-# defers them (without consuming an attempt). One replica, concurrency 1. It talks only to
-# PostgreSQL/Redis: evaluation cases run against a simulated Google Workspace.
+# OPTIONAL dedicated evaluation worker — scaled to 0 by default. Evaluation runs
+# (`evaluation.run`), ACBE failure analysis (`acbe.analyze_task_failures`) and ACBE experiments
+# (`acbe.run_experiment`) live on the `evaluation` queue, which the general workers do not
+# serve: the harness swaps process-wide singletons, so these jobs only execute on a worker
+# whose ONLY queue is `evaluation`. While this Deployment is at 0 replicas those jobs simply
+# wait in the queue. To enable evaluation/ACBE:
+#   kubectl -n agentos scale deploy/agentos-evaluation-worker --replicas=1
+# Keep it at 1 replica, concurrency 1. It talks only to PostgreSQL/Redis (evaluation cases
+# run against a simulated Google Workspace).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -141,7 +145,7 @@ metadata:
     app.kubernetes.io/name: agentos
     app.kubernetes.io/component: evaluation-worker
 spec:
-  replicas: 1
+  replicas: 0
   revisionHistoryLimit: 5
   strategy:
     type: Recreate

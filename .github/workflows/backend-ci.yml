@@ -115,10 +115,12 @@ jobs:
       - name: Compile scripts and load tests
         run: python -m py_compile scripts/*.py tests/load/locustfile.py
 
-      - name: Apply migrations to an empty database
+      - name: Apply migrations to an empty database, check for drift, sync tools
         run: |
           python scripts/wait_for_services.py --timeout 60
           alembic upgrade head
+          alembic check
+          python -m app.cli sync-tools
 
       - name: Tests with coverage
         run: >-

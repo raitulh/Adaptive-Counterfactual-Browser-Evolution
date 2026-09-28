@@ -238,7 +238,8 @@ does the task become `completed`, with a task-level verification record listing 
 external references of every side effect. Otherwise it goes to `requires_reconciliation`.
 Completion also writes the audit record, notifies the user and, when the agent's memory
 policy allows, enqueues `memory.extract`. A failed task enqueues
-`acbe.analyze_task_failures`.
+`acbe.analyze_task_failures` on the `evaluation` queue (processed by the dedicated
+evaluation worker when it runs).
 
 ### Summary
 

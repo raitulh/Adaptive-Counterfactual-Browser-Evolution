@@ -16,7 +16,7 @@ BIN="${VENV}/bin"
 PY="${PY:-${BIN}/python}"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-8000}"
-WORKER_QUEUES="${WORKER_QUEUES:-planning,execution,memory,notifications,files,maintenance,evaluation}"
+WORKER_QUEUES="${WORKER_QUEUES:-planning,execution,memory,notifications,files,maintenance}"
 COMPOSE="${COMPOSE:-docker compose}"
 PROFILES="${PROFILES:-}"
 LOAD_HOST="${LOAD_HOST:-http://127.0.0.1:8000}"
@@ -52,7 +52,8 @@ Usage: scripts/dev.sh <command> [args...]
   install-browser   Install Playwright and Chromium for the browser worker
   env               Create .env from .env.example with generated secrets
   run               Run the API with auto-reload
-  worker            Run a background worker
+  worker            Run a background worker (general queues)
+  eval-worker       Run the dedicated evaluation/ACBE worker (evaluation queue only)
   browser-worker    Run the isolated browser worker
   scheduler         Run the scheduler
   test              Run the whole test suite (extra args go to pytest)
@@ -63,7 +64,7 @@ Usage: scripts/dev.sh <command> [args...]
   lint              Ruff lint
   format            Ruff safe autofixes
   typecheck         mypy
-  migrate           alembic upgrade head
+  migrate           alembic upgrade head + sync built-in tool definitions
   migration "msg"   Autogenerate a migration
   seed              Create idempotent demo data (refuses staging/production)
   docker-up         docker compose up -d --build   (PROFILES="browser minio observability")
@@ -108,6 +109,7 @@ case "${cmd}" in
     ;;
   run) exec "${PY}" -m uvicorn --factory app.main:app_factory --reload --host "${HOST}" --port "${PORT}" "$@" ;;
   worker) exec "${PY}" -m app.workers.worker --queues "${WORKER_QUEUES}" "$@" ;;
+  eval-worker) exec "${PY}" -m app.workers.worker --queues evaluation --concurrency 1 "$@" ;;
   browser-worker) exec "${BIN}/agentos-browser-worker" "$@" ;;
   scheduler) exec "${PY}" -m app.workers.scheduler.scheduler "$@" ;;
   test) exec "${PY}" -m pytest "$@" ;;
@@ -118,7 +120,10 @@ case "${cmd}" in
   lint) exec "${BIN}/ruff" check app tests scripts ;;
   format) exec "${BIN}/ruff" check --fix app tests scripts ;;
   typecheck) exec "${BIN}/mypy" app ;;
-  migrate) exec "${PY}" -m alembic upgrade head ;;
+  migrate)
+    "${PY}" -m alembic upgrade head
+    exec "${PY}" -m app.cli sync-tools
+    ;;
   migration)
     if [ "$#" -lt 1 ] || [ -z "$1" ]; then
       echo 'usage: scripts/dev.sh migration "describe the change"' >&2

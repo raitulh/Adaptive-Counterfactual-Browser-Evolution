@@ -1,13 +1,18 @@
-# Database migrations (alembic upgrade head). Run and wait for it BEFORE rolling out a new
-# release; migrations must be backward compatible with the previous release (expand →
-# migrate → contract), because old pods keep serving during the rollout.
+# Database migrations (`alembic upgrade head`) followed by `python -m app.cli sync-tools`, which
+# mirrors the built-in tool specs into tool_definitions/tool_versions. Run and wait for it
+# BEFORE rolling out a new release; migrations must be backward compatible with the previous
+# release (expand → migrate → contract), because old pods keep serving during the rollout.
+#
+# The first migration runs CREATE EXTENSION IF NOT EXISTS vector: the database role in
+# DATABASE_URL must be allowed to create it, or a superuser must create it beforehand
+# (managed PostgreSQL: enable pgvector for the instance/database).
 #
 #   kubectl -n agentos delete job agentos-migrate --ignore-not-found
 #   kubectl apply -k deploy/k8s -l app.kubernetes.io/component=migrate
 #   kubectl -n agentos wait --for=condition=complete job/agentos-migrate --timeout=15m
 #   kubectl apply -k deploy/k8s
 #
-# Jobs are immutable, hence the delete. `alembic upgrade head` is idempotent, so a re-run
+# Jobs are immutable, hence the delete. Both commands are idempotent, so a re-run
 # (e.g. after ttlSecondsAfterFinished removed the Job) is a no-op. With Argo CD, annotate it
 # `argocd.argoproj.io/hook: PreSync`; with Helm, make it a pre-upgrade hook.
 apiVersion: v1
@@ -52,7 +57,10 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
-            - python scripts/wait_for_services.py --services database --timeout 120 && alembic upgrade head
+            - >-
+              python scripts/wait_for_services.py --services database --timeout 120
+              && alembic upgrade head
+              && python -m app.cli sync-tools
           envFrom:
             - configMapRef:
                 name: agentos-config
