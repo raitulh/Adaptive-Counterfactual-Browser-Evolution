@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1.7
+#
+# AgentOS isolated browser worker (Playwright + Chromium).
+#
+# Build context is the REPOSITORY ROOT:
+#
+#   docker build -f backend/deploy/docker/Dockerfile.browser -t agentos-browser-worker:local .
+#
+# Browser automation runs in its own image and its own deployment so that the API and
+# general workers never ship Chromium, and so the browser pods can get stricter network
+# policy (no private ranges, no metadata server), their own node pool and tighter limits.
+#
+# The Playwright Python package version MUST match the browsers baked into the base
+# image; PLAYWRIGHT_VERSION pins it when the backend's `browser` extra is resolved.
+
+ARG PLAYWRIGHT_VERSION=1.56.0
+ARG PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright/python:v1.56.0-noble
+
+# --------------------------------------------------------------------------- builder
+FROM ${PLAYWRIGHT_IMAGE} AS builder
+ARG PLAYWRIGHT_VERSION
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /src
+
+COPY pyproject.toml README.md ./
+COPY acbe ./acbe
+COPY benchmarks ./benchmarks
+COPY backend/pyproject.toml backend/README.md ./backend/
+COPY backend/app ./backend/app
+
+RUN echo "playwright==${PLAYWRIGHT_VERSION}" > /tmp/constraints.txt \
+    && python3 -m pip wheel --wheel-dir /wheels ./ \
+    && python3 -m pip wheel --wheel-dir /wheels --constraint /tmp/constraints.txt "./backend[browser,otlp]"
+
+# --------------------------------------------------------------------------- runtime
+FROM ${PLAYWRIGHT_IMAGE} AS browser-worker
+
+LABEL org.opencontainers.image.title="agentos-browser-worker" \
+      org.opencontainers.image.description="AgentOS isolated Playwright/Chromium worker" \
+      org.opencontainers.image.licenses="MIT"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    APP_ENV=production \
+    LOG_JSON=true \
+    HOME=/home/agentos
+
+# Ubuntu marks the system interpreter as externally managed (PEP 668). This image is a
+# single-purpose container, so installing into it directly is intended.
+RUN --mount=type=bind,from=builder,source=/wheels,target=/wheels \
+    PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install --no-index /wheels/*.whl
+
+RUN groupadd --system --gid 10001 agentos \
+    && useradd --system --uid 10001 --gid agentos --home-dir /home/agentos --create-home \
+       --shell /usr/sbin/nologin agentos
+
+WORKDIR /app
+
+USER 10001:10001
+
+# No HTTP server: liveness is the process itself (and its heartbeat row in PostgreSQL).
+HEALTHCHECK NONE
+
+CMD ["agentos-browser-worker"]
