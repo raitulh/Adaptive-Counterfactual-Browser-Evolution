@@ -33,7 +33,7 @@ from app.tasks.schemas import (
     TaskInput,
     TaskOut,
 )
-from app.tasks.state import TERMINAL
+from app.tasks.state import TERMINAL, TaskStatus
 from app.verification.models import VerificationResult
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 events_router = APIRouter(prefix="/events", tags=["events"])
 
-_TERMINAL_VALUES = {s.value for s in TERMINAL}
+# The task stream ends once the task is final or can only change through an explicit user action
+# (resume); a client that resumes a failed/expired task reconnects with Last-Event-ID.
+_STREAM_END_VALUES = {s.value for s in TERMINAL} | {TaskStatus.FAILED.value, TaskStatus.EXPIRED.value}
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_202_ACCEPTED,
@@ -157,25 +159,66 @@ def _sse(event: str, data: Any, event_id: int | None = None) -> str:
 
 # Events are durable in task_events; pub/sub only shortens latency. Without it, streams poll the database.
 _POLL_FALLBACK_SECONDS = 2.0
+_KEEPALIVE_SECONDS = 15.0
 
 
-async def _next_wakeup(sub: AsyncIterator[dict[str, Any]], timeout: float) -> bool:
+class EventBusClosed(Exception):
+    pass
+
+
+async def _read_one(sub: AsyncIterator[dict[str, Any]]) -> dict[str, Any]:
+    try:
+        return await sub.__anext__()
+    except StopAsyncIteration:
+        raise EventBusClosed() from None
+
+
+class BusReader:
+    """Reads a pub/sub subscription without ever cancelling it.
+
+    Cancelling a pending ``__anext__`` (as ``asyncio.wait_for`` does on timeout) finalizes the
+    async generator and silently ends the subscription. The read therefore runs as its own task;
+    waiting for it with a timeout only stops *waiting*, and the next call picks the same read up.
+    """
+
+    def __init__(self, sub: AsyncIterator[dict[str, Any]]) -> None:
+        self._sub = sub
+        self._pending: asyncio.Task[dict[str, Any]] | None = None
+
+    async def next_message(self, timeout: float) -> dict[str, Any] | None:
+        """The next real (non-idle) message, or None after ``timeout``. Raises when the bus fails or closes."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while True:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                return None
+            if self._pending is None:
+                self._pending = asyncio.create_task(_read_one(self._sub))
+            done, _ = await asyncio.wait({self._pending}, timeout=remaining)
+            if not done:
+                return None
+            finished, self._pending = self._pending, None
+            message = finished.result()
+            if message.get("type") != "__idle__":
+                return message
+
+    async def aclose(self) -> None:
+        if self._pending is not None:
+            self._pending.cancel()
+            with contextlib.suppress(BaseException):
+                await self._pending
+        with contextlib.suppress(Exception):
+            await self._sub.aclose()  # type: ignore[attr-defined]
+
+
+async def _next_wakeup(reader: BusReader, timeout: float) -> bool:
     """Wait for a pub/sub wake-up or the timeout. Returns False once the bus has failed or closed, so the
     caller switches to plain database polling instead of spinning on a dead subscription."""
-    deadline = asyncio.get_running_loop().time() + timeout
     try:
-        while True:
-            remaining = deadline - asyncio.get_running_loop().time()
-            if remaining <= 0:
-                return True
-            message = await asyncio.wait_for(sub.__anext__(), timeout=remaining)
-            if message.get("type") != "__idle__":
-                return True
-    except TimeoutError:
+        await reader.next_message(timeout)
         return True
-    except StopAsyncIteration:
-        return False
-    except Exception as exc:  # Redis unavailable: degrade, do not break the stream
+    except Exception as exc:  # Redis unavailable / subscription closed: degrade, do not break the stream
         logger.warning("event bus unavailable; task stream falls back to polling", extra={"error": type(exc).__name__})
         return False
 
@@ -196,7 +239,7 @@ async def stream_events(task_id: uuid.UUID, request: Request, db: DbSession,
 
     async def generator() -> AsyncIterator[str]:
         last = start_seq
-        sub = get_event_bus().subscribe(task_channel(task_id))
+        reader = BusReader(get_event_bus().subscribe(task_channel(task_id)))
         bus_ok = True
         sf = get_session_factory()
         try:
@@ -212,18 +255,17 @@ async def stream_events(task_id: uuid.UUID, request: Request, db: DbSession,
                     last = row.seq
                     yield _sse(row.event_type, {"seq": row.seq, "task_id": str(task_id), "step_id": row.step_id,
                                                 "payload": row.payload, "created_at": row.created_at}, row.seq)
-                if not rows and status_now in _TERMINAL_VALUES:
+                if not rows and status_now in _STREAM_END_VALUES:
                     yield _sse("end", {"task_id": str(task_id), "status": status_now})
                     return
                 if not rows:
                     yield ": keep-alive\n\n"
                     if bus_ok:
-                        bus_ok = await _next_wakeup(sub, 15.0)
+                        bus_ok = await _next_wakeup(reader, _KEEPALIVE_SECONDS)
                     else:
                         await asyncio.sleep(_POLL_FALLBACK_SECONDS)
         finally:
-            with contextlib.suppress(Exception):
-                await sub.aclose()  # type: ignore[attr-defined]
+            await reader.aclose()
 
     return StreamingResponse(generator(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -236,26 +278,23 @@ async def user_stream(request: Request, db: DbSession, ctx: RequestContext = Dep
     await db.commit()
 
     async def generator() -> AsyncIterator[str]:
-        sub = get_event_bus().subscribe(user_channel(ctx.user_id))
+        reader = BusReader(get_event_bus().subscribe(user_channel(ctx.user_id)))
         try:
             yield ": connected\n\n"
             while not await request.is_disconnected():
                 try:
-                    message = await asyncio.wait_for(sub.__anext__(), timeout=15.0)
-                except TimeoutError:
-                    yield ": keep-alive\n\n"
-                    continue
+                    message = await reader.next_message(_KEEPALIVE_SECONDS)
                 except Exception as exc:  # Redis unavailable or subscription closed
                     logger.warning("event bus unavailable; closing user stream", extra={"error": type(exc).__name__})
                     # Ask the client to reconnect later; durable state stays readable through the REST API.
                     yield "retry: 5000\n" + _sse("stream_unavailable", {"reason": "event_bus_unavailable"})
                     return
-                if message.get("type") == "__idle__":
+                if message is None:
+                    yield ": keep-alive\n\n"
                     continue
                 yield _sse(str(message.get("type", "event")), message)
         finally:
-            with contextlib.suppress(Exception):
-                await sub.aclose()  # type: ignore[attr-defined]
+            await reader.aclose()
 
     return StreamingResponse(generator(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

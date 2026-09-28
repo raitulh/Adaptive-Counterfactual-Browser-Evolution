@@ -139,6 +139,31 @@ async def test_sse_stream_replays_events_and_ends(client, make_user, harness):
     assert "event: TASK_COMPLETED" in body and "event: end" in body
 
 
+async def test_sse_stream_ends_for_failed_task(client, make_user, harness):
+    """A failed task can only change through an explicit resume: the stream must end, not idle forever."""
+    from app.core.exceptions import ModelNotConfigured
+
+    user = await make_user()
+    harness.model_responses["planning"] = lambda req: ModelNotConfigured()
+    task_id = (await client.post("/api/v1/tasks", json={"goal": "plan something"}, headers=user.headers)
+               ).json()["task_id"]
+    await harness.run_jobs()
+    token = (await client.post("/api/v1/auth/stream-token", headers=user.headers)).json()["token"]
+
+    async def read_stream() -> str:
+        chunks = []
+        async with client.stream("GET", f"/api/v1/tasks/{task_id}/events/stream",
+                                 params={"access_token": token}) as resp:
+            async for chunk in resp.aiter_text():
+                chunks.append(chunk)
+                if "event: end" in "".join(chunks):
+                    break
+        return "".join(chunks)
+
+    body = await asyncio.wait_for(read_stream(), timeout=10)
+    assert "event: TASK_FAILED" in body and '"status": "failed"' in body
+
+
 async def test_usage_and_notifications_endpoints(client, make_user, harness):
     user = await make_user()
     harness.plans["default"] = {"goal": "2+2", "steps": [], "direct_response": "4"}

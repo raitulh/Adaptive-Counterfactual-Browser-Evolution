@@ -114,8 +114,11 @@ data: {"task_id": "01…", "status": "completed"}
 * `id` is the event's sequence number. Reconnect with `Last-Event-ID: <seq>` (browsers do
   this automatically) to resume without gaps or duplicates — events are read from PostgreSQL,
   Redis pub/sub is only a wake-up signal.
-* A `: keep-alive` comment is sent about every 15 s; `event: end` closes the stream once the
-  task is `completed` or `cancelled` and all events were delivered.
+* A `: keep-alive` comment is sent about every 15 s; `event: end` (`data: {"task_id", "status"}`)
+  closes the stream once all events were delivered and the task is `completed`, `cancelled`,
+  `failed` or `expired`. The last two change only through `POST /tasks/{id}/resume`; after
+  resuming, reconnect with `Last-Event-ID` to continue from where the stream ended.
+* If Redis is unavailable the task stream keeps working by polling the database every 2 s.
 * Event types: `TASK_CREATED`, `TASK_STATE_CHANGED` (`payload.from`/`to`/`reason`),
   `PLANNING_STARTED`, `PLAN_CREATED`, `PLAN_VALIDATED`, `PLAN_REJECTED`, `TOOL_CALL_STARTED`,
   `TOOL_CALL_FINISHED`, `VERIFICATION_STARTED`, `VERIFICATION_PASSED`, `VERIFICATION_FAILED`,
@@ -126,7 +129,9 @@ data: {"task_id": "01…", "status": "completed"}
   `TASK_FAILED`, `TASK_CANCELLED`.
 * `GET /events/stream` streams live notifications for all of the user's tasks
   (`event: <EVENT_TYPE>`, `data: {"type", "task_id", "seq", "event_type", "status", "step_id"}`).
-  It is a best-effort hint without `id`s: on reconnect, re-read the task or its events.
+  It is a best-effort hint without `id`s: on reconnect, re-read the task or its events. It
+  sends a keep-alive comment every 15 s, and if Redis is unavailable it sends
+  `event: stream_unavailable` with `retry: 5000` and closes.
 * Behind proxies, disable response buffering and allow long reads (the Kubernetes ingress in
   `deploy/k8s/ingress.yaml` does); the API also sends `X-Accel-Buffering: no`.
 * Clients that cannot use SSE poll `GET /tasks/{id}/events?after_seq=<last seen>`.
