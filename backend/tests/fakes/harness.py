@@ -50,6 +50,8 @@ class Harness:
         set_model_router(self.model)
         self.worker = Worker(["planning", "execution", "memory", "notifications", "maintenance", "evaluation"],
                              concurrency=1, worker_id=f"test-worker-{uuid.uuid4().hex[:6]}", run_outbox=False)
+        # Only jobs created during this test are processed (the shared test DB may hold others).
+        self.started_at = utcnow()
 
     def _handle(self, request: ModelRequest) -> str | Exception:
         handler = self.model_responses.get(request.metadata.purpose)
@@ -88,12 +90,32 @@ class Harness:
         while processed < max_jobs:
             if fast_forward:
                 await self.fast_forward()
-            jobs = await queue.claim(self.worker.queues, 1, self.worker.worker_id)
+            jobs = await self._claim_own(queue)
             if not jobs:
                 break
             await self.worker._process(jobs[0])
             processed += 1
         return processed
+
+    async def _claim_own(self, queue: Any) -> list[Any]:
+        from app.workers.queues.base import ClaimedJob
+
+        async with get_session_factory()() as s:
+            s.info["system"] = True
+            rows = (await s.execute(text(
+                """
+                UPDATE jobs SET status = 'running', locked_by = :worker, attempts = attempts + 1,
+                       locked_until = now() + interval '120 seconds', updated_at = now()
+                WHERE id IN (SELECT id FROM jobs WHERE status = 'pending' AND queue = ANY(:queues)
+                             AND run_at <= now() AND created_at >= :since
+                             ORDER BY priority, run_at LIMIT 1 FOR UPDATE SKIP LOCKED)
+                RETURNING id, queue, job_type, payload, attempts, max_attempts, tenant_id
+                """), {"worker": self.worker.worker_id, "queues": self.worker.queues, "since": self.started_at}
+            )).mappings().all()
+            await s.commit()
+        return [ClaimedJob(id=r["id"], queue=r["queue"], job_type=r["job_type"], payload=r["payload"] or {},
+                           attempts=r["attempts"], max_attempts=r["max_attempts"], tenant_id=r["tenant_id"])
+                for r in rows]
 
     async def fast_forward(self) -> None:
         """Make delayed jobs and scheduled step retries due now (simulated passage of time)."""

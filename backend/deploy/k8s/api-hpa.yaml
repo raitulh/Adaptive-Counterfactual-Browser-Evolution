@@ -1,0 +1,47 @@
+# API autoscaling on CPU. The API is stateless, so replicas are only bounded by the
+# PostgreSQL connection budget: max replicas x (DATABASE_POOL_SIZE + DATABASE_MAX_OVERFLOW)
+# must stay below max_connections (or put PgBouncer in front of the database).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agentos-api
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agentos-api
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    # Request rate is a better signal for an I/O-bound API once a custom-metrics adapter
+    # (Prometheus Adapter or Google Managed Prometheus + custom metrics Stackdriver adapter)
+    # exposes it. Example, derived from the app's `api_requests_total` counter:
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: agentos_api_requests_per_second
+    #     target:
+    #       type: AverageValue
+    #       averageValue: "40"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 20
+          periodSeconds: 60

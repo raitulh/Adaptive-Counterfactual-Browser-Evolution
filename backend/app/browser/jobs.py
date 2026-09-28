@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit import service as audit
@@ -62,6 +63,9 @@ STALE_GRACE_SECONDS = 60
 WATCHDOG_GRACE_SECONDS = 30
 # Re-runs of a read-only task after worker crashes before giving up.
 MAX_RUNS_PER_TASK = 3
+# How long a job waits for the engine to finish recording the dispatch (step still "running").
+DISPATCH_WAIT_SECONDS = 600
+DISPATCH_POLL_SECONDS = 1.0
 
 PolicyFactory = Callable[..., BrowserEgressPolicy]
 
@@ -126,12 +130,14 @@ class BrowserJobRunner:
                 await s.commit()
                 return None
             elif await _task_cancelled(s, task):
-                task.status = BrowserTaskStatus.CANCELLED
-                task.completed_at = utcnow()
-                task.error_message = "The task was cancelled before the browser ran."
-                await service.close_open_sessions(s, task.id, status=BrowserSessionStatus.CLOSED,
-                                                  error="task cancelled")
-                await s.commit()
+                await self._cancel(s, task, "The task was cancelled before the browser ran.")
+                return None
+            elif task.status == BrowserTaskStatus.QUEUED and (view := await _step_view(s, task)) != "waiting":
+                if view == "dispatching" and _age_seconds(task) < DISPATCH_WAIT_SECONDS:
+                    await s.commit()
+                    raise DeferJob("the step is still being dispatched", delay_seconds=DISPATCH_POLL_SECONDS)
+                # Nobody is waiting for this browser task any more: never run its actions.
+                await self._cancel(s, task, "The step is no longer waiting for this browser task.")
                 return None
             else:
                 prepared, report = await self._start(ctx, s, task)
@@ -141,6 +147,14 @@ class BrowserJobRunner:
         if report:
             await self._report(ctx.session_factory, tenant_id, browser_task_id)
         return None
+
+    @staticmethod
+    async def _cancel(s: AsyncSession, task: BrowserTask, reason: str) -> None:
+        task.status = BrowserTaskStatus.CANCELLED
+        task.completed_at = utcnow()
+        task.error_message = reason
+        await service.close_open_sessions(s, task.id, status=BrowserSessionStatus.CLOSED, error=reason)
+        await s.commit()
 
     async def _start(self, ctx: JobContext, s: AsyncSession, task: BrowserTask) -> tuple[_Prepared | None, bool]:
         """Returns (prepared, report_now)."""
@@ -287,9 +301,16 @@ class BrowserJobRunner:
                 await s.rollback()
                 logger.info("browser task's step no longer exists", extra={"browser_task_id": str(task.id)})
                 return
-        if not delivered:
-            logger.info("browser outcome not delivered (step no longer waiting)",
-                        extra={"browser_task_id": str(browser_task_id)})
+            if delivered:
+                return
+            # The engine may not have finished recording the dispatch yet: report again shortly.
+            if await _step_view(s, task) == "dispatching" and _age_seconds(task) < DISPATCH_WAIT_SECONDS:
+                await s.commit()
+                raise DeferJob("the step is not waiting for the browser outcome yet",
+                               delay_seconds=DISPATCH_POLL_SECONDS)
+            await s.commit()
+        logger.info("browser outcome not delivered (step no longer waiting)",
+                    extra={"browser_task_id": str(browser_task_id)})
 
     async def _fail_quietly(self, ctx: JobContext, prepared: _Prepared, message: str) -> None:
         """Last job attempt: make sure the step does not wait forever."""
@@ -311,6 +332,25 @@ def _error_class(value: str | None) -> ErrorClass:
         return ErrorClass(value or ErrorClass.UNKNOWN.value)
     except ValueError:
         return ErrorClass.UNKNOWN
+
+
+async def _step_view(s: AsyncSession, task: BrowserTask) -> str:
+    """``waiting``: the step waits for this dispatch; ``dispatching``: the engine is still
+    recording it; ``gone``: the step moved on (retried, failed, cancelled, re-planned)."""
+    from app.tasks.models import TaskStep
+
+    row = (await s.execute(select(TaskStep.status, TaskStep.idempotency_key)
+                           .where(TaskStep.id == task.step_id))).one_or_none()
+    if row is None or row.idempotency_key != task.idempotency_key:
+        return "gone"
+    if row.status == "waiting_external":
+        return "waiting"
+    return "dispatching" if row.status == "running" else "gone"
+
+
+def _age_seconds(task: BrowserTask) -> float:
+    reference = task.updated_at or task.created_at
+    return (utcnow() - ensure_aware(reference)).total_seconds() if reference else 0.0
 
 
 async def _task_cancelled(s: AsyncSession, task: BrowserTask) -> bool:

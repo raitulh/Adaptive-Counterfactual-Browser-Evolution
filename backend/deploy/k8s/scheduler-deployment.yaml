@@ -1,0 +1,83 @@
+# Scheduler: turns time into jobs (due automation runs + periodic maintenance). It never
+# runs long work itself. One replica is enough; running two is SAFE — automation runs are
+# unique per (automation, scheduled time) and periodic jobs are enqueued with time-bucketed
+# dedupe keys, so duplicates coalesce. That also makes rolling updates (brief overlap) safe.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-scheduler
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: scheduler
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentos-scheduler
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: scheduler
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: scheduler
+    spec:
+      serviceAccountName: agentos-scheduler
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: scheduler
+          image: agentos-backend
+          imagePullPolicy: IfNotPresent
+          command: ["agentos-scheduler"]
+          envFrom:
+            - configMapRef:
+                name: agentos-config
+            - secretRef:
+                name: agentos-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: agentos-scheduler
+          # No HTTP endpoint: a failed tick is logged and retried on the next interval, and a
+          # crashed process exits and is restarted by the kubelet. Alert on the absence of
+          # `maintenance.*` jobs being enqueued (see docs/operations.md).
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

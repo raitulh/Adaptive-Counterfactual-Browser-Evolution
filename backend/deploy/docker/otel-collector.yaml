@@ -1,0 +1,53 @@
+# OpenTelemetry Collector configuration for the local `observability` Compose profile.
+#
+# * Traces: the API, workers and scheduler export OTLP/HTTP to :4318 when
+#   OTEL_ENABLED=true and OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces.
+#   They are printed by the debug exporter (swap in your tracing backend's exporter).
+# * Metrics: the API (/metrics) and the worker (WORKER_METRICS_PORT=9100) are scraped
+#   and re-exposed on :8889 for a local Prometheus/Grafana. If METRICS_BEARER_TOKEN is
+#   set, add `authorization: {credentials: <token>}` to the api scrape job.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: agentos-api
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["api:8000"]
+        - job_name: agentos-worker
+          scrape_interval: 15s
+          metrics_path: /
+          static_configs:
+            - targets: ["worker:9100"]
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 200
+    spike_limit_mib: 50
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: basic
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    metrics:
+      receivers: [prometheus, otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]

@@ -1,0 +1,44 @@
+# Disruption budgets for voluntary evictions (node upgrades, Autopilot rebalancing).
+# The scheduler runs a single replica and needs none: while it is rescheduled, due work is
+# picked up on its next tick (automation runs are materialized for missed times).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agentos-api
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agentos-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: worker
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agentos-browser-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: browser-worker
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: browser-worker

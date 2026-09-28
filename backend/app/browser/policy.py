@@ -270,7 +270,11 @@ class EgressProxy:
                 await self._respond(writer, 503, "Too many connections")
                 return
             head = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), timeout=self.limits.idle_timeout)
-            request_line, headers = _parse_head(head)
+            try:
+                request_line, headers = _parse_head(head)
+            except ValueError:
+                await self._respond(writer, 400, "Bad request")
+                return
             parts = request_line.split(" ")
             if len(parts) != 3 or not _METHOD.match(parts[0]) or not parts[2].startswith("HTTP/1."):
                 await self._respond(writer, 400, "Bad request")
@@ -371,16 +375,13 @@ class EgressProxy:
         up_reader, up_writer = upstream
         try:
             path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-            lines = [f"{method} {path} HTTP/1.1"]
-            has_host = False
+            # The Host header always names the vetted destination.
+            lines = [f"{method} {path} HTTP/1.1", f"Host: {parts.netloc.rsplit('@', 1)[-1]}"]
             for name, value in headers:
                 lname = name.lower()
-                if lname in _REQUEST_HOP_BY_HOP or lname in connection_tokens:
+                if lname in _REQUEST_HOP_BY_HOP or lname in connection_tokens or lname == "host":
                     continue
-                has_host = has_host or lname == "host"
                 lines.append(f"{name}: {value}")
-            if not has_host:
-                lines.append(f"Host: {parts.netloc.rsplit('@', 1)[-1]}")
             lines.append("Connection: close")
             up_writer.write(("\r\n".join(lines) + "\r\n\r\n").encode("latin-1"))
             if length:
@@ -455,9 +456,13 @@ class EgressProxy:
 def _parse_head(head: bytes) -> tuple[str, list[tuple[str, str]]]:
     lines = head.decode("latin-1").split("\r\n")
     headers: list[tuple[str, str]] = []
+    if "\r" in lines[0] or "\n" in lines[0]:
+        raise ValueError("malformed start line")
     for line in lines[1:]:
         if not line:
             continue
+        if "\r" in line or "\n" in line:
+            raise ValueError("malformed header line")
         name, sep, value = line.partition(":")
         if not sep or not name or name != name.strip():
             raise ValueError("malformed header")

@@ -1,0 +1,79 @@
+# Database migrations (alembic upgrade head). Run and wait for it BEFORE rolling out a new
+# release; migrations must be backward compatible with the previous release (expand →
+# migrate → contract), because old pods keep serving during the rollout.
+#
+#   kubectl -n agentos delete job agentos-migrate --ignore-not-found
+#   kubectl apply -k deploy/k8s -l app.kubernetes.io/component=migrate
+#   kubectl -n agentos wait --for=condition=complete job/agentos-migrate --timeout=15m
+#   kubectl apply -k deploy/k8s
+#
+# Jobs are immutable, hence the delete. `alembic upgrade head` is idempotent, so a re-run
+# (e.g. after ttlSecondsAfterFinished removed the Job) is a no-op. With Argo CD, annotate it
+# `argocd.argoproj.io/hook: PreSync`; with Helm, make it a pre-upgrade hook.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-migrate
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: migrate
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agentos-migrate
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: migrate
+    spec:
+      serviceAccountName: agentos-migrate
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: agentos-backend
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - python scripts/wait_for_services.py --services database --timeout 120 && alembic upgrade head
+          envFrom:
+            - configMapRef:
+                name: agentos-config
+            - secretRef:
+                name: agentos-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

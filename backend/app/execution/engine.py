@@ -83,6 +83,7 @@ from app.tools.base import (
     Tool,
     ToolContext,
     ToolResult,
+    ToolSpec,
     canonical_hash,
 )
 from app.tools.registry import ToolResolver
@@ -135,6 +136,20 @@ class StartedStep:
     tctx: ToolContext
     tainted: bool
     reuse: ToolResult | None = None  # ledger already recorded success
+    side_effects: bool = False
+
+
+def effective_spec(tool: Tool[Any, Any], step: TaskStep) -> ToolSpec:
+    """The tool spec escalated by the argument-dependent assessment recorded on the step
+    (e.g. ``browser.run`` containing clicks is a write even though its static spec is a read).
+    Side-effect handling (idempotency ledger, reconciliation, retries) follows this."""
+    try:
+        assessed = PermissionLevel(step.permission_level)
+    except ValueError:
+        return tool.spec
+    if assessed.rank > tool.spec.permission_level.rank:
+        return tool.spec.model_copy(update={"permission_level": assessed})
+    return tool.spec
 
 
 class ExecutionEngine:
@@ -396,7 +411,7 @@ class ExecutionEngine:
             attempt.error_message = "worker stopped before recording the outcome"
         try:
             tool = await self.resolver.resolve(s, task.tenant_id, step.tool_name, step.tool_version)
-            side_effects = tool.spec.has_side_effects
+            side_effects = effective_spec(tool, step).has_side_effects
         except ToolNotFound:
             side_effects = True
         if side_effects:
@@ -504,14 +519,10 @@ class ExecutionEngine:
                 await s.commit()
                 return None
             action_hash = canonical_hash({"tool": tool.spec.key, "args": canonical})
-            side_effects = tool.spec.has_side_effects
             attempt_number = step.attempt_count + 1
-            idem = (f"{task.id}:{tool.spec.name}:{action_hash[:32]}" if side_effects
-                    else f"{task.id}:{step.id}:{attempt_number}")
             # Stored exactly (not normalised): approvals, verification and audits refer to these values.
             step.resolved_arguments = canonical
             step.resolved_args_hash = action_hash
-            step.idempotency_key = idem
 
             # 2. Permission + policy with the concrete arguments.
             tainted = await self._tainted(s, task, step)
@@ -529,6 +540,10 @@ class ExecutionEngine:
             step.permission_level = decision.permission_level.value
             step.risk_level = decision.risk_level.value
             step.policy_reasons = decision.reasons
+            side_effects = decision.permission_level.has_side_effects or tool.spec.has_side_effects
+            idem = (f"{task.id}:{tool.spec.name}:{action_hash[:32]}" if side_effects
+                    else f"{task.id}:{step.id}:{attempt_number}")
+            step.idempotency_key = idem
             if decision.decision == Decision.DENY:
                 audit.record(s, category=AuditCategory.TOOL, action="tool.denied", status="denied",
                              tenant_id=task.tenant_id, user_id=task.user_id, actor_type="worker", task_id=task.id,
@@ -592,7 +607,7 @@ class ExecutionEngine:
                     await self._store_output(s, task, step, tool, reuse, tainted)
                     transition_step(step, StepStatus.VERIFYING)
                     await s.commit()
-                    return StartedStep(step_id, None, tool, args, tctx, tainted, reuse=reuse)
+                    return StartedStep(step_id, None, tool, args, tctx, tainted, reuse=reuse, side_effects=True)
                 if ledger is not None and ledger.status == "pending":
                     transition_step(step, StepStatus.RUNNING)
                     transition_step(step, StepStatus.REQUIRES_RECONCILIATION)
@@ -623,7 +638,7 @@ class ExecutionEngine:
             await s.flush()
             attempt_id = attempt.id
             await s.commit()
-            return StartedStep(step_id, attempt_id, tool, args, tctx, tainted)
+            return StartedStep(step_id, attempt_id, tool, args, tctx, tainted, side_effects=side_effects)
 
     async def _store_output(self, s: AsyncSession, task: Task, step: TaskStep, tool: Tool[Any, Any],
                             result: ToolResult, tainted: bool) -> None:
@@ -648,7 +663,7 @@ class ExecutionEngine:
                 attempt.finished_at = utcnow()
                 attempt.duration_ms = int(elapsed * 1000)
                 attempt.output_summary = clean_text(result.summary, max_chars=500)
-            if tool.spec.has_side_effects:
+            if started.side_effects:
                 ledger = (await s.execute(select(ExternalAction).where(
                     ExternalAction.idempotency_key == step.idempotency_key).with_for_update())).scalar_one_or_none()
                 if ledger is not None:
@@ -662,7 +677,7 @@ class ExecutionEngine:
                 await record_usage_once(s, idempotency_key=f"tool_call:{attempt.id}", tenant_id=task.tenant_id,
                                         kind=UsageKind.TOOL_CALL, user_id=task.user_id, task_id=task.id,
                                         agent_id=task.agent_id, metadata={"tool": tool.spec.name})
-            if tool.spec.has_side_effects:
+            if started.side_effects:
                 audit.record(s, category=AuditCategory.TOOL, action="tool.executed", tenant_id=task.tenant_id,
                              user_id=task.user_id, actor_type="worker", task_id=task.id, step_id=step.id,
                              tool_name=tool.spec.name, approval_id=None, resource_type="external_ref",
@@ -684,7 +699,7 @@ class ExecutionEngine:
     async def _record_failure(self, rc: RunContext, started: StartedStep, exc: BaseException, elapsed: float
                               ) -> None:
         tool = started.tool
-        failure = self.classifier.classify(exc, side_effects=tool.spec.has_side_effects)
+        failure = self.classifier.classify(exc, side_effects=started.side_effects)
         logger.info("tool failed", extra={"tool": tool.spec.name, "error_class": failure.error_class.value,
                                           "code": failure.code})
         metrics.tool_calls_total.labels(tool.spec.name, "failure").inc()
@@ -699,7 +714,7 @@ class ExecutionEngine:
                 attempt.duration_ms = int(elapsed * 1000)
                 attempt.error_class = failure.error_class.value
                 attempt.error_message = failure.message[:1000]
-            if tool.spec.has_side_effects:
+            if started.side_effects:
                 ledger = (await s.execute(select(ExternalAction).where(
                     ExternalAction.idempotency_key == step.idempotency_key).with_for_update())).scalar_one_or_none()
                 if ledger is not None and is_definitive_before_effect(failure):
@@ -714,7 +729,7 @@ class ExecutionEngine:
     async def _apply_failure(self, s: AsyncSession, rc: RunContext, task: Task, step: TaskStep, tool: Tool[Any, Any],
                              failure: ClassifiedFailure, *, attempt: TaskAttempt | None) -> RecoveryDecision:
         policy = self._retry_policy(rc, tool, step)
-        decision = self.recovery.decide(failure, spec=tool.spec, attempt=step.attempt_count or 1,
+        decision = self.recovery.decide(failure, spec=effective_spec(tool, step), attempt=step.attempt_count or 1,
                                         max_attempts=policy.max_attempts, replans_used=task.replans,
                                         max_replans=self.settings.max_replans_per_task, retry_policy=policy)
         verified_failure = decision.action in (RecoveryAction.FAIL, RecoveryAction.BLOCK, RecoveryAction.REPAIR) \
@@ -872,7 +887,7 @@ class ExecutionEngine:
                                    payload={"step": step.step_key, "method": outcome.method,
                                             "status": outcome.status.value,
                                             "differences": [d.field for d in outcome.differences][:10]})
-                if tool.spec.has_side_effects:
+                if effective_spec(tool, step).has_side_effects:
                     # The action happened (or may have): never retry blindly. Ask the user to review.
                     transition_step(step, StepStatus.REQUIRES_RECONCILIATION)
                     step.error_class = ErrorClass.VERIFICATION_FAILED.value

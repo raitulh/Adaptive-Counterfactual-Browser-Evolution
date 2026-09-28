@@ -1,0 +1,65 @@
+# BuildKit Dockerfile-specific ignore file for backend/Dockerfile.
+#
+# Used automatically (instead of the repository-root .dockerignore) when building
+# with the repository root as context:  docker build -f backend/Dockerfile .
+# Patterns are relative to the REPOSITORY ROOT. Keep in sync with backend/.dockerignore
+# and backend/deploy/docker/Dockerfile.browser.dockerignore.
+#
+# The image needs only: pyproject.toml, README.md, acbe/, benchmarks/,
+# backend/pyproject.toml, backend/README.md, backend/app/, backend/alembic.ini,
+# backend/migrations/, backend/scripts/.
+
+# Secrets and local environment (anywhere in the tree)
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/secrets/
+
+# VCS / editors / CI
+.git
+**/.gitignore
+.github
+**/.idea
+**/.vscode
+
+# Python build and cache artefacts
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/*.egg-info
+**/build
+**/dist
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/coverage.xml
+**/htmlcov
+
+# Local runtime state
+**/.data
+**/.acbe
+**/*.db
+**/*.db-journal
+**/traces
+**/loadtest-results
+
+# Parts of the repository no backend image needs
+frontend
+research
+examples
+docker
+docs
+tests
+scripts
+start_project.bat
+requirements*.txt
+**/node_modules
+backend/tests
+backend/docs
+backend/deploy
+backend/Makefile
+backend/docker-compose.yml

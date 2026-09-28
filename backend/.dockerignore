@@ -1,0 +1,59 @@
+# Docker ignore rules for AgentOS backend images.
+#
+# IMPORTANT: the images are built with the REPOSITORY ROOT as the build context
+# (they need the root `acbe/` package), so Docker does not read this file for them.
+# BuildKit (the default builder in Docker 23+ and Compose v2) instead uses the
+# Dockerfile-specific ignore files that sit next to each Dockerfile:
+#
+#   backend/Dockerfile.dockerignore                      (API / worker / scheduler)
+#   backend/deploy/docker/Dockerfile.browser.dockerignore (browser worker)
+#
+# Those replace the root .dockerignore for these builds. This file applies when
+# `backend/` itself is used as a build context (e.g. tooling or dev containers);
+# every pattern uses `**/` so it is valid for either context. Keep the three files
+# in sync. The Dockerfiles only COPY explicit paths, so these rules mainly keep
+# secrets and bulky local state out of the build context that is sent to the builder.
+
+# Secrets and local environment
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/secrets/
+
+# VCS / editors
+**/.git
+**/.gitignore
+**/.github
+**/.idea
+**/.vscode
+
+# Python build and cache artefacts
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/*.egg-info
+**/build
+**/dist
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/coverage.xml
+**/htmlcov
+
+# Local runtime state (local object storage, databases, load-test output)
+**/.data
+**/*.db
+**/*.db-journal
+**/traces
+**/loadtest-results
+
+# Not needed inside images
+**/node_modules
+**/tests
+**/docs
+**/deploy/k8s
+**/deploy/terraform

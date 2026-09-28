@@ -1,0 +1,238 @@
+# Isolated browser worker (Playwright + Chromium) — consumes only the `browser` queue.
+#
+# Isolation layers (defence in depth for SSRF and for hostile pages):
+#   1. In-process: every navigation/sub-request/redirect/WebSocket goes through the
+#      per-task egress proxy that re-vets destinations (app/browser/policy.py).
+#   2. This pod: non-root, no capabilities, read-only root filesystem, no service-account
+#      token and NO Workload Identity binding (it needs no cloud permissions).
+#   3. The NetworkPolicy below: no private ranges, no link-local/metadata, only the ports
+#      the application allows; PostgreSQL/Redis only on their exact ports.
+#   4. Optional: a dedicated node pool and GKE Sandbox (gVisor) — see the commented fields.
+#
+# Chromium's own sandbox needs user-namespace syscalls that the RuntimeDefault seccomp
+# profile blocks, so BROWSER_NO_SANDBOX=1 is set and the layers above are the boundary.
+# Where you can install Playwright's seccomp profile on the nodes (not on GKE Autopilot),
+# use `seccompProfile: {type: Localhost, localhostProfile: ...}` and drop that variable.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-browser-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: browser-worker
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentos-browser-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: browser-worker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: browser-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: browser-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /
+    spec:
+      serviceAccountName: agentos-browser-worker
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      # GKE Sandbox (gVisor) adds a user-space kernel between Chromium and the node:
+      # runtimeClassName: gvisor
+      # Dedicated node pool (Standard clusters: taint the pool `agentos.io/browser=true:NoSchedule`;
+      # Autopilot: workload separation with the same key/value):
+      # nodeSelector:
+      #   agentos.io/browser: "true"
+      # tolerations:
+      #   - key: agentos.io/browser
+      #     operator: Equal
+      #     value: "true"
+      #     effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: browser-worker
+          image: agentos-browser-worker
+          imagePullPolicy: IfNotPresent
+          command: ["agentos-browser-worker"]
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: agentos-config
+            - secretRef:
+                name: agentos-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: agentos-browser-worker
+            - name: BROWSER_NO_SANDBOX
+              value: "1"
+            - name: HOME
+              value: /home/agentos
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              memory: 1536Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          startupProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 2
+            failureThreshold: 45
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/agentos
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 512Mi
+        - name: home
+          emptyDir:
+            sizeLimit: 256Mi
+        # Chromium needs a larger /dev/shm than the container default (64 MiB).
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 512Mi
+---
+# Strict egress for the browser pods (namespace default-deny is in networkpolicy.yaml).
+# 10.100.0.0/16 is the private-services range used for Cloud SQL and Memorystore by the
+# reference Terraform (`private_services_cidr`); change it to your database/Redis range.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agentos-browser-worker-egress
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: browser-worker
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: browser-worker
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only metrics scraping from the monitoring namespace.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9100
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL (job queue / browser task rows) and Redis — exact ports only.
+    - to:
+        - ipBlock:
+            cidr: 10.100.0.0/16
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6378
+        - protocol: TCP
+          port: 6379
+    # OpenTelemetry collector.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 4318
+    # Public web only: no RFC1918, CGNAT, loopback, link-local (incl. 169.254.169.254
+    # metadata), multicast or reserved ranges; only the ports the egress policy permits.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 0.0.0.0/8
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.0.0.0/24
+              - 192.0.2.0/24
+              - 192.168.0.0/16
+              - 198.18.0.0/15
+              - 198.51.100.0/24
+              - 203.0.113.0/24
+              - 224.0.0.0/4
+              - 240.0.0.0/4
+        - ipBlock:
+            cidr: ::/0
+            except:
+              - ::1/128
+              - ::ffff:0:0/96
+              - 64:ff9b::/96
+              - fc00::/7
+              - fe80::/10
+              - ff00::/8
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443

@@ -1,0 +1,59 @@
+# Worker autoscaling. CPU is a reasonable first signal for planning/execution work, but
+# most of a worker's time is spent waiting on model and provider APIs, so queue depth is
+# the better one. Scale on at most one of the two for a Deployment: either this HPA or a
+# KEDA ScaledObject (example below), not both.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agentos-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agentos-worker
+  minReplicas: 2
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+    scaleDown:
+      # Slow scale-down: draining workers finish in-flight jobs (up to 30 s) before exiting.
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 120
+# Queue-depth scaling with KEDA (replace this HPA with it). The query counts claimable jobs:
+#
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: agentos-worker
+# spec:
+#   scaleTargetRef:
+#     name: agentos-worker
+#   minReplicaCount: 2
+#   maxReplicaCount: 30
+#   triggers:
+#     - type: postgresql
+#       metadata:
+#         query: >-
+#           SELECT count(*) FROM jobs WHERE status = 'pending' AND run_at <= now()
+#           AND queue = ANY('{planning,execution,memory,notifications,files,maintenance,evaluation}')
+#         targetQueryValue: "20"
+#       authenticationRef:
+#         name: agentos-keda-postgres

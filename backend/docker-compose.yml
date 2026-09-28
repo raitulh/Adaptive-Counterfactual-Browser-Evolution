@@ -1,0 +1,326 @@
+# AgentOS local stack, sized for an 8 GB machine.
+#
+#   cp .env.example .env        # then set JWT_SECRET and TOKEN_ENCRYPTION_KEY (see the file)
+#   docker compose up -d --build
+#   docker compose --profile browser up -d        # + isolated Playwright browser worker
+#   docker compose --profile minio up -d          # + S3-compatible object storage and bucket init
+#   docker compose --profile observability up -d  # + OpenTelemetry collector
+#
+# Requires Docker Compose v2 with BuildKit. The build context is the repository root
+# (`..`) because the backend depends on the root `acbe` package.
+#
+# Memory budget (limits): postgres 1g + redis 256m + api 512m + worker 768m +
+# scheduler 256m ≈ 2.8 GB core; browser +1.5g, minio +512m, collector +256m.
+#
+# No secrets live in this file. Values come from .env (git-ignored). The only
+# defaults below are local-development placeholders for services bound to 127.0.0.1.
+
+name: agentos
+
+x-backend-env: &backend-env
+  # In-network addresses override the localhost URLs used for non-Docker development.
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agentos}:${POSTGRES_PASSWORD:-agentos}@postgres:5432/${POSTGRES_DB:-agentos}
+  REDIS_URL: redis://redis:6379/0
+
+x-backend: &backend
+  image: agentos-backend:local
+  build:
+    context: ..
+    dockerfile: backend/Dockerfile
+    target: api
+  env_file: .env
+  environment:
+    <<: *backend-env
+  init: true
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:size=128m
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  volumes:
+    # Shared by API and workers when OBJECT_STORAGE_BACKEND=local (development only).
+    - objects:/app/.data
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # ------------------------------------------------------------------ data stores
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agentos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentos}
+      POSTGRES_DB: ${POSTGRES_DB:-agentos}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - max_connections=150
+      - -c
+      - log_min_duration_statement=500
+      - -c
+      - jit=off
+    shm_size: 256m
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Redis holds only transient state (rate-limit counters, locks, OAuth state, pub/sub
+    # wake-ups), all written with TTLs, so evicting TTL'd keys under pressure is safe.
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - volatile-lru
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ------------------------------------------------------------------ one-shot migration
+  migrate:
+    <<: *backend
+    command: ["sh", "-c", "python scripts/wait_for_services.py --timeout 90 && alembic upgrade head"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ------------------------------------------------------------------ application
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+
+  worker:
+    <<: *backend
+    command:
+      - agentos-worker
+      - --queues
+      - planning,execution,memory,notifications,files,maintenance,evaluation
+    environment:
+      <<: *backend-env
+      WORKER_METRICS_PORT: "9100"
+    stop_grace_period: 45s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9100/', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+          cpus: "1.0"
+
+  scheduler:
+    <<: *backend
+    command: ["agentos-scheduler"]
+    # No HTTP endpoint; a crashed scheduler exits and is restarted. Running two is safe
+    # (periodic jobs are enqueued with time-bucketed dedupe keys).
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+
+  # ------------------------------------------------------------------ optional: browser
+  browser-worker:
+    profiles: ["browser"]
+    image: agentos-browser-worker:local
+    build:
+      context: ..
+      dockerfile: backend/deploy/docker/Dockerfile.browser
+    env_file: .env
+    environment:
+      <<: *backend-env
+      WORKER_METRICS_PORT: "9100"
+      # Chromium's own sandbox needs user-namespace syscalls that Docker's default seccomp
+      # profile blocks for non-root containers, so it is disabled here and the container
+      # (non-root, no capabilities, read-only root, no-new-privileges) is the boundary.
+      # To keep Chromium's sandbox as an extra layer instead, run with Playwright's
+      # published seccomp profile (security_opt: seccomp=<path>/seccomp_profile.json)
+      # and remove this variable.
+      BROWSER_NO_SANDBOX: "1"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+      - /home/agentos:size=128m,uid=10001,gid=10001
+    # Chromium uses /dev/shm heavily; the default 64 MB causes renderer crashes.
+    shm_size: 512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - objects:/app/.data
+    stop_grace_period: 45s
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9100/', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+          cpus: "2.0"
+
+  # ------------------------------------------------------------------ optional: S3-compatible storage
+  # Upstream MinIO no longer publishes community images on Docker Hub. The default is a
+  # community build that keeps the upstream `minio server` CLI; set MINIO_IMAGE to an
+  # S3-compatible image you have vetted. To use it, set in .env:
+  #   OBJECT_STORAGE_BACKEND=s3
+  #   OBJECT_STORAGE_ENDPOINT=http://minio:9000
+  #   OBJECT_STORAGE_ACCESS_KEY / OBJECT_STORAGE_SECRET_KEY (also used as the MinIO root login)
+  minio:
+    profiles: ["minio"]
+    image: ${MINIO_IMAGE:-pgsty/minio:RELEASE.2026-08-04T00-00-00Z}
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY:-agentos-local}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY:-agentos-local-dev-only}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  minio-init:
+    <<: *backend
+    profiles: ["minio"]
+    command:
+      - python
+      - scripts/wait_for_services.py
+      - --services
+      - object-storage
+      - --ensure-bucket
+      - --timeout
+      - "120"
+    environment:
+      <<: *backend-env
+      OBJECT_STORAGE_BACKEND: s3
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-agentos-local}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:-agentos-local-dev-only}
+    restart: "no"
+    healthcheck:
+      disable: true
+    depends_on:
+      minio:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ------------------------------------------------------------------ optional: observability
+  # Set OTEL_ENABLED=true and OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces
+  # in .env. The collector prints spans (debug exporter) and re-exposes the API and worker
+  # Prometheus metrics on http://127.0.0.1:8889/metrics.
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./deploy/docker/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8889:8889"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+volumes:
+  pgdata:
+  redisdata:
+  objects:
+  minio-data:

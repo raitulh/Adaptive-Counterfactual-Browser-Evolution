@@ -65,8 +65,11 @@ async def record_external_outcome(session: AsyncSession, *, task_id: uuid.UUID, 
         else:
             if ledger is not None:
                 ledger.status = "failed"
-            transition_step(step, StepStatus.RETRY_SCHEDULED if error_class.retryable else StepStatus.FAILED)
-            step.next_attempt_at = now if error_class.retryable else None
+            retry = error_class.retryable and step.attempt_count < max(1, step.max_attempts)
+            transition_step(step, StepStatus.RETRY_SCHEDULED if retry else StepStatus.FAILED)
+            step.next_attempt_at = now if retry else None
+            if error_class.retryable and not retry:
+                step.error_message = (step.error_message or "") + " (retries exhausted)"
     task.browser_actions += int((usage or {}).get("browser_actions", 0))
     await append_event(session, task, EventType.TOOL_CALL_FINISHED, step_id=step.id,
                        payload={"step": step.step_key, "summary": step.output_summary,

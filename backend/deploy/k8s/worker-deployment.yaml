@@ -1,0 +1,120 @@
+# General background workers: planning, execution, memory, notifications, files,
+# maintenance and evaluation queues. Stateless — all durable state is in PostgreSQL; a
+# killed worker's job and task leases expire and another worker resumes the work
+# (side-effecting steps are reconciled, never blindly re-run).
+#
+# To isolate noisy queues, run several copies of this Deployment with different
+# --queues (e.g. one for `execution`, one for `memory,files,evaluation`).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: worker
+  annotations:
+    iam.gke.io/gcp-service-account: agentos-worker@your-gcp-project.iam.gserviceaccount.com
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentos-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /
+    spec:
+      serviceAccountName: agentos-worker
+      automountServiceAccountToken: false
+      # SIGTERM → the worker stops claiming and drains for WORKER_SHUTDOWN_GRACE_SECONDS (30).
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentos
+              app.kubernetes.io/component: worker
+      containers:
+        - name: worker
+          image: agentos-backend
+          imagePullPolicy: IfNotPresent
+          command: ["agentos-worker"]
+          args:
+            - --queues
+            - planning,execution,memory,notifications,files,maintenance,evaluation
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: agentos-config
+            - secretRef:
+                name: agentos-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: agentos-worker
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          # The worker serves Prometheus metrics on WORKER_METRICS_PORT; a wedged event loop
+          # stops answering, which is what the liveness probe detects.
+          startupProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 512Mi

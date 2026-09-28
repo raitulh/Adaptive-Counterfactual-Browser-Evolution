@@ -309,7 +309,6 @@ class BrowserExecutor:
 
     # ------------------------------------------------------------------ run
     async def run(self, payload: BrowserRunRequest) -> BrowserRunResult:
-        started = time.monotonic()
         if not payload.actions:
             return BrowserRunResult.failure("invalid_actions", "At least one browser action is required.",
                                             ErrorClass.INVALID_INPUT)
@@ -321,7 +320,8 @@ class BrowserExecutor:
         limit = float(self.settings.browser_task_timeout_seconds)
         total = max(1.0, min(float(payload.timeout_seconds or limit), limit))
         async with self._slots:
-            return await self._run(payload, started, total)
+            # The time budget starts once a browser slot is available.
+            return await self._run(payload, time.monotonic(), total)
 
     async def _run(self, req: BrowserRunRequest, started: float, total: float) -> BrowserRunResult:
         allow_downloads = self.settings.browser_allow_downloads if req.allow_downloads is None else req.allow_downloads

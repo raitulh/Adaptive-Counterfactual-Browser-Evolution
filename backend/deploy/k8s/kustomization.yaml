@@ -1,0 +1,42 @@
+# Base manifests for AgentOS on Kubernetes (reference target: GKE Autopilot).
+#
+#   kubectl kustomize deploy/k8s            # render
+#   kubectl apply -k deploy/k8s             # apply (run the migration Job first — see migrate-job.yaml)
+#
+# Create per-environment overlays that patch the ConfigMap (hostnames, OAuth client ID,
+# bucket), the image references below, the ingress host and the network ranges.
+# secret.example.yaml is deliberately NOT listed: the `agentos-secrets` Secret comes from
+# External Secrets Operator (or is created manually on development clusters).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: agentos
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - api-hpa.yaml
+  - worker-deployment.yaml
+  - worker-hpa.yaml
+  - scheduler-deployment.yaml
+  - browser-worker-deployment.yaml
+  - migrate-job.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: agentos
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
+
+images:
+  - name: agentos-backend
+    newName: europe-west1-docker.pkg.dev/your-gcp-project/agentos/agentos-backend
+    newTag: "0.1.0"
+  - name: agentos-browser-worker
+    newName: europe-west1-docker.pkg.dev/your-gcp-project/agentos/agentos-browser-worker
+    newTag: "0.1.0"

@@ -52,6 +52,7 @@ HANDLER_MODULES = (
     "app.automations.jobs",
     "app.evaluation.jobs",
     "app.acbe.jobs",
+    "app.browser.jobs",
 )
 
 

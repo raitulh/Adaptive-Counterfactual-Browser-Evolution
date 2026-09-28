@@ -1,0 +1,48 @@
+# Public entry point (ingress-nginx). TLS terminates here; the API trusts X-Forwarded-*
+# only from the controller's range (FORWARDED_ALLOW_IPS in the ConfigMap).
+#
+# * Request size: 26m admits FILE_MAX_UPLOAD_BYTES (25 MiB) plus multipart overhead; the
+#   API still enforces MAX_REQUEST_BODY_BYTES (2 MiB) on every non-upload route.
+# * Server-Sent Events (/tasks/{id}/events/stream, /events/stream): response buffering is
+#   off and read/send timeouts are one hour. The API also sends `X-Accel-Buffering: no` and
+#   a keep-alive comment every 15 s; clients resume with Last-Event-ID after a reconnect.
+#
+# On GKE with the built-in GCE ingress instead, use a BackendConfig with `timeoutSec: 3600`
+# (and Cloud Armor for edge rate limiting); the nginx annotations below do not apply there.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentos-api
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: api
+  annotations:
+    # cert-manager issues the certificate into `agentos-api-tls` (remove if you provision it otherwise).
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "26m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.agentos.example.com
+      secretName: agentos-api-tls
+  rules:
+    - host: api.agentos.example.com
+      http:
+        paths:
+          # Only the versioned API is public; /metrics, /docs and /redoc are not routed.
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: agentos-api
+                port:
+                  name: http

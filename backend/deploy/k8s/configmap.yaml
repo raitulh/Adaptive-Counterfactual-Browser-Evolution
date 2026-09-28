@@ -1,0 +1,86 @@
+# Non-secret settings shared by every AgentOS process. Anything not listed here uses the
+# default in app/core/config.py (see .env.example for the full list and meaning).
+# Secrets (DATABASE_URL, REDIS_URL, JWT_SECRET, TOKEN_ENCRYPTION_KEY, API keys, ...) live in
+# the `agentos-secrets` Secret — see secret.example.yaml.
+#
+# Replace the example hostnames/IDs (agentos.example.com, the OAuth client ID, bucket name)
+# with your own, ideally through a kustomize overlay per environment.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentos-config
+  labels:
+    app.kubernetes.io/name: agentos
+data:
+  # ---------------------------------------------------------------- application
+  APP_ENV: "production"
+  APP_REGION: "europe-west1"
+  PUBLIC_BASE_URL: "https://api.agentos.example.com"
+  CORS_ORIGINS: "https://app.agentos.example.com"
+  # The Ingress only routes the public host. An application-level host allowlist would also
+  # reject kubelet probes and Prometheus scrapes, which address pods by IP.
+  TRUSTED_HOSTS: "*"
+  COOKIE_SECURE: "true"
+  EXPOSE_OPENAPI: "false"
+  # Trust X-Forwarded-* only from the ingress controller's pods (their Pod CIDR). uvicorn reads
+  # this because the Deployment does not pass --forwarded-allow-ips. Narrow it to your range.
+  FORWARDED_ALLOW_IPS: "10.0.0.0/8"
+
+  # ---------------------------------------------------------------- database / redis pools
+  # Per process. Size so that (api + worker + scheduler + browser replicas) x (pool + overflow)
+  # stays below the database's max_connections (or front it with PgBouncer).
+  DATABASE_POOL_SIZE: "10"
+  DATABASE_MAX_OVERFLOW: "5"
+  DATABASE_STATEMENT_TIMEOUT_MS: "15000"
+
+  # ---------------------------------------------------------------- model gateway
+  MODEL_PROVIDER: "gemini"
+  GEMINI_DEFAULT_MODEL: "gemini-2.5-flash"
+  GEMINI_FAST_MODEL: "gemini-2.5-flash-lite"
+  GEMINI_REASONING_MODEL: "gemini-2.5-pro"
+  GEMINI_EMBEDDING_MODEL: "gemini-embedding-001"
+  EMBEDDING_DIMENSIONS: "768"
+
+  # ---------------------------------------------------------------- Google OAuth (client ID is public)
+  GOOGLE_CLIENT_ID: "000000000000-example.apps.googleusercontent.com"
+  GOOGLE_REDIRECT_URI: "https://api.agentos.example.com/api/v1/integrations/google/callback"
+  GOOGLE_LOGIN_REDIRECT_URI: "https://api.agentos.example.com/api/v1/auth/oauth/google/callback"
+  FRONTEND_OAUTH_SUCCESS_URL: "https://app.agentos.example.com/integrations?status=connected"
+  FRONTEND_OAUTH_ERROR_URL: "https://app.agentos.example.com/integrations?status=error"
+
+  # ---------------------------------------------------------------- object storage (GCS via S3 interoperability)
+  OBJECT_STORAGE_BACKEND: "s3"
+  OBJECT_STORAGE_ENDPOINT: "https://storage.googleapis.com"
+  OBJECT_STORAGE_BUCKET: "agentos-prod-objects"
+  OBJECT_STORAGE_REGION: "auto"
+
+  # ---------------------------------------------------------------- encryption
+  # Only `local` (Fernet keys from the Secret) is implemented in this build.
+  KMS_PROVIDER: "local"
+
+  # ---------------------------------------------------------------- network / SSRF
+  ALLOW_PRIVATE_NETWORK_EGRESS: "false"
+
+  # ---------------------------------------------------------------- workers
+  WORKER_CONCURRENCY: "8"
+  WORKER_SHUTDOWN_GRACE_SECONDS: "30"
+  JOB_LEASE_SECONDS: "120"
+  WORKER_METRICS_PORT: "9100"
+  BROWSER_ENABLED: "true"
+  BROWSER_MAX_CONCURRENCY: "2"
+
+  # ---------------------------------------------------------------- rate limiting
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_FAIL_OPEN: "true"
+
+  # ---------------------------------------------------------------- integrations
+  SEARCH_PROVIDER: "none"
+  MCP_ENABLED: "true"
+
+  # ---------------------------------------------------------------- observability
+  LOG_LEVEL: "INFO"
+  LOG_JSON: "true"
+  METRICS_ENABLED: "true"
+  OTEL_ENABLED: "true"
+  # Full OTLP/HTTP traces URL of your collector.
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability.svc.cluster.local:4318/v1/traces"
