@@ -5,12 +5,14 @@
 #   docker compose --profile browser up -d        # + isolated Playwright browser worker
 #   docker compose --profile minio up -d          # + S3-compatible object storage and bucket init
 #   docker compose --profile observability up -d  # + OpenTelemetry collector
+#   docker compose --profile evaluation up -d     # + dedicated evaluation/ACBE worker
 #
 # Requires Docker Compose v2 with BuildKit. The build context is the repository root
 # (`..`) because the backend depends on the root `acbe` package.
 #
 # Memory budget (limits): postgres 1g + redis 256m + api 512m + worker 768m +
-# scheduler 256m ≈ 2.8 GB core; browser +1.5g, minio +512m, collector +256m.
+# scheduler 256m ≈ 2.8 GB core; browser +1.5g, minio +512m, collector +256m,
+# evaluation worker +512m.
 #
 # No secrets live in this file. Values come from .env (git-ignored). The only
 # defaults below are local-development placeholders for services bound to 127.0.0.1.
@@ -196,6 +198,27 @@ services:
         limits:
           memory: 256m
           cpus: "0.5"
+
+  # ------------------------------------------------------------------ optional: evaluation / ACBE
+  # Evaluation runs and ACBE experiments swap process-wide singletons, so they only execute
+  # on a worker that serves the `evaluation` queue ALONE; the general worker defers them.
+  evaluation-worker:
+    <<: *backend
+    profiles: ["evaluation"]
+    command: ["agentos-worker", "--queues", "evaluation", "--concurrency", "1"]
+    stop_grace_period: 45s
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
 
   # ------------------------------------------------------------------ optional: browser
   browser-worker:

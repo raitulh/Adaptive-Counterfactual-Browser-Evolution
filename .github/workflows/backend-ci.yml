@@ -1,0 +1,138 @@
+# AgentOS backend CI: lint, type check (non-blocking), migrations and the test suite against
+# real PostgreSQL (pgvector) and Redis service containers.
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "acbe/**"
+      - "benchmarks/**"
+      - "pyproject.toml"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "acbe/**"
+      - "benchmarks/**"
+      - "pyproject.toml"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: lint, types, migrations, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: agentos
+          POSTGRES_PASSWORD: agentos
+          POSTGRES_DB: agentos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentos -d agentos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      APP_ENV: test
+      # CI-only service containers; not secrets.
+      DATABASE_URL: postgresql+asyncpg://agentos:agentos@localhost:5432/agentos_test
+      TEST_DATABASE_URL: postgresql+asyncpg://agentos:agentos@localhost:5432/agentos_test
+      REDIS_URL: redis://localhost:6379/0
+      TEST_REDIS_URL: redis://localhost:6379/15
+      MODEL_PROVIDER: scripted
+      LOG_JSON: "false"
+      LOG_LEVEL: WARNING
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            backend/pyproject.toml
+
+      # The `browser` extra installs only the Playwright Python package (no Chromium): the browser
+      # test modules import it, and the tests that need a real browser are deselected below.
+      - name: Install acbe (repository root) and the backend with dev extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ..
+          python -m pip install -e ".[dev,otlp,browser]"
+
+      - name: Generate ephemeral secrets for this run
+        run: |
+          jwt="$(python -c 'import secrets; print(secrets.token_urlsafe(64))')"
+          key="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+          echo "::add-mask::$jwt"
+          echo "::add-mask::$key"
+          {
+            echo "JWT_SECRET=$jwt"
+            echo "TOKEN_ENCRYPTION_KEY=$key"
+          } >> "$GITHUB_ENV"
+
+      - name: Ruff
+        run: ruff check app tests scripts
+
+      - name: Mypy (non-blocking)
+        continue-on-error: true
+        run: mypy app
+
+      - name: Compile scripts and load tests
+        run: python -m py_compile scripts/*.py tests/load/locustfile.py
+
+      - name: Apply migrations to an empty database
+        run: |
+          python scripts/wait_for_services.py --timeout 60
+          alembic upgrade head
+
+      - name: Tests with coverage
+        run: >-
+          pytest -m "not browser"
+          --cov=app --cov-report=term-missing:skip-covered --cov-report=xml:coverage.xml
+          --junitxml=pytest-report.xml
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/coverage.xml
+            backend/pytest-report.xml
+          if-no-files-found: ignore
+          retention-days: 14

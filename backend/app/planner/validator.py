@@ -132,7 +132,7 @@ class PlanValidator:
         self.permissions = permissions or PermissionService()
 
     async def validate(self, session: AsyncSession, ctx: RequestContext, plan: Plan, *, agent: ResolvedAgent,
-                       policy: PolicyInputs, remaining_tool_calls: int, completed_step_ids: set[str] | None = None,
+                       policy: PolicyInputs, remaining_tool_calls: int, performed_tools: set[str] | None = None,
                        ) -> ValidationResult:
         settings = get_settings()
         result = ValidationResult(plan=plan)
@@ -179,6 +179,12 @@ class PlanValidator:
                 issues.append(PlanIssue(code="unknown_tool", step_id=s.step_id, message=f"Unknown tool '{s.tool}'"))
                 continue
             tools[s.step_id] = tool
+            if performed_tools and tool.spec.name in performed_tools and tool.spec.has_side_effects:
+                # A re-plan must not repeat an action that already took effect (e.g. book a second meeting
+                # because the first one now occupies the slot): reuse its recorded result or ask the user.
+                issues.append(PlanIssue(code="repeats_performed_action", step_id=s.step_id,
+                                        message=f"'{s.tool}' was already performed for this task; use the recorded "
+                                                "result instead of repeating it, or ask the user"))
             if tool.spec.category == "browser":
                 browser_steps += 1
             try:

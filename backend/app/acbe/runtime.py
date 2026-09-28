@@ -110,4 +110,7 @@ async def resolve_strategy(session: AsyncSession, tenant_id: uuid.UUID, subject:
             continue
         config = config.merged(StrategyConfig.model_validate(row.candidate_config))
         labels.append(row.version_label)
-    return ActiveStrategy(version="+".join(labels) if labels else "baseline", config=config)
+    version = "+".join(labels) if labels else "baseline"
+    if len(version) > 80:  # tasks.strategy_version is VARCHAR(80): keep a stable, bounded identifier
+        version = "multi-" + hashlib.sha256(version.encode()).hexdigest()[:32]
+    return ActiveStrategy(version=version, config=config)

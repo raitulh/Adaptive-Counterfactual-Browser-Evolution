@@ -137,6 +137,8 @@ async def test_invalid_recipient_never_reports_completion(client, make_user, har
     assert task["status"] != "completed", task
     assert sent_messages(harness) == []
     assert task["status"] in ("failed", "waiting_input", "blocked")
+    # Re-planning after the send failure must not repeat the already-performed booking.
+    assert len(harness.google.calendar_events) <= 1
 
 
 async def test_unknown_contact_asks_user_and_continues_with_answer(client, make_user, harness):

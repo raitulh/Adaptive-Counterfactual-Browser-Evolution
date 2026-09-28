@@ -30,7 +30,10 @@ class Queues:
     MAINTENANCE = "maintenance"
     EVALUATION = "evaluation"
 
-    DEFAULT_WORKER = (PLANNING, EXECUTION, MEMORY, NOTIFICATIONS, FILES, MAINTENANCE, EVALUATION)
+    # Evaluation runs swap process-level singletons (scripted model, simulated providers), so they run
+    # on a dedicated worker: ``python -m app.workers.worker --queues evaluation``.
+    DEFAULT_WORKER = (PLANNING, EXECUTION, MEMORY, NOTIFICATIONS, FILES, MAINTENANCE)
+    EVALUATION_WORKER = (EVALUATION,)
 
 
 @dataclass(slots=True)

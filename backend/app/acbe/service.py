@@ -22,7 +22,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.acbe.analysis import FailureAnalyzer, FailurePattern
-from app.acbe.candidates import CandidateGenerator, CandidateProposal, validate_candidate_config, version_label
+from app.acbe.candidates import (
+    CandidateGenerator,
+    CandidateProposal,
+    UnsafeCandidate,
+    validate_candidate_config,
+    version_label,
+)
 from app.acbe.models import StrategyCandidate, StrategyExperiment, StrategyStatus
 from app.acbe.runtime import StrategyConfig
 from app.audit import service as audit
@@ -58,6 +64,15 @@ DEFAULT_ROLLOUT_POLICY = RolloutPolicy()
 
 
 # ---------------------------------------------------------------------------- authorization / lookup
+def safe_config(config: StrategyConfig) -> StrategyConfig:
+    """Re-validate a strategy against the current safety rules (typed 422 instead of a crash)."""
+    try:
+        return validate_candidate_config(config)
+    except UnsafeCandidate as exc:
+        raise ValidationFailed(f"Unsafe strategy: {exc}", code="unsafe_strategy") from exc
+
+
+
 def can_manage(ctx: RequestContext) -> bool:
     return ctx.is_platform_admin or ctx.has(P.EXPERIMENTS_MANAGE)
 
@@ -254,7 +269,7 @@ async def approve_canary(session: AsyncSession, ctx: RequestContext, candidate_i
     if not 1 <= rollout_percentage <= policy.max_canary_percentage:
         raise ValidationFailed(f"Canary rollout must be between 1 and {policy.max_canary_percentage}%",
                                details={"max_canary_percentage": policy.max_canary_percentage})
-    validate_candidate_config(StrategyConfig.model_validate(candidate.candidate_config))
+    safe_config(StrategyConfig.model_validate(candidate.candidate_config))
     labels = [*await _live_labels(session, candidate), candidate.version_label]
     if len("+".join(labels)) > MAX_ACTIVE_VERSION_CHARS:
         raise Conflict("Too many strategies are live for this scope; retire or roll one back first",
@@ -362,7 +377,7 @@ async def register_experiment_strategy(session: AsyncSession, ctx: RequestContex
     if tenant_id is None and not ctx.is_platform_admin:
         raise Forbidden("Platform-wide strategies can only be changed by a platform administrator",
                         code="platform_admin_required")
-    patch = validate_candidate_config(config)
+    patch = safe_config(config)
     label = f"exp-{experiment_id.hex[:8]}-{variant}"[:80]
     existing = (await session.execute(select(StrategyCandidate).where(StrategyCandidate.version_label == label)
                                       .with_for_update())).scalar_one_or_none()

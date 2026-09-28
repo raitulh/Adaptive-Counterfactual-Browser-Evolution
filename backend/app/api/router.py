@@ -30,6 +30,9 @@ ROUTERS: tuple[tuple[str, str], ...] = (
     ("app.search.router", "router"),
     ("app.mcp.router", "router"),
     ("app.integrations.webhook_router", "router"),
+    ("app.evaluation.router", "router"),
+    ("app.evaluation.router", "experiments_router"),
+    ("app.acbe.router", "router"),
 )
 
 

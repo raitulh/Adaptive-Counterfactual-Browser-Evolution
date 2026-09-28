@@ -118,3 +118,95 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 512Mi
+---
+# Dedicated evaluation worker. Evaluation runs (`evaluation.run`) and ACBE experiments
+# (`acbe.run_experiment`) swap process-wide singletons while a case runs, so they only
+# execute on a worker whose ONLY queue is `evaluation`; any other worker that claims them
+# defers them (without consuming an attempt). One replica, concurrency 1. It talks only to
+# PostgreSQL/Redis: evaluation cases run against a simulated Google Workspace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-evaluation-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: evaluation-worker
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentos-evaluation-worker
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: evaluation-worker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: evaluation-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: evaluation-worker
+    spec:
+      serviceAccountName: agentos-evaluation-worker
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: evaluation-worker
+          image: agentos-backend
+          imagePullPolicy: IfNotPresent
+          command: ["agentos-worker"]
+          args: ["--queues", "evaluation", "--concurrency", "1"]
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: agentos-config
+            - secretRef:
+                name: agentos-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: agentos-evaluation-worker
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 4
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

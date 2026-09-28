@@ -1,8 +1,5 @@
-"""Fixtures for evaluation integration tests.
-
-The evaluation/ACBE routers are not mounted in the shared application yet, so these tests
-build a dedicated app (error handlers + auth + evaluation + acbe routers).
-"""
+"""Fixtures for ACBE integration tests: a dedicated app (auth + acbe routers), users, and
+helpers that create tasks / verified failures / candidates directly in the database."""
 
 from __future__ import annotations
 
@@ -24,7 +21,7 @@ from app.organizations.rbac import ROLE_PERMISSIONS
 from app.users.models import User
 
 
-class ApiUser:
+class AcbeUser:
     def __init__(self, data: dict[str, Any]) -> None:
         self.access_token: str = data["access_token"]
         self.user_id = uuid.UUID(data["user_id"])
@@ -40,34 +37,32 @@ class ApiUser:
 
 
 @pytest_asyncio.fixture(scope="session")
-async def eval_app() -> FastAPI:
+async def acbe_app() -> FastAPI:
     from app.acbe.router import router as acbe_router
     from app.api.errors import install_exception_handlers
     from app.auth.router import router as auth_router
-    from app.evaluation.router import experiments_router
-    from app.evaluation.router import router as evaluation_router
 
     app = FastAPI()
     install_exception_handlers(app)
-    for r in (auth_router, evaluation_router, experiments_router, acbe_router):
-        app.include_router(r, prefix="/api/v1")
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(acbe_router, prefix="/api/v1")
     return app
 
 
 @pytest_asyncio.fixture
-async def eval_client(eval_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=eval_app), base_url="http://testserver") as c:
+async def acbe_client(acbe_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=acbe_app), base_url="http://testserver") as c:
         yield c
 
 
 @pytest_asyncio.fixture
-async def api_user(eval_client: httpx.AsyncClient) -> Any:
-    async def _make(*, role: str = "owner", platform_admin: bool = False) -> ApiUser:
-        resp = await eval_client.post("/api/v1/auth/register", json={
-            "email": f"u-{uuid.uuid4().hex[:10]}@example.com", "password": "Str0ng!Passw0rd",
-            "display_name": "Evaluator", "timezone": "UTC"})
+async def acbe_user(acbe_client: httpx.AsyncClient) -> Any:
+    async def _make(*, role: str = "owner", platform_admin: bool = False) -> AcbeUser:
+        resp = await acbe_client.post("/api/v1/auth/register", json={
+            "email": f"acbe-{uuid.uuid4().hex[:10]}@example.com", "password": "Str0ng!Passw0rd",
+            "display_name": "ACBE", "timezone": "UTC"})
         assert resp.status_code == 201, resp.text
-        user = ApiUser(resp.json())
+        user = AcbeUser(resp.json())
         async with system_session() as s:
             if role != "owner":
                 role_id = (await s.execute(select(Role.id).where(Role.name == role, Role.tenant_id.is_(None)))
@@ -83,9 +78,8 @@ async def api_user(eval_client: httpx.AsyncClient) -> Any:
 
 
 @pytest_asyncio.fixture
-async def dedicated_worker() -> AsyncIterator[str]:
-    """A worker id registered (heartbeat) as serving only the evaluation queue."""
-    worker_id = f"eval-worker-{uuid.uuid4().hex[:8]}"
+async def dedicated_evaluation_worker() -> AsyncIterator[str]:
+    worker_id = f"acbe-worker-{uuid.uuid4().hex[:8]}"
     async with system_session() as s:
         s.add(WorkerHeartbeat(worker_id=worker_id, kind="worker", queues=["evaluation"], started_at=utcnow(),
                               last_seen_at=utcnow(), jobs_in_flight=0, jobs_processed=0))

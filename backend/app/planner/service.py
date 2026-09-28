@@ -63,7 +63,7 @@ class PlanningInputs:
     tier: ModelTier
     remaining_tool_calls: int
     remaining_model_calls: int
-    completed_step_ids: set[str]
+    performed_tools: set[str]
     saw_untrusted: bool
     strategy_version: str
     agent_label: str
@@ -143,7 +143,7 @@ class PlannerService:
                 except Exception:  # memory is an enhancement; planning proceeds without it
                     logger.warning("memory retrieval failed during planning", exc_info=True)
 
-            prior_steps, untrusted, completed_ids = await self._prior_state(s, task)
+            prior_steps, untrusted, performed_tools = await self._prior_state(s, task)
             user_inputs = list((task.input_context or {}).get("user_inputs", []))
             user_context = (task.input_context or {}).get("user_context")
             if user_context:
@@ -171,7 +171,7 @@ class PlannerService:
                 - task.tool_calls,
                 remaining_model_calls=int(budget.get("max_model_calls", self.settings.max_model_calls_per_task))
                 - task.model_calls,
-                completed_step_ids=completed_ids, saw_untrusted=bool(untrusted), strategy_version=strategy.version,
+                performed_tools=performed_tools, saw_untrusted=bool(untrusted), strategy_version=strategy.version,
                 agent_label=agent.label, agent=agent,
             )
             await s.commit()
@@ -198,7 +198,9 @@ class PlannerService:
                 if st.permission_level != "read":
                     entry["note"] = "ALREADY PERFORMED — do not repeat this action"
             prior.append(entry)
-        return prior, untrusted, {st.step_key for st in steps}
+        performed = {st.tool_name for st in steps
+                     if st.status == StepStatus.COMPLETED.value and st.permission_level != "read"}
+        return prior, untrusted, performed
 
     # ------------------------------------------------------------------ phase 2: model + validation (no tx)
     async def _generate(self, task_id: uuid.UUID, tenant_id: uuid.UUID, inputs: PlanningInputs
@@ -240,7 +242,7 @@ class PlannerService:
                 validation = await self.validator.validate(
                     s, inputs.principal, plan, agent=inputs.agent,
                     policy=inputs.policy, remaining_tool_calls=max(0, inputs.remaining_tool_calls),
-                    completed_step_ids=inputs.completed_step_ids)
+                    performed_tools=inputs.performed_tools)
             last_plan, last_validation = plan, validation
             if validation.ok or not validation.repairable:
                 break

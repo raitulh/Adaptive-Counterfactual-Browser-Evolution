@@ -111,7 +111,8 @@ async def create_experiment(session: AsyncSession, ctx: RequestContext, body: Ex
         try:
             validate_candidate_config(variant.config)
         except UnsafeCandidate as exc:
-            raise ValidationFailed(f"Variant '{variant.name}': {exc}", code="unsafe_strategy") from exc
+            raise ValidationFailed(f"Variant '{variant.name}' is not a safe strategy: {exc}",
+                                   code="unsafe_strategy") from exc
     experiment = Experiment(tenant_id=tenant_id, name=body.name, kind=body.kind, hypothesis=body.hypothesis,
                             variants=[v.model_dump(mode="json") for v in body.variants],
                             evaluation_set=body.evaluation_set, repetitions=body.repetitions,
