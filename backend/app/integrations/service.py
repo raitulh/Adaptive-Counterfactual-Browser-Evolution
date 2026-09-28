@@ -27,10 +27,10 @@ from app.integrations.google.oauth import (
     SCOPES_OPENID,
     GoogleIdentity,
     GoogleOAuthClient,
-    google_oauth_client,
     GoogleTokenResponse,
     OAuthStateStore,
     expand_granted,
+    google_oauth_client,
     pkce_pair,
 )
 from app.integrations.models import ConnectionStatus, OAuthConnection, OAuthScope

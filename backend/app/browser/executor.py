@@ -132,9 +132,12 @@ OUTLINE_JS = """
     return r.width > 0 || r.height > 0;
   };
   const path = (href) => {
-    try { const u = new URL(href, document.baseURI); return u.host === location.host ? u.pathname : u.host + u.pathname; }
-    catch (e) { return ""; }
+    try {
+      const u = new URL(href, document.baseURI);
+      return u.host === location.host ? u.pathname : u.host + u.pathname;
+    } catch (e) { return ""; }
   };
+  const named = (el) => (el.name ? "[name=" + clip(el.name, 40) + "]" : "");
   const sel = "h1,h2,h3,h4,h5,h6,a[href],button,input,select,textarea,form,label,img[alt],nav,main,header," +
               "footer,[role=dialog],dialog,iframe,table,[role=button],[role=link],[role=tab],[role=menuitem]";
   const out = [];
@@ -142,11 +145,13 @@ OUTLINE_JS = """
     if (out.length >= maxNodes) { out.push("…"); break; }
     if (!visible(el)) continue;
     const tag = el.tagName.toLowerCase();
+    const role = el.getAttribute("role");
     const aria = clip(el.getAttribute("aria-label"), 80);
+    const text = clip(el.innerText, 80) || aria;
     let line;
     if (/^h[1-6]$/.test(tag)) line = `${tag}: ${clip(el.innerText, 120)}`;
-    else if (tag === "a") line = `link: ${clip(el.innerText, 80) || aria} -> ${clip(path(el.getAttribute("href")), 120)}`;
-    else if (tag === "button" || el.getAttribute("role") === "button") line = `button: ${clip(el.innerText, 80) || aria}`;
+    else if (tag === "a") line = `link: ${text} -> ${clip(path(el.getAttribute("href")), 120)}`;
+    else if (tag === "button" || role === "button") line = `button: ${text}`;
     else if (tag === "input") {
       const type = (el.getAttribute("type") || "text").toLowerCase();
       if (type === "hidden") continue;
@@ -154,13 +159,16 @@ OUTLINE_JS = """
       line = `input[type=${clip(type, 20)}${el.name ? " name=" + clip(el.name, 40) : ""}]${hint ? " " + hint : ""}`;
       if (type === "submit" || type === "button") line += ` ${clip(el.value, 60)}`;
     }
-    else if (tag === "select") line = `select${el.name ? "[name=" + clip(el.name, 40) + "]" : ""} (${el.options.length} options)`;
-    else if (tag === "textarea") line = `textarea${el.name ? "[name=" + clip(el.name, 40) + "]" : ""}`;
-    else if (tag === "form") line = `form[method=${clip(el.getAttribute("method") || "get", 10)} action=${clip(path(el.getAttribute("action") || location.href), 120)}]`;
+    else if (tag === "select") line = `select${named(el)} (${el.options.length} options)`;
+    else if (tag === "textarea") line = `textarea${named(el)}`;
+    else if (tag === "form") {
+      const method = clip(el.getAttribute("method") || "get", 10);
+      line = `form[method=${method} action=${clip(path(el.getAttribute("action") || location.href), 120)}]`;
+    }
     else if (tag === "label") line = `label: ${clip(el.innerText, 80)}`;
     else if (tag === "img") line = `img: ${clip(el.getAttribute("alt"), 80)}`;
     else if (tag === "iframe") line = `iframe -> ${clip(path(el.getAttribute("src") || ""), 120)}`;
-    else line = `${el.getAttribute("role") || tag}${aria ? ": " + aria : ""}`;
+    else line = `${role || tag}${aria ? ": " + aria : ""}`;
     out.push(line);
   }
   return out.join("\\n");
@@ -785,7 +793,8 @@ class BrowserExecutor:
         if handle.disconnected or state.page_crashed:
             return _crash_error(state), True
         if isinstance(exc, PlaywrightTimeoutError):
-            return ActionError("action_timeout", "A browser action did not complete in time.", ErrorClass.TIMEOUT), False
+            return ActionError("action_timeout", "A browser action did not complete in time.",
+                               ErrorClass.TIMEOUT), False
         message = str(exc)
         if "has been closed" in message or "Target closed" in message:
             return ActionError("page_closed", "The page was closed unexpectedly.", ErrorClass.TRANSIENT), False

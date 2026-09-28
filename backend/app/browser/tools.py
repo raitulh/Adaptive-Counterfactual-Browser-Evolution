@@ -140,7 +140,7 @@ class FillIn(_UrlIn, _ExpectMixin):
     submit: bool = Field(default=False, description="Press Enter in the field after filling it")
 
 
-class RunIn(_In, _ExpectMixin):
+class RunIn(_ExpectMixin):
     actions: list[BrowserAction] = Field(min_length=1, max_length=MAX_RUN_ACTIONS)
 
     @model_validator(mode="after")
