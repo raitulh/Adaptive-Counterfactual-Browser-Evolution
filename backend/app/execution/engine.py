@@ -37,7 +37,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.acbe.runtime import ActiveStrategy, resolve_strategy
+from app.acbe.runtime import ActiveStrategy, resolve_task_strategy
 from app.agents.schemas import ResolvedAgent
 from app.agents.service import resolve_agent
 from app.approvals import service as approvals
@@ -260,7 +260,7 @@ class ExecutionEngine:
                 return None
             agent = await resolve_agent(s, task.agent_id, task.agent_version_id)
             policy = await load_policy_inputs(s, tenant_id, agent.tool_policy)
-            strategy = await resolve_strategy(s, tenant_id, task.id)
+            strategy = await resolve_task_strategy(s, tenant_id, task)
             return RunContext(task_id=task_id, tenant_id=tenant_id, principal=principal, agent=agent, policy=policy,
                               strategy=strategy, timezone=principal.timezone)
 

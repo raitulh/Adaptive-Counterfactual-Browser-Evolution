@@ -91,9 +91,10 @@ class MCPLimits:
     max_response_bytes: int = 2 * 1024 * 1024
     max_structured_output_bytes: int = 512 * 1024
     # Stricter than the execution engine's own re-bounding of step output (depth 10 incl. the
-    # wrapper, 200 items), so what the verifier checks is exactly what the engine stores.
+    # wrapper; 200 entries incl. a truncation marker), so re-bounding is a no-op and the verifier
+    # checks exactly what the engine stores.
     max_structured_depth: int = 8
-    max_structured_items: int = 200
+    max_structured_items: int = 199
     max_structured_string: int = 16_000
     max_text_output_chars: int = 20_000
     max_content_blocks: int = 50

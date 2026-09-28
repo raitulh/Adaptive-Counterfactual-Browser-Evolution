@@ -390,7 +390,8 @@ async def test_freshness_flags_and_expiry(make_user, tenant_session):
         assert expired.id not in results
 
         # Stale contact addresses are offered with reduced confidence; unverified ones never.
-        contacts = await service.find_contacts(s, tenant_id=user.tenant_id, user_id=user.user_id, name="Karim")
+        contacts = await service.find_contacts(s, tenant_id=user.tenant_id, user_id=user.user_id,
+                                               name="Karim")
         assert [c.email for c in contacts] == ["karim@example.com"]
         assert contacts[0].confidence < 0.9
 
@@ -513,7 +514,7 @@ async def test_extraction_filters_candidates_uses_only_trusted_text_and_is_idemp
     user = await make_user()
     async with tenant_session(user.tenant_id) as s:
         task = Task(tenant_id=user.tenant_id, user_id=user.user_id, status="completed",
-                    goal="Schedule a 30 minute meeting with Rahim tomorrow morning; I always prefer mornings.",
+                    goal="Schedule a 30 minute meeting with Rahim tomorrow; I always prefer mornings.",
                     input_context={"user_inputs": [{"question": "What is Rahim's e-mail address?",
                                                     "answer": "rahim@example.com"}]},
                     result_summary={"status": "completed", "headline": "Done: created a 30 minute event",

@@ -12,10 +12,12 @@ from app.core.config import get_settings
 from app.core.exceptions import PolicyDenied, ToolInputInvalid, UnsafeURL
 from app.mcp.models import MCPServerStatus, MCPToolStatus
 from app.mcp.policy import (
+    MCPEgressPolicy,
     MCPPolicyChecker,
     MCPToolRejected,
     build_validator,
     check_tool_schema,
+    is_metadata_address,
     json_depth,
     normalize_remote_tool,
     qualified_tool_name,
@@ -259,3 +261,29 @@ async def test_https_required_in_production(monkeypatch: pytest.MonkeyPatch) -> 
     with pytest.raises(UnsafeURL, match="https"):
         await MCPPolicyChecker().vet_server_url("http://93.184.215.14/mcp")
     assert (await MCPPolicyChecker().vet_server_url("https://93.184.215.14/mcp")).scheme == "https"
+
+
+@pytest.mark.parametrize(("address", "blocked"), [
+    ("169.254.169.254", True),
+    ("169.254.170.2", True),
+    ("169.254.1.1", True),
+    ("::ffff:169.254.169.254", True),
+    ("fe80::1", True),
+    ("fe80::1%eth0", True),
+    ("fd00:ec2::254", True),
+    ("100.100.100.200", True),
+    ("10.0.0.1", False),
+    ("93.184.215.14", False),
+    ("not-an-ip", False),
+])
+def test_metadata_addresses(address: str, blocked: bool) -> None:
+    assert is_metadata_address(address) is blocked
+
+
+async def test_egress_policy_refuses_metadata_on_every_request_even_for_trusted_hosts() -> None:
+    policy = MCPEgressPolicy(allow_private_network=True, trusted_private_hosts=["169.254.169.254", "fe80::1"])
+    for url in ("http://169.254.169.254/latest", "http://[fe80::1]/mcp", "http://metadata.google.internal/"):
+        with pytest.raises(UnsafeURL, match="metadata"):
+            await policy.check_url(url)
+    assert (await policy.check_url("http://10.0.0.1/mcp")).addresses == ("10.0.0.1",)
+    assert isinstance(MCPPolicyChecker().egress_policy(), MCPEgressPolicy)

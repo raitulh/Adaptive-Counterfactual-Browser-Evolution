@@ -73,6 +73,25 @@ def in_rollout(subject: uuid.UUID | str, version_label: str, percentage: int) ->
     return bucket < max(0, min(100, percentage))
 
 
+def override_for(source: str | None, execution_metadata: dict | None) -> ActiveStrategy | None:
+    """Evaluation/experiment tasks may pin an explicit (validated) strategy so baseline and
+    candidate variants can be compared on identical cases. Never honoured for user tasks."""
+    if source != "evaluation" or not execution_metadata:
+        return None
+    raw = execution_metadata.get("strategy_override")
+    if raw is None:
+        return None
+    label = str(execution_metadata.get("strategy_override_label", "experiment"))[:80]
+    return ActiveStrategy(version=label, config=StrategyConfig.model_validate(raw))
+
+
+async def resolve_task_strategy(session: AsyncSession, tenant_id: uuid.UUID, task: object) -> ActiveStrategy:
+    pinned = override_for(getattr(task, "source", None), getattr(task, "execution_metadata", None))
+    if pinned is not None:
+        return pinned
+    return await resolve_strategy(session, tenant_id, getattr(task, "id"))  # noqa: B009
+
+
 async def resolve_strategy(session: AsyncSession, tenant_id: uuid.UUID, subject: uuid.UUID | str
                            ) -> ActiveStrategy:
     rows = (await session.execute(

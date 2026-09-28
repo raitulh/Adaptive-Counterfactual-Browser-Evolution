@@ -22,7 +22,8 @@ async def _remember(client, user, content, **extra):
 
 async def _audit_actions(db_session, user, resource_id: str) -> list[str]:
     rows = (await db_session.execute(
-        select(AuditLog.action).where(AuditLog.tenant_id == user.tenant_id, AuditLog.resource_id == resource_id)
+        select(AuditLog.action)
+        .where(AuditLog.tenant_id == user.tenant_id, AuditLog.resource_id == resource_id)
         .order_by(AuditLog.created_at))).scalars().all()
     return list(rows)
 
@@ -52,8 +53,8 @@ async def test_create_is_user_stated_audited_and_deduplicated(memory_client, mak
 
 async def test_create_rejects_secrets_and_invalid_input(memory_client, make_user):
     user = await make_user()
-    resp = await memory_client.post(BASE, json={"content": "my github token is ghp sk-abcdefghijklmnopqrstuvwxyz12"},
-                                    headers=user.headers)
+    leaked = "my deploy key is sk-abcdefghijklmnopqrstuvwxyz12"
+    resp = await memory_client.post(BASE, json={"content": leaked}, headers=user.headers)
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "memory_contains_secret"
     for bad in ({"content": ""}, {"content": "x", "memory_type": "nonsense"},
@@ -109,7 +110,8 @@ async def test_list_is_own_only_filtered_and_cursor_paginated(memory_client, mak
 
 async def test_search_returns_ranked_own_memories_with_freshness(memory_client, make_user):
     alice, bob = await make_user(), await make_user()
-    target = await _remember(memory_client, alice, "I like aisle seats on long flights.", memory_type="preference")
+    target = await _remember(memory_client, alice, "I like aisle seats on long flights.",
+                             memory_type="preference")
     await _remember(memory_client, alice, "My sister lives in Chittagong.")
     await _remember(memory_client, bob, "I like aisle seats on long flights.", memory_type="preference")
 
@@ -164,7 +166,8 @@ async def test_verify_refreshes_and_resolves_conflicts(memory_client, make_user)
     body = resp.json()
     assert body["freshness"] == "fresh"
     assert body["confidence"] >= 0.9
-    assert datetime.fromisoformat(body["last_verified_at"]) >= datetime.fromisoformat(created["last_verified_at"])
+    verified_at = datetime.fromisoformat(body["last_verified_at"])
+    assert verified_at >= datetime.fromisoformat(created["last_verified_at"])
     missing = await memory_client.post(f"{BASE}/{uuid.uuid4()}/verify", headers=user.headers)
     assert missing.status_code == 404
 

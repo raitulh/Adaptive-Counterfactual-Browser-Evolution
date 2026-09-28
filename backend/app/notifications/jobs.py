@@ -16,3 +16,12 @@ async def deliver_notification(ctx: JobContext, payload: dict[str, Any]) -> None
             await deliver(session, uuid.UUID(payload["notification_id"]))
         except Exception as exc:
             raise RetryJob(f"delivery failed: {type(exc).__name__}", delay_seconds=30 * ctx.attempt) from exc
+
+
+@job("webhook.process")
+async def process_webhook(ctx: JobContext, payload: dict[str, Any]) -> None:
+    from app.integrations.webhooks import WebhookEnvelope, process_delivery
+
+    async with ctx.session_factory() as session:
+        session.info["system"] = True
+        await process_delivery(session, payload["provider"], WebhookEnvelope.model_validate(payload["envelope"]))

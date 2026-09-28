@@ -16,7 +16,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.acbe.runtime import resolve_strategy
+from app.acbe.runtime import resolve_task_strategy
 from app.agents.schemas import ResolvedAgent
 from app.agents.service import resolve_agent
 from app.audit import service as audit
@@ -122,7 +122,7 @@ class PlannerService:
                                        timezone=user.timezone, email=user.email, actor_type="worker")
             agent = await resolve_agent(s, task.agent_id, task.agent_version_id)
             policy = await load_policy_inputs(s, tenant_id, agent.tool_policy)
-            strategy = await resolve_strategy(s, tenant_id, task.id)
+            strategy = await resolve_task_strategy(s, tenant_id, task)
 
             available = await self.resolver.available(s, tenant_id)
             catalog = []

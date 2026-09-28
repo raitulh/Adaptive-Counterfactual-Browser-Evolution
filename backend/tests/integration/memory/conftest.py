@@ -58,20 +58,26 @@ async def memory_app() -> FastAPI:
     return app
 
 
+def _client(app: FastAPI) -> httpx.AsyncClient:
+    return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
+
+
 @pytest_asyncio.fixture
-async def memory_client(memory_app: FastAPI, scripted_router: ModelRouter) -> AsyncIterator[httpx.AsyncClient]:
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=memory_app), base_url="http://testserver") as c:
+async def memory_client(memory_app: FastAPI, scripted_router: ModelRouter
+                        ) -> AsyncIterator[httpx.AsyncClient]:
+    async with _client(memory_app) as c:
         yield c
 
 
 @pytest_asyncio.fixture
 async def make_user(memory_app: FastAPI) -> AsyncIterator[Callable[..., Any]]:
     """Register a fresh user (and organization) through ``/api/v1/auth/register``."""
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=memory_app), base_url="http://testserver") as c:
+    async with _client(memory_app) as c:
         async def _make(email: str | None = None) -> MemoryUser:
             email = email or f"mem-{uuid.uuid4().hex[:10]}@example.com"
             resp = await c.post("/api/v1/auth/register", json={
-                "email": email, "password": "Str0ng!Passw0rd", "display_name": "Memory User", "timezone": "UTC"})
+                "email": email, "password": "Str0ng!Passw0rd", "display_name": "Memory User",
+                "timezone": "UTC"})
             assert resp.status_code == 201, resp.text
             return MemoryUser(resp.json(), email)
 
@@ -129,8 +135,8 @@ def make_tool_context(scripted_router: ModelRouter) -> Callable[..., ToolContext
     def _make(user: MemoryUser, task_id: uuid.UUID | None = None, *, model: ModelRouter | None = None
               ) -> ToolContext:
         services: Any = SimpleNamespace(session_factory=get_session_factory(), model=model or scripted_router)
-        return ToolContext(ctx=user.ctx(), task_id=task_id or uuid.uuid4(), step_id=uuid.uuid4(), step_key="s1",
-                           attempt_number=1, idempotency_key=f"idem-{uuid.uuid4().hex}", services=services,
-                           org_policy=OrganizationPolicy())
+        return ToolContext(ctx=user.ctx(), task_id=task_id or uuid.uuid4(), step_id=uuid.uuid4(),
+                           step_key="s1", attempt_number=1, idempotency_key=f"idem-{uuid.uuid4().hex}",
+                           services=services, org_policy=OrganizationPolicy())
 
     return _make

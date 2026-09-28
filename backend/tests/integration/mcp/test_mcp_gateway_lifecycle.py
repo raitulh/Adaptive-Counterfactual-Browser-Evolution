@@ -133,7 +133,7 @@ async def test_register_approve_sync_enable_resolve_execute(api: httpx.AsyncClie
     for expected in ("mcp.server.register", "mcp.server.approve", "mcp.server.sync", "mcp.tool.update",
                      "mcp.tool.call"):
         assert expected in actions
-    call_audit = [row for row in await audit_rows(user.tenant_id) if row.action == "mcp.tool.call"][0]
+    call_audit = next(row for row in await audit_rows(user.tenant_id) if row.action == "mcp.tool.call")
     assert call_audit.tool_name == ECHO
     assert call_audit.status == "success"
     assert call_audit.metadata_["argument_keys"] == ["text"]

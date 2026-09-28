@@ -136,7 +136,7 @@ def test_output_is_cleaned_and_bounded() -> None:
     assert "resource content omitted" in output.notes
     assert "root:x" not in str(output.model_dump())
     assert output.structured is not None
-    assert len(output.structured["items"]) == 201  # 200 + truncation marker (engine-compatible bound)
+    assert len(output.structured["items"]) == 200  # 199 + truncation marker (engine-compatible bound)
     assert output.structured_modified
     assert not output.is_error
 

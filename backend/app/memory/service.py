@@ -36,7 +36,19 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
-from sqlalchemy import ColumnElement, Text, and_, cast, delete, func, literal_column, or_, select, text, update
+from sqlalchemy import (
+    ColumnElement,
+    Text,
+    and_,
+    cast,
+    delete,
+    func,
+    literal_column,
+    or_,
+    select,
+    text,
+    update,
+)
 from sqlalchemy.dialects.postgresql import TSQUERY, insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -496,7 +508,8 @@ async def create_memory(session: AsyncSession, *, tenant_id: uuid.UUID, user_id:
         duplicate = await _find_duplicate(session, tenant_id, user_id, digest)
         if duplicate is not None:
             await _reinforce(session, duplicate, memory_type=mtype, confidence=conf, importance=imp,
-                             subject_key=key, expires_at=expiry, source_type=stype, reference=reference, now=now)
+                             subject_key=key, expires_at=expiry, source_type=stype, reference=reference,
+                             now=now)
             return duplicate
         try:
             async with session.begin_nested():
@@ -1012,7 +1025,8 @@ def select_candidates(candidates: Sequence[MemoryCandidate], *, grounding_text: 
     grounded = set(extract_emails(grounding_text))
     kept: list[MemoryCandidate] = []
     seen: set[str] = set()
-    for cand in candidates:
+    # Best first (stable), so when two proposals normalize to the same text the stronger one survives.
+    for cand in sorted(candidates, key=lambda c: c.importance * c.confidence, reverse=True):
         if cand.importance < EXTRACTION_MIN_IMPORTANCE or cand.confidence < EXTRACTION_MIN_CONFIDENCE:
             continue
         cleaned = clean_text(cand.content, max_chars=MAX_CONTENT_CHARS)
@@ -1025,8 +1039,9 @@ def select_candidates(candidates: Sequence[MemoryCandidate], *, grounding_text: 
             continue
         seen.add(digest)
         kept.append(cand)
-    kept.sort(key=lambda c: c.importance * c.confidence, reverse=True)
-    return kept[:EXTRACTION_MAX_PER_TASK]
+        if len(kept) >= EXTRACTION_MAX_PER_TASK:
+            break
+    return kept
 
 
 async def _already_extracted(session: AsyncSession, tenant_id: uuid.UUID, reference: str) -> bool:
