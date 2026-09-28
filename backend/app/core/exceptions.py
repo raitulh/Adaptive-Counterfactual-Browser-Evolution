@@ -269,6 +269,15 @@ class ModelUnavailable(ModelError):
     error_class = ErrorClass.TOOL_UNAVAILABLE
 
 
+class ModelNotConfigured(ModelError):
+    """Permanent: no credentials, or the provider rejected the server's credentials. Retrying cannot help."""
+
+    code = "model_not_configured"
+    status_code = 503
+    message = "The AI model provider is not configured on the server."
+    error_class = ErrorClass.TOOL_UNAVAILABLE
+
+
 class ModelTimeout(ModelError):
     code = "model_timeout"
     status_code = 504

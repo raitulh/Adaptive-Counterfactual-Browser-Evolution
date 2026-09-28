@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.core.exceptions import ModelError, ModelRequestRejected
+from app.core.exceptions import ModelError, ModelNotConfigured, ModelRequestRejected
 from app.planner.service import PlannerService
 from app.workers.jobs.registry import JobContext, job
 from app.workers.queues.base import RetryJob
@@ -26,6 +26,11 @@ async def plan_task(ctx: JobContext, payload: dict[str, Any]) -> None:
         await planner.plan(task_id, tenant_id)
     except ModelRequestRejected as exc:
         await planner._finish_failed(task_id, tenant_id, exc.code, "The AI model provider rejected the request.")
+    except ModelNotConfigured as exc:
+        # Permanent server-side configuration problem: fail now instead of retrying for minutes.
+        await planner._finish_failed(task_id, tenant_id, exc.code,
+                                     "The AI model provider is not configured on the server (or rejected its "
+                                     "credentials); the task could not be planned.")
     except ModelError as exc:
         # Provider down / rate limited / timed out: retry the job with backoff, then fail truthfully.
         if ctx.is_last_attempt:

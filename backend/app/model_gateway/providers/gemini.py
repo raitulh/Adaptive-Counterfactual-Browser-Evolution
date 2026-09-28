@@ -15,6 +15,7 @@ import httpx
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     ModelError,
+    ModelNotConfigured,
     ModelRateLimited,
     ModelRequestRejected,
     ModelTimeout,
@@ -61,7 +62,7 @@ class GeminiProvider:
 
     def _headers(self) -> dict[str, str]:
         if not self.is_configured():
-            raise ModelUnavailable("GEMINI_API_KEY is not configured")
+            raise ModelNotConfigured("GEMINI_API_KEY is not configured")
         return {"x-goog-api-key": self.settings.gemini_api_key.get_secret_value(),
                 "content-type": "application/json"}
 
@@ -106,7 +107,7 @@ class GeminiProvider:
             raise ModelUnavailable("Model provider temporarily unavailable",
                                    details={"status": status, "retryable": True})
         if status in (401, 403):
-            raise ModelUnavailable("Model provider rejected credentials", details={"status": status})
+            raise ModelNotConfigured("The model provider rejected the server's credentials", details={"status": status})
         if status == 404:
             raise ModelUnavailable("Model not found", details={"status": status})
         raise ModelRequestRejected(details={"status": status, "reason": reason,

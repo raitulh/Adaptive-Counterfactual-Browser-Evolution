@@ -7,7 +7,13 @@ import pytest
 from pydantic import BaseModel
 
 from app.core.config import get_settings
-from app.core.exceptions import ModelOutputInvalid, ModelRateLimited, ModelRequestRejected, ModelUnavailable
+from app.core.exceptions import (
+    ModelNotConfigured,
+    ModelOutputInvalid,
+    ModelRateLimited,
+    ModelRequestRejected,
+    ModelUnavailable,
+)
 from app.model_gateway.providers.gemini import GeminiProvider, to_provider_schema
 from app.model_gateway.providers.scripted import ScriptedProvider
 from app.model_gateway.router import ModelRouter, parse_structured
@@ -65,7 +71,8 @@ async def test_gemini_schema_fallback_and_error_mapping() -> None:
     await provider.generate(req(response_schema=Out.model_json_schema()), "m")
     assert calls == [True, False]
 
-    for status, exc in ((429, ModelRateLimited), (503, ModelUnavailable), (403, ModelUnavailable),
+    for status, exc in ((429, ModelRateLimited), (503, ModelUnavailable), (403, ModelNotConfigured), (401, ModelNotConfigured),
+                        (404, ModelUnavailable),
                         (400, ModelRequestRejected)):
         p = gemini(lambda r, s=status: httpx.Response(s, json={"error": {"status": "X"}}))
         with pytest.raises(exc):
@@ -78,7 +85,7 @@ async def test_gemini_schema_fallback_and_error_mapping() -> None:
 
 async def test_gemini_requires_key() -> None:
     settings = get_settings().model_copy(update={"gemini_api_key": get_settings().gemini_api_key.__class__("")})
-    with pytest.raises(ModelUnavailable):
+    with pytest.raises(ModelNotConfigured):
         await GeminiProvider(settings).generate(req(), "m")
 
 
@@ -125,3 +132,19 @@ async def test_router_retries_then_falls_back() -> None:
 
 def test_parse_structured_tolerates_fences() -> None:
     assert parse_structured('```json\n{"answer": "a", "n": 2}\n```', Out).n == 2
+
+
+async def test_router_fails_fast_when_provider_not_configured() -> None:
+    """Missing/rejected credentials are permanent: no retries and no fallback to other models."""
+    seen: list[str] = []
+
+    class Unconfigured(ScriptedProvider):
+        async def generate(self, request, model):  # type: ignore[no-untyped-def]
+            seen.append(model)
+            raise ModelNotConfigured()
+
+    router = ModelRouter(Unconfigured(lambda r: "{}"), usage_sink=None,
+                         settings=get_settings().model_copy(update={"model_max_retries": 3}))
+    with pytest.raises(ModelNotConfigured):
+        await router.generate(req())
+    assert seen == [get_settings().gemini_default_model]

@@ -15,7 +15,7 @@ from sqlalchemy import select, update
 from app.approvals.models import ApprovalRequest
 from app.approvals.service import expire_due
 from app.core.database import get_session_factory
-from app.core.exceptions import ModelRateLimited
+from app.core.exceptions import ModelNotConfigured, ModelRateLimited
 from app.evaluation.simulators.google_workspace import Failure
 from app.integrations.google.oauth import CAPABILITY_SCOPES
 from app.integrations.models import OAuthConnection
@@ -373,6 +373,19 @@ async def test_model_rate_limit_during_planning_fails_truthfully(client, make_us
     task = await get_task(client, user, task_id)
     assert task["status"] == "failed", task
     assert task["failure_code"] == "model_rate_limited"
+    assert harness.google.calls == []
+
+
+async def test_unconfigured_model_provider_fails_on_first_attempt(client, make_user, harness):
+    """No API key (or rejected credentials) is permanent: fail truthfully at once instead of retrying."""
+    harness.model_responses["planning"] = lambda req: ModelNotConfigured()
+    user, task_id = await start(client, make_user, harness)
+    await harness.run_jobs(max_jobs=20)
+    task = await get_task(client, user, task_id)
+    assert task["status"] == "failed", task
+    assert task["failure_code"] == "model_not_configured"
+    events = await _events(client, user, task_id)
+    assert [e["event_type"] for e in events].count("PLANNING_STARTED") == 1
     assert harness.google.calls == []
 
 
