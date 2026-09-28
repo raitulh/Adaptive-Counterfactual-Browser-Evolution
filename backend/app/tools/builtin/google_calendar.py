@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -530,11 +531,10 @@ class CancelEventTool(Tool[CancelEventIn, CancelEventOut]):
 
     async def execute(self, tctx: ToolContext, args: CancelEventIn) -> ToolResult:
         g = await tctx.services.google(tctx, WRITE_SCOPES)
-        try:
+        # Already deleted (404/410) means the desired end state holds; verification confirms it.
+        with contextlib.suppress(IntegrationNotFound):
             await g.calendar.delete_event(calendar_id=args.calendar_id, event_id=args.event_id,
                                           send_updates=args.send_updates)
-        except IntegrationNotFound:
-            pass  # already deleted (410/404): the desired end state holds; verification confirms
         return ToolResult(output=CancelEventOut(event_id=args.event_id, cancelled=True).model_dump(),
                           external_ref=args.event_id, summary=f"Cancelled calendar event {args.event_id}")
 

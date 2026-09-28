@@ -211,9 +211,10 @@ class PlanValidator:
 
         position = {sid: i for i, sid in enumerate(order)}
         for s in plan.steps:
-            tool = tools.get(s.step_id)
-            if tool is None:
+            resolved_tool = tools.get(s.step_id)
+            if resolved_tool is None:
                 continue
+            tool = resolved_tool
             decision = self._static_decision(ctx, tool, s, policy)
             if decision.decision == Decision.DENY:
                 issues.append(PlanIssue(code="permission_denied", step_id=s.step_id,

@@ -18,8 +18,12 @@ from app.organizations.rbac import P
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
 
-@router.get("", response_model=Page[ApprovalOut], summary="List approval requests (own, or all with approvals:decide_any)")
-async def list_approvals(ctx: Ctx, db: DbSession, status: str | None = Query(None, pattern="^(pending|approved|rejected|expired|cancelled)$"),
+_STATUS_PATTERN = "^(pending|approved|rejected|expired|cancelled)$"
+
+
+@router.get("", response_model=Page[ApprovalOut],
+            summary="List approval requests (own, or all with approvals:decide_any)")
+async def list_approvals(ctx: Ctx, db: DbSession, status: str | None = Query(None, pattern=_STATUS_PATTERN),
                          task_id: uuid.UUID | None = None, cursor: str | None = None,
                          limit: int = Query(50, ge=1, le=200)) -> Page[ApprovalOut]:
     lim = clamp_limit(limit)

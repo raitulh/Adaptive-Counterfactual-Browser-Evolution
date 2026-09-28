@@ -7,6 +7,7 @@ initiating user/tenant (single use, 10-minute TTL) and carries the PKCE verifier
 
 from __future__ import annotations
 
+import contextlib
 import secrets
 import uuid
 from datetime import timedelta
@@ -26,6 +27,7 @@ from app.integrations.google.oauth import (
     SCOPES_OPENID,
     GoogleIdentity,
     GoogleOAuthClient,
+    google_oauth_client,
     GoogleTokenResponse,
     OAuthStateStore,
     expand_granted,
@@ -59,7 +61,7 @@ async def start_google_connect(ctx: RequestContext, capabilities: list[str], log
     state = await OAuthStateStore().create({"purpose": "connect", "provider": "google", "verifier": verifier,
                                             "nonce": nonce, "user_id": str(ctx.user_id),
                                             "tenant_id": str(ctx.tenant_id), "scopes": scopes})
-    url = (client or GoogleOAuthClient(settings)).authorization_url(
+    url = (client or google_oauth_client(settings)).authorization_url(
         scopes=scopes, state=state, code_challenge=challenge, redirect_uri=settings.google_redirect_uri, nonce=nonce,
         login_hint=login_hint, offline=True)
     return url, scopes
@@ -72,7 +74,7 @@ async def complete_google_connect(session: AsyncSession, *, code: str, state: st
     if data.get("purpose") != "connect" or data.get("provider") != "google":
         raise ValidationFailed("OAuth state purpose mismatch", code="oauth_state_invalid")
     tenant_id, user_id = uuid.UUID(data["tenant_id"]), uuid.UUID(data["user_id"])
-    client = client or GoogleOAuthClient(settings)
+    client = client or google_oauth_client(settings)
     tokens = await client.exchange_code(code=code, code_verifier=data["verifier"],
                                         redirect_uri=settings.google_redirect_uri)
     if not tokens.id_token:
@@ -154,7 +156,7 @@ async def disconnect(session: AsyncSession, ctx: RequestContext, connection_id: 
     await session.commit()
     if token_enc:
         # Best-effort revocation at the provider after local state is already safe.
-        await (client or GoogleOAuthClient()).revoke(get_key_manager().decrypt(token_enc))
+        await (client or google_oauth_client()).revoke(get_key_manager().decrypt(token_enc))
     return conn
 
 
@@ -164,9 +166,7 @@ async def check_connection(session: AsyncSession, ctx: RequestContext, connectio
 
     conn = await _owned(session, ctx, connection_id)
     await session.commit()
-    try:
+    with contextlib.suppress(IntegrationError):  # the vault records the resulting status on the connection
         await get_tool_services().vault.get_google_access(ctx.tenant_id, ctx.user_id, [], force_refresh=True)
-    except IntegrationError:
-        pass  # the vault records the resulting status on the connection
     await session.refresh(conn)
     return conn

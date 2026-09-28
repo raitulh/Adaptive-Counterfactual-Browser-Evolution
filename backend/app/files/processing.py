@@ -670,8 +670,10 @@ async def process_file(session_factory: async_sessionmaker[AsyncSession], *, ten
         file = await _lock_file(session, file_id)
         if file is None or file.deleted_at is not None or file.status in (FileStatus.QUARANTINED,
                                                                           FileStatus.DELETED):
+            # Read before rollback: rollback expires the instance (a reload would be implicit IO).
+            skipped = FileStatus.DELETED if file is None or file.deleted_at is not None else file.status
             await session.rollback()
-            return file.status if file is not None else FileStatus.DELETED
+            return skipped
         file.status = FileStatus.PROCESSING
         key, content_type, expected_sha = file.object_key, file.content_type, file.sha256
         user_id, filename = file.user_id, file.filename

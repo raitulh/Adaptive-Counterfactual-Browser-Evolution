@@ -83,7 +83,7 @@ async def test_tool_credentials_do_not_leak_across_tenants(client, make_user, ha
     find_slot = next(s for s in task["steps"] if s["step_key"] == "find_slot")
     assert find_slot["status"] == "blocked" and find_slot["error_class"] == "auth_expired"
     assert harness.google.calendar_events == {}
-    with pytest.raises(Exception):  # noqa: B017 - any denial is acceptable, but it must not return a token
+    with pytest.raises(Exception):
         await harness.services.vault.get_google_access(bob.tenant_id, alice.user_id, [])
 
 

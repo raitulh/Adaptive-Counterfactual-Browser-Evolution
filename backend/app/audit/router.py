@@ -41,7 +41,8 @@ class AuditOut(BaseModel):
 
 @router.get("", response_model=Page[AuditOut], summary="Organization audit log (append-only)")
 async def list_audit(db: DbSession, ctx: RequestContext = Depends(require(P.AUDIT_READ)),
-                     category: str | None = Query(None, max_length=30), action: str | None = Query(None, max_length=100),
+                     category: str | None = Query(None, max_length=30),
+                     action: str | None = Query(None, max_length=100),
                      task_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None, cursor: str | None = None,
                      limit: int = Query(100, ge=1, le=500)) -> Page[AuditOut]:
     lim = clamp_limit(limit)

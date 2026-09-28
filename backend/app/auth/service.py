@@ -167,7 +167,8 @@ async def _start_session(session: AsyncSession, user: User, tenant_id: uuid.UUID
                          auth_method: str, mfa_verified: bool) -> IssuedTokens:
     settings = get_settings()
     auth_session = AuthSession(
-        user_id=user.id, tenant_id=tenant_id, device_name=client.device_name, user_agent=(client.user_agent or "")[:500],
+        user_id=user.id, tenant_id=tenant_id, device_name=client.device_name,
+        user_agent=(client.user_agent or "")[:500],
         ip_address=client.ip, auth_method=auth_method, mfa_verified=mfa_verified,
         expires_at=utcnow() + timedelta(seconds=settings.refresh_token_ttl_seconds),
     )

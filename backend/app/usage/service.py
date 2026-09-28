@@ -29,7 +29,7 @@ def add_usage(session: AsyncSession, *, tenant_id: uuid.UUID, kind: str, quantit
     """Stage a usage event in the caller's transaction."""
     session.add(UsageEvent(
         tenant_id=tenant_id, user_id=user_id, task_id=task_id, agent_id=agent_id, kind=kind, quantity=quantity,
-        unit=unit, cost_micros=int(round(cost_usd * 1_000_000)), metadata_=metadata or {},
+        unit=unit, cost_micros=round(cost_usd * 1_000_000), metadata_=metadata or {},
     ))
 
 
@@ -41,7 +41,7 @@ async def record_usage_once(session: AsyncSession, *, idempotency_key: str, tena
     await session.execute(
         insert(UsageEvent).values(
             id=new_id(), tenant_id=tenant_id, user_id=user_id, task_id=task_id, agent_id=agent_id, kind=kind,
-            quantity=quantity, unit=unit, cost_micros=int(round(cost_usd * 1_000_000)), metadata_=metadata or {},
+            quantity=quantity, unit=unit, cost_micros=round(cost_usd * 1_000_000), metadata_=metadata or {},
             idempotency_key=idempotency_key,
         ).on_conflict_do_nothing(index_elements=["idempotency_key"]),
         execution_options={"skip_tenant_scope": True},
@@ -57,20 +57,25 @@ async def record_model_usage(meta: CallMetadata, response: ModelResponse | None,
 
     async with get_session_factory()() as session:
         session.info["system"] = True
-        common = {"tenant_id": meta.tenant_id, "user_id": meta.user_id, "task_id": meta.task_id,
-                  "agent_id": meta.agent_id}
+        tenant_id = meta.tenant_id
+
+        def meter(kind: str, *, quantity: float = 1.0, unit: str = "count", cost_usd: float = 0.0,
+                  metadata: dict[str, Any]) -> None:
+            add_usage(session, tenant_id=tenant_id, user_id=meta.user_id, task_id=meta.task_id,
+                      agent_id=meta.agent_id, kind=kind, quantity=quantity, unit=unit, cost_usd=cost_usd,
+                      metadata=metadata)
+
         if response is None:
-            add_usage(session, kind=UsageKind.MODEL_CALL, metadata={"purpose": meta.purpose, "error": error},
-                      **common)
+            meter(UsageKind.MODEL_CALL, metadata={"purpose": meta.purpose, "error": error})
         else:
             usage = response.usage
             md = {"purpose": meta.purpose, "model": response.model, "provider": response.provider,
                   "latency_ms": round(response.latency_ms, 1), "priced": usage.priced}
-            add_usage(session, kind=UsageKind.MODEL_CALL, cost_usd=usage.cost_usd, metadata=md, **common)
-            add_usage(session, kind=UsageKind.MODEL_INPUT_TOKENS, unit="tokens",
-                      quantity=float(usage.input_tokens or usage.input_token_estimate), metadata=md, **common)
-            add_usage(session, kind=UsageKind.MODEL_OUTPUT_TOKENS, unit="tokens",
-                      quantity=float(usage.output_tokens or usage.output_token_estimate), metadata=md, **common)
+            meter(UsageKind.MODEL_CALL, cost_usd=usage.cost_usd, metadata=md)
+            meter(UsageKind.MODEL_INPUT_TOKENS, unit="tokens",
+                  quantity=float(usage.input_tokens or usage.input_token_estimate), metadata=md)
+            meter(UsageKind.MODEL_OUTPUT_TOKENS, unit="tokens",
+                  quantity=float(usage.output_tokens or usage.output_token_estimate), metadata=md)
         await session.commit()
 
 

@@ -79,7 +79,7 @@ class VersionedMixin:
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
 
     @declared_attr.directive
-    def __mapper_args__(cls) -> dict[str, Any]:  # noqa: N805
+    def __mapper_args__(cls) -> dict[str, Any]:
         return {"version_id_col": cls.version}  # type: ignore[attr-defined]
 
 
@@ -87,7 +87,7 @@ class TenantScopedMixin:
     """Row belongs to exactly one tenant (organization). Enforced automatically."""
 
     @declared_attr
-    def tenant_id(cls) -> Mapped[uuid.UUID]:  # noqa: N805
+    def tenant_id(cls) -> Mapped[uuid.UUID]:
         return mapped_column(
             ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
         )

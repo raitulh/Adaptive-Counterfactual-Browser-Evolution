@@ -268,3 +268,16 @@ class GoogleOAuthClient:
             raise Unauthorized("ID token nonce mismatch", code="invalid_id_token")
         return GoogleIdentity(subject=str(claims["sub"]), email=str(claims.get("email", "")),
                               email_verified=bool(claims.get("email_verified")), name=claims.get("name"))
+
+
+_http_override: httpx.AsyncClient | None = None
+
+
+def set_google_http(client: httpx.AsyncClient | None) -> None:
+    """Inject the HTTP client used for Google OAuth endpoints (tests / simulators)."""
+    global _http_override
+    _http_override = client
+
+
+def google_oauth_client(settings: Settings | None = None) -> GoogleOAuthClient:
+    return GoogleOAuthClient(settings, http=_http_override)

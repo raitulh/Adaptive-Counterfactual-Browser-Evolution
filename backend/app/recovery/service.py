@@ -85,11 +85,12 @@ class FailureClassifier:
             retry_after = exc.details.get("retry_after") if isinstance(exc.details, dict) else None
             ambiguous = side_effects and cls in (ErrorClass.TIMEOUT, ErrorClass.NETWORK_ERROR, ErrorClass.TRANSIENT,
                                                  ErrorClass.UNKNOWN_OUTCOME, ErrorClass.UNKNOWN)
-            return ClassifiedFailure(cls, exc.code, exc.message, retry_after=float(retry_after) if retry_after else None,
+            return ClassifiedFailure(cls, exc.code, exc.message,
+                                     retry_after=float(retry_after) if retry_after else None,
                                      ambiguous_outcome=ambiguous, details={"provider": exc.provider})
         if isinstance(exc, ModelError):
-            return ClassifiedFailure(exc.error_class if exc.error_class != ErrorClass.UNKNOWN else ErrorClass.MODEL_ERROR,
-                                     exc.code, exc.message)
+            cls = exc.error_class if exc.error_class != ErrorClass.UNKNOWN else ErrorClass.MODEL_ERROR
+            return ClassifiedFailure(cls, exc.code, exc.message)
         if isinstance(exc, ToolError | AppError):
             cls = exc.error_class
             return ClassifiedFailure(cls, exc.code, exc.message, details=exc.details,

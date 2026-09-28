@@ -97,9 +97,9 @@ class EgressPolicy:
             raise UnsafeURL("Invalid port") from exc
         if port not in self.allowed_ports and not _host_matches(host, self.trusted_private_hosts):
             raise UnsafeURL("Port is not allowed", details={"port": port})
-        if host in _METADATA_HOSTS or host.endswith(".internal") or host.endswith(".local") or host == "localhost":
-            if not _host_matches(host, self.trusted_private_hosts):
-                raise UnsafeURL("Internal hostnames are not allowed", details={"host": host})
+        internal_name = host in _METADATA_HOSTS or host.endswith((".internal", ".local")) or host == "localhost"
+        if internal_name and not _host_matches(host, self.trusted_private_hosts):
+            raise UnsafeURL("Internal hostnames are not allowed", details={"host": host})
         if self.denied_domains and _host_matches(host, self.denied_domains):
             raise UnsafeURL("Domain is denied by policy", details={"host": host})
         if self.allowed_domains and not _host_matches(host, self.allowed_domains):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import pytest
 
 from app.files.processing import chunk_text, reconstruct_text
@@ -27,7 +29,7 @@ def test_chunks_are_bounded_exact_slices_with_overlap() -> None:
         assert 0 < len(chunk.content) <= 400
         assert text[chunk.start:chunk.end] == chunk.content
         assert chunk.content == chunk.content.strip()
-    for prev, nxt in zip(chunks, chunks[1:], strict=False):
+    for prev, nxt in pairwise(chunks):
         assert nxt.start < prev.end, "consecutive chunks overlap"
         assert nxt.start > prev.start, "chunking always makes progress"
     assert chunks[-1].end == len(text.rstrip())

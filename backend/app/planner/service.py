@@ -246,7 +246,8 @@ class PlannerService:
                 break
             issues_feedback = issues_as_feedback(validation.issues)
             logger.info("plan rejected; repairing", extra={"attempt": attempt, "issues": len(validation.issues)})
-        assert last_plan is not None and last_validation is not None
+        if last_plan is None or last_validation is None:  # pragma: no cover - loop always runs at least once
+            raise PlanningFailed("plan_invalid", "No plan was produced.")
         meta["model_calls"] = model_calls
         return last_plan, last_validation, model_calls, meta
 
@@ -290,9 +291,9 @@ class PlannerService:
             new_version = task.plan_version + 1
             # Supersede unfinished steps of the previous plan version.
             for old in await task_repo.current_steps(s, task, lock=True):
-                if StepStatus(old.status) not in STEP_TERMINAL:
-                    if old.status in (StepStatus.PENDING.value, StepStatus.WAITING_APPROVAL.value,
-                                      StepStatus.WAITING_INPUT.value, StepStatus.BLOCKED.value):
+                if StepStatus(old.status) not in STEP_TERMINAL and old.status in (
+                        StepStatus.PENDING.value, StepStatus.WAITING_APPROVAL.value, StepStatus.WAITING_INPUT.value,
+                        StepStatus.BLOCKED.value):
                         transition_step(old, StepStatus.SKIPPED if old.status != StepStatus.WAITING_APPROVAL.value
                                         else StepStatus.CANCELLED)
                         old.error_message = "Superseded by a new plan."
@@ -341,7 +342,8 @@ class PlannerService:
                 "planned_at": utcnow().isoformat(),
             }
             exec_meta = dict(task.execution_metadata or {})
-            exec_meta.update({"planner": meta, "agent": inputs.agent_label, "policy_version": inputs.policy.policy_version,
+            exec_meta.update({"planner": meta, "agent": inputs.agent_label,
+                              "policy_version": inputs.policy.policy_version,
                               "strategy_version": inputs.strategy_version})
             if inputs.saw_untrusted:
                 exec_meta["planner_saw_untrusted"] = True

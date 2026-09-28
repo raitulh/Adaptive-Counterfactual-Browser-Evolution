@@ -82,7 +82,7 @@ class Worker:
                 for job in jobs:
                     task = asyncio.create_task(self._process(job))
                     self._inflight[job.id] = task
-                    task.add_done_callback(lambda _t, jid=job.id: self._inflight.pop(jid, None))
+                    task.add_done_callback(self._forget(job.id))
                 if not jobs:
                     await self._sleep(self.settings.worker_poll_interval_seconds * (1 + random.random() * 0.5))  # noqa: S311
         finally:
@@ -93,6 +93,12 @@ class Worker:
                 await asyncio.gather(*background, return_exceptions=True)
             logger.info("worker stopped", extra={"worker_id": self.worker_id, "processed": self._processed})
 
+    def _forget(self, job_id: Any) -> Any:
+        def _callback(_task: asyncio.Task[None]) -> None:
+            self._inflight.pop(job_id, None)
+
+        return _callback
+
     async def _sleep(self, seconds: float) -> None:
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(self._stopping.wait(), timeout=seconds)
@@ -101,7 +107,7 @@ class Worker:
         if not self._inflight:
             return
         logger.info("draining in-flight jobs", extra={"count": len(self._inflight)})
-        done, pending = await asyncio.wait(list(self._inflight.values()),
+        _, pending = await asyncio.wait(list(self._inflight.values()),
                                            timeout=self.settings.worker_shutdown_grace_seconds)
         for task in pending:
             task.cancel()  # leases will expire and the jobs will be picked up elsewhere

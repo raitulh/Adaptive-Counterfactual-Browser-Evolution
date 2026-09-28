@@ -80,7 +80,7 @@ def test_key_rotation() -> None:
     assert LocalFernetKeyManager([new]).decrypt(rotated_km.rotate(ciphertext)) == "refresh-token"
 
 
-@pytest.mark.parametrize("address,public", [("8.8.8.8", True), ("127.0.0.1", False), ("10.1.2.3", False),
+@pytest.mark.parametrize(("address", "public"), [("8.8.8.8", True), ("127.0.0.1", False), ("10.1.2.3", False),
                                             ("169.254.169.254", False), ("100.64.0.1", False), ("::1", False),
                                             ("fd00::1", False), ("::ffff:127.0.0.1", False), ("192.168.1.1", False)])
 def test_ip_classification(address: str, public: bool) -> None:

@@ -151,7 +151,15 @@ async def sync_tool_catalog(session: AsyncSession, registry: ToolRegistry | None
                 audit_policy=spec.audit_policy.model_dump(), schema_hash=spec.schema_hash(), created_at=utcnow()))
             changed += 1
         elif existing.schema_hash != spec.schema_hash():
-            # A tool's contract must not change silently under the same version.
-            raise RuntimeError(f"tool {spec.key} schema changed without a version bump")
+            # A tool's contract must not change silently under the same version: bump the version.
+            from app.core.config import get_settings
+
+            if get_settings().is_production:
+                raise RuntimeError(f"tool {spec.key} schema changed without a version bump")
+            logger.warning("tool schema changed without a version bump (dev); updating catalogue",
+                           extra={"tool": spec.key})
+            existing.input_schema, existing.output_schema = spec.input_schema, spec.output_schema
+            existing.schema_hash = spec.schema_hash()
+            changed += 1
     await session.commit()
     return changed

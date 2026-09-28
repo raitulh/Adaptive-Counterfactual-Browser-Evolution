@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
+from app.agents.schemas import ToolPolicy
 from app.api.dependencies import Ctx, DbSession, require
 from app.audit import service as audit
 from app.audit.service import AuditCategory
@@ -16,7 +17,6 @@ from app.integrations import service as integrations
 from app.integrations.schemas import ConnectGoogleResponse
 from app.organizations.rbac import P
 from app.permissions.service import PermissionService, load_policy_inputs
-from app.agents.schemas import ToolPolicy
 from app.tools.models import ToolPermission
 from app.tools.registry import ToolResolver
 

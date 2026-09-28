@@ -265,8 +265,8 @@ class Settings(BaseSettings):
         return self.app_env == AppEnv.TEST
 
     def encryption_keys(self) -> list[bytes]:
-        keys = [self.token_encryption_key.get_secret_value()]
-        keys += _split_csv(self.token_encryption_previous_keys.get_secret_value())  # type: ignore[operator]
+        previous = self.token_encryption_previous_keys.get_secret_value()
+        keys = [self.token_encryption_key.get_secret_value(), *(k.strip() for k in previous.split(","))]
         return [k.encode() for k in keys if k]
 
     def validate_for_startup(self) -> None:

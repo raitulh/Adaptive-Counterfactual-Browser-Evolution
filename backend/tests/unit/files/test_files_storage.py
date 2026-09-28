@@ -195,27 +195,27 @@ class FakeS3Client:
         self.objects: dict[str, tuple[bytes, str]] = {}
         self.presign_calls: list[dict[str, Any]] = []
 
-    def put_object(self, *, Bucket: str, Key: str, Body: bytes, ContentType: str) -> dict[str, Any]:  # noqa: N803
+    def put_object(self, *, Bucket: str, Key: str, Body: bytes, ContentType: str) -> dict[str, Any]:
         self.objects[Key] = (Body, ContentType)
         return {}
 
-    def get_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N803
+    def get_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:
         if Key not in self.objects:
             raise ClientError({"Error": {"Code": "NoSuchKey"}, "ResponseMetadata": {"HTTPStatusCode": 404}},
                               "GetObject")
         return {"Body": _Body(self.objects[Key][0])}
 
-    def delete_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N803
+    def delete_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:
         self.objects.pop(Key, None)
         return {}
 
-    def head_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N803
+    def head_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:
         if Key not in self.objects:
             raise ClientError({"Error": {"Code": "404"}, "ResponseMetadata": {"HTTPStatusCode": 404}},
                               "HeadObject")
         return {}
 
-    def generate_presigned_url(self, method: str, *, Params: dict[str, Any], ExpiresIn: int) -> str:  # noqa: N803
+    def generate_presigned_url(self, method: str, *, Params: dict[str, Any], ExpiresIn: int) -> str:
         self.presign_calls.append({"method": method, "params": Params, "expires": ExpiresIn})
         return f"https://s3.example/{Params['Key']}?sig=1"
 

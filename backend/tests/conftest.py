@@ -33,12 +33,12 @@ os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent
 os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("LOCAL_STORAGE_PATH", "/tmp/agentos-test-objects")
 
-import httpx  # noqa: E402
-import pytest  # noqa: E402
-import pytest_asyncio  # noqa: E402
-from sqlalchemy import text  # noqa: E402
+import httpx
+import pytest
+import pytest_asyncio
+from sqlalchemy import text
 
-from app.core.config import get_settings  # noqa: E402
+from app.core.config import get_settings
 
 get_settings.cache_clear()
 

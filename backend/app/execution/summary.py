@@ -64,7 +64,7 @@ async def build_summary(session: AsyncSession, task: Task) -> dict[str, Any]:
     if task.status == "failed" and task.failure_message:
         headline = f"The task did not complete: {task.failure_message[:300]}"
     if changed and task.status == "completed":
-        headline = "Done: " + "; ".join((c["description"] or c["tool"]) for c in changed)[:600]
+        headline = "Done: " + "; ".join(str(c["description"] or c["tool"]) for c in changed)[:600]
     summary: dict[str, Any] = {
         "status": task.status,
         "headline": headline,

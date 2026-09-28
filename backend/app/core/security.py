@@ -68,7 +68,8 @@ class AccessTokenClaims:
 
 def create_access_token(user_id: uuid.UUID, session_id: uuid.UUID, tenant_id: uuid.UUID,
                         settings: Settings | None = None, *, ttl_seconds: int | None = None,
-                        token_type: str = "access", extra: dict[str, Any] | None = None) -> tuple[str, datetime]:
+                        token_type: str = "access",  # noqa: S107 - token kind, not a secret
+                        extra: dict[str, Any] | None = None) -> tuple[str, datetime]:
     settings = settings or get_settings()
     now = utcnow()
     expires = now + timedelta(seconds=ttl_seconds or settings.access_token_ttl_seconds)

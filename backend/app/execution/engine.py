@@ -850,7 +850,8 @@ class ExecutionEngine:
                 return
             s.add(VerificationResult(tenant_id=task.tenant_id, task_id=task.id, step_id=step.id, scope="step",
                                      status=outcome.status.value, method=outcome.method,
-                                     expected=bound_structure(outcome.expected), observed=bound_structure(outcome.observed),
+                                     expected=bound_structure(outcome.expected),
+                                     observed=bound_structure(outcome.observed),
                                      differences=[d.model_dump(mode="json") for d in outcome.differences],
                                      evidence=bound_structure(outcome.evidence)))
             step.verification_status = outcome.status.value

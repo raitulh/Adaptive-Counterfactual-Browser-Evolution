@@ -77,7 +77,7 @@ class RateLimiter:
                 return RateLimitResult(True, limit, limit, 0)
             raise ServiceUnavailable("Rate limiting backend unavailable") from exc
         remaining = max(0, limit - int(used))
-        return RateLimitResult(bool(allowed), limit, remaining, int(math.ceil(float(reset))))
+        return RateLimitResult(bool(allowed), limit, remaining, math.ceil(float(reset)))
 
     async def enforce(self, scope: str, identifier: str, limit: int, window_seconds: int = 60, cost: int = 1,
                       *, fail_open: bool | None = None) -> RateLimitResult:

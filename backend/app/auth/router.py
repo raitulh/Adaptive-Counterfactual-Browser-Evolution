@@ -25,7 +25,7 @@ from app.core.config import get_settings
 from app.core.exceptions import Unauthorized
 from app.core.middleware import client_ip
 from app.core.security import constant_time_equals
-from app.integrations.google.oauth import SCOPES_OPENID, GoogleOAuthClient, OAuthStateStore, pkce_pair
+from app.integrations.google.oauth import SCOPES_OPENID, OAuthStateStore, google_oauth_client, pkce_pair
 from app.security.ratelimit import get_rate_limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -66,7 +66,8 @@ async def register(body: RegisterRequest, request: Request, response: Response, 
 
 @router.post("/login", response_model=TokenResponse, summary="Sign in with e-mail and password",
              dependencies=[Depends(ip_route_rate_limit("auth_login", "rate_limit_auth_per_minute"))],
-             responses={401: {"description": "Invalid credentials or MFA required"}, 429: {"description": "Rate limited"}})
+             responses={401: {"description": "Invalid credentials or MFA required"},
+                        429: {"description": "Rate limited"}})
 async def login(body: LoginRequest, request: Request, response: Response, db: DbSession) -> TokenResponse:
     settings = get_settings()
     # Per-account throttle in addition to the per-IP limit (credential stuffing across IPs).
@@ -173,7 +174,7 @@ async def google_login_start() -> OAuthStartResponse:
     verifier, challenge = pkce_pair()
     nonce = secrets.token_urlsafe(16)
     state = await OAuthStateStore().create({"purpose": "login", "verifier": verifier, "nonce": nonce})
-    url = GoogleOAuthClient(settings).authorization_url(
+    url = google_oauth_client(settings).authorization_url(
         scopes=SCOPES_OPENID, state=state, code_challenge=challenge, redirect_uri=settings.google_login_redirect_uri,
         nonce=nonce, offline=False)
     return OAuthStartResponse(authorization_url=url, state=state)
@@ -189,7 +190,7 @@ async def google_login_callback(request: Request, response: Response, db: DbSess
     data = await OAuthStateStore().consume(state)
     if data.get("purpose") != "login":
         raise Unauthorized("OAuth state purpose mismatch")
-    client = GoogleOAuthClient(settings)
+    client = google_oauth_client(settings)
     tokens = await client.exchange_code(code=code, code_verifier=data["verifier"],
                                         redirect_uri=settings.google_login_redirect_uri)
     if not tokens.id_token:

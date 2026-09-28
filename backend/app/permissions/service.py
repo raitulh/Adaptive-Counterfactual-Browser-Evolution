@@ -166,8 +166,9 @@ class PermissionService:
             reasons.append("organization requires approval for this tool")
         elif any(r.effect == "allow" for r in applicable) and needs_approval:
             # "allow" may waive the default approval only for bounded, non-destructive writes.
-            if level in (PermissionLevel.WRITE, PermissionLevel.HIGH_RISK_WRITE) and risk.rank <= RiskLevel.MEDIUM.rank \
-                    and not tainted_by_untrusted and not model_requested_approval:
+            bounded = level in (PermissionLevel.WRITE, PermissionLevel.HIGH_RISK_WRITE) \
+                and risk.rank <= RiskLevel.MEDIUM.rank
+            if bounded and not tainted_by_untrusted and not model_requested_approval:
                 needs_approval = False
                 reasons.append("approval waived by organization rule")
         # 8. Data provenance: arguments derived from untrusted content cannot trigger unattended side effects.
