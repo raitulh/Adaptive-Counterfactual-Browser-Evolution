@@ -26,6 +26,14 @@
 
 ---
 
+> **AgentOS platform.** This repository also contains AgentOS, the production agent operating
+> system built around ACBE: [`backend/`](backend/) (FastAPI modular monolith — planning,
+> approvals, execution, verification, recovery, integrations, memory, automations; see
+> [`backend/README.md`](backend/README.md)) and [`web/`](web/) (the Next.js product and marketing
+> site; see [`web/README.md`](web/README.md)). Run both locally without any credentials:
+> `cd backend && python scripts/simulated_backend.py` and `cd web && npm ci && npm run dev`.
+> The older [`frontend/`](frontend/) directory is the standalone ACBE engineering console.
+
 > *An AI web agent should not repeat the exact same mistakes forever. It should diagnose verified failures, synthesize counterfactual alternatives, validate them in an isolated sandbox, and transfer learned heuristics permanently—**without retraining model weights**.*
 
 ---

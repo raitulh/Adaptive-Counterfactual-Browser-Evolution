@@ -4,18 +4,28 @@
 |---|---|
 | API / worker / scheduler / evaluation-worker / migration image | `backend/Dockerfile` (target `api`) |
 | Browser worker image (Playwright + Chromium) | `backend/deploy/docker/Dockerfile.browser` |
+| Web app image (Next.js standalone) | `web/Dockerfile` — see [`web/README.md`](../../web/README.md) |
 | Local stack | `backend/docker-compose.yml` |
 | Kubernetes base (kustomize) | `backend/deploy/k8s/` |
 | Reference cloud infrastructure (GCP) | `backend/deploy/terraform/` |
 | CI | `.github/workflows/backend-ci.yml` |
 
-Both images are built with the **repository root** as the build context (they install the
-root `acbe` package too), run as uid 10001 and contain no compilers:
+All images are built with the **repository root** as the build context (the backend images
+install the root `acbe` package; the web build verifies its generated API client against
+`backend/docs/openapi.json`), run as uid 10001 and contain no compilers:
 
 ```bash
 docker build -f backend/Dockerfile -t agentos-backend:0.1.0 .
 docker build -f backend/deploy/docker/Dockerfile.browser -t agentos-browser-worker:0.1.0 .
+docker build -f web/Dockerfile -t agentos-web:0.1.0 --build-arg NEXT_PUBLIC_SITE_URL=https://app.example.com .
 ```
+
+Browsers talk only to the web app. It serves the product and marketing pages and streams
+`/api/v1/*` to the API (same origin: the refresh and CSRF cookies are first-party and no CORS is
+needed). Point the backend's browser-facing URLs at the web origin: `PUBLIC_BASE_URL`,
+`GOOGLE_LOGIN_REDIRECT_URI` (`/callback/google`), `GOOGLE_REDIRECT_URI`
+(`/api/v1/integrations/google/callback`) and `FRONTEND_OAUTH_SUCCESS_URL`/`_ERROR_URL`
+(`/app/integrations?status=…`), and include the web tier in `FORWARDED_ALLOW_IPS`.
 
 ## Local development on an 8 GB machine
 
@@ -33,7 +43,11 @@ make run                # API with reload on 127.0.0.1:8000
 make worker             # in another terminal (general queues)
 make scheduler          # in another terminal
 make eval-worker        # optional: evaluation runs and ACBE (the `evaluation` queue)
+cd ../web && npm ci && npm run dev   # web app on http://localhost:3000
 ```
+
+No model key or Google credentials? `python scripts/simulated_backend.py` runs the real API and
+a worker with a scripted model and a simulated Google Workspace (never in staging/production).
 
 Memory tips: one worker process with `WORKER_CONCURRENCY=2–4`, `DATABASE_POOL_SIZE=5`,
 `DATABASE_MAX_OVERFLOW=5`. The browser worker (`make install-browser`,
@@ -49,7 +63,7 @@ the Compose `postgres` user already is.
 ```bash
 cd backend
 make env                                  # or: cp .env.example .env and fill the two secrets
-docker compose up -d --build              # postgres, redis, migrate (one-shot), api, worker, scheduler
+docker compose up -d --build              # postgres, redis, migrate (one-shot), api, worker, scheduler, web
 docker compose --profile browser up -d    # + browser-worker
 docker compose --profile minio up -d      # + S3-compatible storage and bucket creation
 docker compose --profile observability up -d   # + OpenTelemetry collector
@@ -65,12 +79,13 @@ docker compose logs -f api worker
 | api | 512 MiB | 127.0.0.1:8000 |
 | worker | 768 MiB | `planning,execution,memory,notifications,files,maintenance`; metrics on :9100 inside the network |
 | scheduler | 256 MiB | |
+| web | 384 MiB | Next.js on 127.0.0.1:3000, relays `/api/v1` to `api:8000` |
 | browser-worker (profile) | 1.5 GiB | `shm_size 512m`, read-only root, Chromium sandbox off (container boundary) |
 | minio + minio-init (profile) | 512 MiB | set `OBJECT_STORAGE_BACKEND=s3`, `OBJECT_STORAGE_ENDPOINT=http://minio:9000` |
 | otel-collector (profile) | 256 MiB | set `OTEL_ENABLED=true`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces` |
 | evaluation-worker (profile) | 512 MiB | `--queues evaluation` only — without it evaluation/ACBE jobs wait in the queue |
 
-Core stack ≈ 2.8 GB of limits. Application containers run read-only with `/tmp` on tmpfs,
+Core stack ≈ 3.2 GB of limits. Application containers run read-only with `/tmp` on tmpfs,
 all capabilities dropped and `no-new-privileges`. `docker compose down -v` also deletes the
 data volumes. With the MinIO profile, presigned download URLs contain the in-network host
 `minio:9000`; for browser downloads during local development either keep the local storage
@@ -95,7 +110,8 @@ collector (`observability` namespace).
 | `scheduler-deployment.yaml` | 1 replica (2 is safe) |
 | `browser-worker-deployment.yaml` | isolated browser workers + strict egress NetworkPolicy |
 | `migrate-job.yaml` | `alembic upgrade head && python -m app.cli sync-tools` Job |
-| `ingress.yaml` | TLS, 26 MiB bodies, SSE-friendly (buffering off, 1 h timeouts), only `/api/` routed |
+| `web-deployment.yaml` | web app: Deployment (probes on `/healthz`), Service, HPA, PDB |
+| `ingress.yaml` | TLS, 26 MiB bodies, SSE-friendly (buffering off, 1 h timeouts); `app.` host → web, `api.` host → `/api/` only |
 | `networkpolicy.yaml` | default deny + explicit allows |
 | `pdb.yaml` | disruption budgets |
 
@@ -115,33 +131,37 @@ images:
   - name: agentos-browser-worker
     newName: europe-west1-docker.pkg.dev/my-project/agentos/agentos-browser-worker
     newTag: "2026.09.28-1"
+  - name: agentos-web
+    newName: europe-west1-docker.pkg.dev/my-project/agentos/agentos-web
+    newTag: "2026.09.28-1"
 patches:
   - target: {kind: ConfigMap, name: agentos-config}
     patch: |-
       - op: replace
         path: /data/PUBLIC_BASE_URL
-        value: https://api.example.com
+        value: https://app.example.com
       - op: replace
         path: /data/OBJECT_STORAGE_BUCKET
         value: my-project-agentos-prod-objects
 ```
 
-Adapt as well: the ingress host, the Workload Identity annotations (Terraform output
-`workload_service_accounts`), `FORWARDED_ALLOW_IPS` (ingress controller Pod range) and the
+Adapt as well: the ingress hosts, the web-origin URLs in the ConfigMap (OAuth redirects,
+`FRONTEND_OAUTH_*`, `CORS_ORIGINS`), the Workload Identity annotations (Terraform output
+`workload_service_accounts`), `FORWARDED_ALLOW_IPS` (ingress controller and web Pod ranges) and the
 private-services CIDR `10.100.0.0/16` in the NetworkPolicies (Terraform
 `private_services_cidr`).
 
 ### Release procedure
 
 ```bash
-# 1. build and push both images with an immutable tag (Artifact Registry has immutable tags)
+# 1. build and push the images with an immutable tag (Artifact Registry has immutable tags)
 # 2. migrations first — they must be backward compatible with the running release
 kubectl -n agentos delete job agentos-migrate --ignore-not-found
 kubectl apply -k deploy/overlays/prod -l app.kubernetes.io/component=migrate
 kubectl -n agentos wait --for=condition=complete job/agentos-migrate --timeout=15m
 # 3. roll out everything
 kubectl apply -k deploy/overlays/prod
-kubectl -n agentos rollout status deploy/agentos-api deploy/agentos-worker deploy/agentos-scheduler
+kubectl -n agentos rollout status deploy/agentos-api deploy/agentos-worker deploy/agentos-scheduler deploy/agentos-web
 ```
 
 Rolling updates are safe for workers: on SIGTERM a worker stops claiming, drains in-flight

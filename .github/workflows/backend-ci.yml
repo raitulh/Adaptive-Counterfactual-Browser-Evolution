@@ -122,6 +122,16 @@ jobs:
           alembic check
           python -m app.cli sync-tools
 
+      # The web app's typed client is generated from docs/openapi.json; a stale export would let
+      # frontend and backend drift silently.
+      - name: OpenAPI contract is up to date (docs/openapi.json)
+        run: |
+          python scripts/export_openapi.py --output "$RUNNER_TEMP/openapi.json"
+          if ! cmp -s "$RUNNER_TEMP/openapi.json" docs/openapi.json; then
+            echo "::error file=backend/docs/openapi.json::OpenAPI export is stale. Run 'make openapi' and then 'npm run api:generate' in web/."
+            exit 1
+          fi
+
       - name: Tests with coverage
         run: >-
           pytest -m "not browser"
