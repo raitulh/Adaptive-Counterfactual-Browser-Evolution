@@ -124,13 +124,12 @@ function FrameNode({
 function StepNode({ node, onSelect }: { node: PlanGraphNode; onSelect?: (id: string) => void }) {
   const state = stepNodeState(node.status, node.verification);
   const t = toneClasses[STATE_TONE[state]];
-  const Icon = toolIcon(node.tool);
   const statusLabel = node.status ? stepStatusMeta[node.status].label : "Planned";
   const content = (
     <>
       <div className="flex items-center gap-1.5">
         <span className={cn("flex size-5 shrink-0 items-center justify-center rounded", state === "pending" ? "bg-white/5 text-fg-subtle" : [t.soft, t.text])}>
-          <Icon className="size-3" aria-hidden />
+          {React.createElement(toolIcon(node.tool), { className: "size-3", "aria-hidden": true })}
         </span>
         <span className="font-mono text-2xs text-fg-subtle">{node.position + 1}</span>
         {node.requiresApproval && <HandIcon className="size-3 text-warning" aria-label="Requires approval" />}

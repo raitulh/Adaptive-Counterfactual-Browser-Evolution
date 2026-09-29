@@ -1,10 +1,14 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ApprovalsCenter } from "@/components/approvals/approvals-center";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Approvals" };
+
 export default function ApprovalsPage() {
+  // useSearchParams (deep link ?focus=<id>) needs a Suspense boundary.
   return (
-    <PageContainer>
-      <PageHeader title="Approvals" description="Actions waiting for a human decision." />
-    </PageContainer>
+    <Suspense fallback={null}>
+      <ApprovalsCenter />
+    </Suspense>
   );
 }

@@ -1,10 +1,14 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { TasksList } from "@/components/tasks/tasks-list";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Tasks" };
+
 export default function TasksPage() {
+  // The status filter lives in the URL (useSearchParams needs a Suspense boundary).
   return (
-    <PageContainer>
-      <PageHeader title="Tasks" description="Everything your agents are working on." />
-    </PageContainer>
+    <Suspense fallback={null}>
+      <TasksList />
+    </Suspense>
   );
 }

@@ -12,15 +12,19 @@ import { qk } from "@/lib/query/keys";
 import type { StreamState } from "@/lib/realtime/sse";
 import { isTaskActive } from "@/lib/status";
 
-export function useTaskDetail(taskId: string, streamState?: StreamState) {
+/** Statuses in which the backend ends the task's event stream (a resume needs a new connection). */
+export const STREAM_END_STATUSES = new Set(["completed", "cancelled", "failed", "expired"]);
+
+export function useTaskDetail(taskId: string, getStreamState?: () => StreamState) {
   return useQuery({
     queryKey: qk.tasks.detail(taskId),
     queryFn: ({ signal }) => tasksApi.get(taskId, { signal }),
     // Safety net only: the stream keeps it fresh. Poll faster when the stream is not connected.
     refetchInterval: (query) => {
       const task = query.state.data;
-      if (!task || !isTaskActive(task.status)) return false;
-      return streamState === "open" ? 30_000 : 5_000;
+      if (!task || STREAM_END_STATUSES.has(task.status)) return false;
+      if (!isTaskActive(task.status)) return 60_000;
+      return getStreamState?.() === "open" ? 30_000 : 5_000;
     },
   });
 }

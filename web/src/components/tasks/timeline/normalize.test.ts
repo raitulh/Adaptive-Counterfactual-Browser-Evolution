@@ -195,3 +195,26 @@ describe("normalizeTimeline — failure, recovery and input", () => {
     expect(entries[0]).toMatchObject({ kind: "tool_call", state: "done", detail: "Page captured" });
   });
 });
+
+describe("readable", () => {
+  it("replaces ISO date-times inside text and leaves the rest untouched", async () => {
+    const { readable } = await import("./readable");
+    const out = readable("Create event from 2026-09-30T16:00:00+00:00 to 2026-09-30T16:30:00Z with ref 2026-x");
+    expect(out).not.toMatch(/T16:00/);
+    expect(out).toMatch(/^Create event from .+2026.+ to .+ with ref 2026-x$/);
+    expect(readable(null)).toBeNull();
+    expect(readable("no dates")).toBe("no dates");
+  });
+});
+
+describe("normalizeTimeline — direct answers", () => {
+  it("never claims verification for a plan without actions", () => {
+    n = 0;
+    const entries = normalizeTimeline([
+      ev("PLAN_CREATED", { plan_version: 1, steps: 0, summary: "Answer directly." }),
+      ev("TASK_COMPLETED", { from: "verifying", to: "completed", reason: "all steps verified" }),
+    ]);
+    expect(entries[0].title).toBe("Plan created · no actions needed");
+    expect(entries[1]).toMatchObject({ title: "Completed — answered directly, no actions taken", detail: "The answer was not externally verified." });
+  });
+});

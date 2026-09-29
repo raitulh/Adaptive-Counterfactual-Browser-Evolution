@@ -8,25 +8,31 @@
  *   waiting   → a steady amber glow (someone must act)
  * Pure: pass the current timeline entry (see `currentActivity`) and the task status.
  */
-import { HandIcon, MessageSquareTextIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
+import { createElement } from "react";
+import { HandIcon, LifeBuoyIcon, MessageSquareTextIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
 import type { TaskStatus } from "@/lib/api";
 import { taskStatusMeta } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import type { TimelineEntry } from "./normalize";
 import { toolActivityVerb, toolIcon } from "./tool-meta";
+import { readable } from "./readable";
 
 export interface LiveActivityProps {
   current: TimelineEntry | null;
   status: TaskStatus;
+  /** The latest timeline entry (lets a scheduled retry read as recovery, not "waiting for a worker"). */
+  last?: TimelineEntry | null;
   className?: string;
 }
 
-type Mode = "planning" | "tool" | "verify" | "waiting" | "working" | null;
+type Mode = "planning" | "tool" | "verify" | "waiting" | "recover" | "working" | null;
 
-function modeFor(current: TimelineEntry | null, status: TaskStatus): Mode {
+function modeFor(current: TimelineEntry | null, status: TaskStatus, last?: TimelineEntry | null): Mode {
   if (current?.state === "waiting") return "waiting";
+  if (!current && (status === "queued" || status === "recovering") && last?.kind === "recovery") return "recover";
   if (status === "waiting_approval" || status === "waiting_input" || status === "requires_reconciliation") return "waiting";
   if (current?.kind === "verification" || status === "verifying") return "verify";
+  if (status === "recovering") return "recover";
   if (current?.kind === "tool_call") return "tool";
   if (status === "planning" || status === "created" || status === "planned" || status === "validating" || current?.kind === "plan") return "planning";
   if (taskStatusMeta[status].live) return "working";
@@ -49,10 +55,9 @@ function PlanningGlyph() {
   );
 }
 
-export function LiveActivity({ current, status, className }: LiveActivityProps) {
-  const mode = modeFor(current, status);
+export function LiveActivity({ current, status, last, className }: LiveActivityProps) {
+  const mode = modeFor(current, status, last);
   if (!mode) return null;
-  const ToolIcon = toolIcon(current?.tool);
 
   let glyph: React.ReactNode;
   let headline: string;
@@ -68,7 +73,7 @@ export function LiveActivity({ current, status, className }: LiveActivityProps) 
       glyph = (
         <span className="relative flex size-10 items-center justify-center rounded-xl border border-accent/35 bg-accent/10 text-accent" aria-hidden>
           <span className="absolute inset-0 rounded-xl bg-accent/20 motion-safe:animate-pulse-ring" />
-          <ToolIcon className="relative size-4.5" />
+          {createElement(toolIcon(current?.tool), { className: "relative size-4.5" })}
         </span>
       );
       headline = current?.stepLabel ?? current?.title ?? "Running a tool";
@@ -87,16 +92,24 @@ export function LiveActivity({ current, status, className }: LiveActivityProps) 
       sub = current?.methodLabel ?? "Reading results back before calling anything done";
       break;
     case "waiting": {
-      const Icon = current?.kind === "input" || status === "waiting_input" ? MessageSquareTextIcon : HandIcon;
       glyph = (
         <span className="relative flex size-10 items-center justify-center rounded-xl border border-warning/40 bg-warning/10 text-warning shadow-[0_0_24px_-6px_rgb(245_184_74/0.55)]" aria-hidden>
-          <Icon className="size-4.5" />
+          {createElement(current?.kind === "input" || status === "waiting_input" ? MessageSquareTextIcon : HandIcon, { className: "size-4.5" })}
         </span>
       );
       headline = current?.state === "waiting" ? current.title : taskStatusMeta[status].description;
       sub = "AgentOS is paused on this until you act — nothing else runs meanwhile.";
       break;
     }
+    case "recover":
+      glyph = (
+        <span className="relative flex size-10 items-center justify-center rounded-xl border border-recover/35 bg-recover/10 text-recover" aria-hidden>
+          <LifeBuoyIcon className="size-4.5 motion-safe:animate-spin-slow" />
+        </span>
+      );
+      headline = last?.kind === "recovery" ? last.title : "Recovering from a problem";
+      sub = last?.kind === "recovery" && last.detail ? last.detail : "AgentOS is choosing the safest next step automatically.";
+      break;
     default:
       glyph = (
         <span className="relative flex size-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent" aria-hidden>
@@ -111,7 +124,7 @@ export function LiveActivity({ current, status, className }: LiveActivityProps) 
     <div
       className={cn(
         "flex items-center gap-3 rounded-xl border bg-surface-1 px-3.5 py-3",
-        mode === "waiting" ? "border-warning/30" : mode === "verify" ? "border-verify/25" : "border-accent/20",
+        mode === "waiting" ? "border-warning/30" : mode === "verify" ? "border-verify/25" : mode === "recover" ? "border-recover/30" : "border-accent/20",
         className,
       )}
       role="status"
@@ -119,7 +132,7 @@ export function LiveActivity({ current, status, className }: LiveActivityProps) 
     >
       {glyph}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] font-medium text-fg">{headline}</p>
+        <p className="truncate text-[13.5px] font-medium text-fg">{readable(headline)}</p>
         {sub && <p className="truncate text-xs text-fg-muted">{sub}</p>}
       </div>
     </div>

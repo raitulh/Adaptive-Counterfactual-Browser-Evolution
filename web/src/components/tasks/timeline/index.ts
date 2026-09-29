@@ -51,4 +51,5 @@ export {
 } from "./normalize";
 export { buildPlanGraph, extractStepRefs, type PlanGraphModel, type PlanGraphNode, type PlanGraphStep } from "./plan-graph-model";
 export { toolIcon, toolActivityVerb } from "./tool-meta";
+export { readable } from "./readable";
 export { MEETING_EVENTS, MEETING_PLAN, MEETING_STEPS, meetingEventsUntil } from "./fixtures";

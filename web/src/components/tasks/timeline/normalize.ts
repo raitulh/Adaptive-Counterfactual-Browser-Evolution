@@ -230,6 +230,7 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
   const openReconcile = new Map<string, TimelineEntry>();
   const approvals = new Map<string, TimelineEntry>();
   const planStepCounts = new Map<number, number>();
+  let lastPlanSteps: number | null = null;
   let openInput: TimelineEntry | null = null;
   let openPlanning: TimelineEntry | null = null;
   let openFinalVerify: TimelineEntry | null = null;
@@ -312,6 +313,7 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         const n = num(p, "steps") ?? 0;
         const version = num(p, "plan_version");
         if (version !== null) planStepCounts.set(version, n);
+        lastPlanSteps = n;
         make(e, {
           kind: "plan",
           phase: "planning",
@@ -464,7 +466,12 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         const errorClass = str(p, "error_class");
         const summary = str(p, "summary");
         entry.durationMs = num(p, "duration_ms") ?? entry.durationMs ?? null;
-        if (errorCode || (errorClass && !summary)) {
+        if (errorClass === "needs_user_input" || errorCode === "needs_user_input") {
+          // Not a failure: the tool needs information only the user has.
+          entry.state = "info";
+          entry.tone = "warning";
+          entry.detail = "Needs information from you";
+        } else if (errorCode || (errorClass && !summary)) {
           entry.state = "failed";
           entry.tone = "danger";
           entry.detail = errorLabel(errorClass, errorCode);
@@ -597,13 +604,15 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
           request.tone = "neutral";
           request.title = `Approval requested: ${summary}`;
         }
+        // The request row right above already restates the action.
+        const adjacent = request !== undefined && entries[entries.length - 1] === request;
         if (type === "APPROVAL_GRANTED") {
-          make(e, { kind: "approval", phase: "approval", tone: "success", state: "done", title: e.actor_type === "user" ? "Approved" : "Approval granted", detail: summary, approvalId });
+          make(e, { kind: "approval", phase: "approval", tone: "success", state: "done", title: e.actor_type === "user" ? "Approved" : "Approval granted", detail: adjacent ? null : summary, approvalId });
         } else if (type === "APPROVAL_REJECTED") {
           const reason = str(p, "reason");
           make(e, { kind: "approval", phase: "approval", tone: "danger", state: "failed", title: "Rejected — the action will not run", detail: reason ? `Reason: ${reason}` : summary, approvalId });
         } else {
-          make(e, { kind: "approval", phase: "approval", tone: "neutral", state: "failed", title: "Approval expired without a decision", detail: summary, approvalId });
+          make(e, { kind: "approval", phase: "approval", tone: "neutral", state: "failed", title: "Approval expired without a decision", detail: adjacent ? null : summary, approvalId });
         }
         break;
       }
@@ -628,7 +637,7 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         }
         openInput = null;
         const question = str(p, "question");
-        make(e, { kind: "input", phase: "approval", tone: "success", state: "done", title: "You answered", detail: question ? `“${question}”` : null });
+        make(e, { kind: "input", phase: "approval", tone: "success", state: "done", title: "You answered", detail: question ? `In reply to: “${question}”` : null });
         break;
       }
       case "RETRY_SCHEDULED": {
@@ -761,7 +770,15 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         openCancel = null;
         const reason = str(p, "reason");
         if (type === "TASK_COMPLETED") {
-          make(e, { kind: "task", phase: "outcome", tone: "success", state: "done", title: reason === "all steps verified" ? "Completed — every action verified" : "Completed", detail: reason && reason !== "all steps verified" ? sentence(reason) : null });
+          const direct = lastPlanSteps === 0;
+          make(e, {
+            kind: "task",
+            phase: "outcome",
+            tone: "success",
+            state: "done",
+            title: direct ? "Completed — answered directly, no actions taken" : reason === "all steps verified" ? "Completed — every action verified" : "Completed",
+            detail: direct ? "The answer was not externally verified." : reason && reason !== "all steps verified" ? sentence(reason) : null,
+          });
         } else if (type === "TASK_FAILED") {
           make(e, { kind: "task", phase: "outcome", tone: "danger", state: "failed", title: "The task did not complete", detail: reason ? errorLabel(null, reason) : null });
         } else {

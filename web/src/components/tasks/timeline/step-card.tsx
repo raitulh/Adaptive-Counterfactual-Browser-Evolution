@@ -7,6 +7,7 @@
  * (verification = violet ring). Pure: data comes from props.
  */
 import { AlertTriangleIcon, ExternalLinkIcon, HandIcon, RotateCcwIcon, ShieldCheckIcon, ShieldQuestionIcon, TimerIcon } from "lucide-react";
+import { createElement } from "react";
 import type { StepOut, VerificationOut } from "@/lib/api";
 import { PermissionBadge, RiskBadge, StatusBadge } from "@/components/ui/badge";
 import { duration, humanizeTool } from "@/lib/format";
@@ -14,6 +15,7 @@ import { stepStatusMeta, toneClasses, verificationStatusMeta } from "@/lib/statu
 import { cn } from "@/lib/utils";
 import { errorLabel, verificationMethodLabel } from "./normalize";
 import { toolIcon } from "./tool-meta";
+import { readable } from "./readable";
 
 export type StepCardStep = Pick<
   StepOut,
@@ -62,7 +64,6 @@ function approvalState(step: StepCardStep): { label: string; tone: "warning" | "
 
 export function StepCard({ step, verification, total, developerMode = false, highlighted = false, className }: StepCardProps) {
   const meta = stepStatusMeta[step.status];
-  const Icon = toolIcon(step.tool_name);
   const running = step.status === "running" || step.status === "waiting_external";
   const verifying = step.status === "verifying";
   const approval = approvalState(step);
@@ -100,7 +101,7 @@ export function StepCard({ step, verification, total, developerMode = false, hig
               <rect x="1.5" y="1.5" width="37" height="37" rx="10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 6" />
             </svg>
           )}
-          <Icon className="relative size-4" />
+          {createElement(toolIcon(step.tool_name), { className: "relative size-4" })}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -157,14 +158,14 @@ export function StepCard({ step, verification, total, developerMode = false, hig
       </dl>
 
       {step.output_summary && (
-        <p className="mt-3 rounded-lg bg-surface-2/70 px-3 py-2 text-[13px] leading-relaxed text-fg">{step.output_summary}</p>
+        <p className="mt-3 rounded-lg bg-surface-2/70 px-3 py-2 text-[13px] leading-relaxed text-fg">{readable(step.output_summary)}</p>
       )}
       {(step.error_message || step.error_class) && !["completed"].includes(step.status) && (
         <div className="mt-3 flex items-start gap-2 rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-[13px] text-fg">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-danger" aria-hidden />
           <div className="min-w-0">
             <p className="font-medium text-danger">{errorLabel(step.error_class)}</p>
-            {step.error_message && <p className="mt-0.5 leading-relaxed text-fg-muted">{step.error_message}</p>}
+            {step.error_message && <p className="mt-0.5 leading-relaxed text-fg-muted">{readable(step.error_message)}</p>}
           </div>
         </div>
       )}
@@ -174,7 +175,7 @@ export function StepCard({ step, verification, total, developerMode = false, hig
         </p>
       )}
       {step.external_ref && (
-        <p className="mt-2 flex min-w-0 items-center gap-1.5 text-xs text-fg-subtle">
+        <p className="mt-2 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs text-fg-subtle">
           <ExternalLinkIcon className="size-3 shrink-0" aria-hidden />
           External reference <code className="truncate font-mono text-2xs text-fg-muted">{step.external_ref}</code>
         </p>

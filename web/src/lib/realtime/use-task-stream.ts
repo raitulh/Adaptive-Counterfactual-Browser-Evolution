@@ -28,7 +28,18 @@ export interface TaskStreamResult {
   lastSeq: number;
 }
 
-export function useTaskStream(taskId: string | null, { enabled = true }: { enabled?: boolean } = {}): TaskStreamResult {
+export interface TaskStreamOptions {
+  enabled?: boolean;
+  /**
+   * Reconnect whenever this value changes. The backend ends a task's stream once the task rests in
+   * failed/expired/completed/cancelled; a resumed task needs a new connection (it resumes from the
+   * last seen seq via Last-Event-ID, so nothing is missed). Callers pass e.g. whether the task is
+   * currently in a stream-ending status.
+   */
+  restartKey?: string | number | boolean | null;
+}
+
+export function useTaskStream(taskId: string | null, { enabled = true, restartKey = null }: TaskStreamOptions = {}): TaskStreamResult {
   const queryClient = useQueryClient();
   const [state, setState] = useState<StreamState>("idle");
   const key = qk.tasks.events(taskId ?? "none");
@@ -102,7 +113,7 @@ export function useTaskStream(taskId: string | null, { enabled = true }: { enabl
       if (invalidateTimer.current) clearTimeout(invalidateTimer.current);
       invalidateTimer.current = null;
     };
-  }, [taskId, enabled, loaded, queryClient]);
+  }, [taskId, enabled, loaded, queryClient, restartKey]);
 
   const events = eventsQuery.data ?? [];
   return {

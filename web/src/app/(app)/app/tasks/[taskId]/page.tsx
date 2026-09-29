@@ -1,10 +1,9 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { TaskDetail } from "@/components/tasks/task-detail";
 
-// Scaffold: replaced by the feature implementation.
-export default function TasksTaskidPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Task" description="" />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "Task" };
+
+export default async function TaskPage({ params }: { params: Promise<{ taskId: string }> }) {
+  const { taskId } = await params;
+  return <TaskDetail key={taskId} taskId={taskId} />;
 }
