@@ -15,8 +15,25 @@ from app.common.context import RequestContext
 from app.common.pagination import Page, apply_keyset, build_page, clamp_limit
 from app.common.time import utcnow
 from app.organizations.rbac import P
+from app.users.models import User
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+
+async def _versions_out(db: DbSession, versions: list[AgentVersion]) -> list[AgentVersionOut]:
+    """Version payloads with the author's display name resolved (one query for the whole list)."""
+    author_ids = {v.created_by for v in versions if v.created_by}
+    names: dict[uuid.UUID, str] = {}
+    if author_ids:
+        rows = (await db.execute(select(User.id, User.display_name, User.email)
+                                 .where(User.id.in_(author_ids)))).all()
+        names = {uid: display or email for uid, display, email in rows}
+    out = []
+    for v in versions:
+        item = AgentVersionOut.model_validate(v)
+        item.created_by_name = names.get(v.created_by) if v.created_by else None
+        out.append(item)
+    return out
 
 
 async def _out(db: DbSession, agent: Agent) -> AgentOut:
@@ -79,7 +96,7 @@ async def delete_agent(agent_id: uuid.UUID, db: DbSession,
              summary="Publish a new immutable agent version (becomes current)")
 async def add_version(agent_id: uuid.UUID, body: AgentVersionIn, db: DbSession,
                       ctx: RequestContext = Depends(require(P.AGENTS_MANAGE))) -> AgentVersionOut:
-    return AgentVersionOut.model_validate(await service.add_version(db, ctx, agent_id, body))
+    return (await _versions_out(db, [await service.add_version(db, ctx, agent_id, body)]))[0]
 
 
 @router.get("/{agent_id}/versions", response_model=list[AgentVersionOut], summary="List agent versions")
@@ -88,4 +105,4 @@ async def list_versions(agent_id: uuid.UUID, db: DbSession,
     await service.get_agent(db, agent_id)
     rows = (await db.execute(select(AgentVersion).where(AgentVersion.agent_id == agent_id)
                              .order_by(AgentVersion.version_number.desc()))).scalars().all()
-    return [AgentVersionOut.model_validate(r) for r in rows]
+    return await _versions_out(db, list(rows))

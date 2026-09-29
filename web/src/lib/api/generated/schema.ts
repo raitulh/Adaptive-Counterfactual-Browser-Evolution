@@ -2026,6 +2026,13 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /**
+             * Created By Name
+             * @description Display name (or e-mail) of the author
+             */
+            created_by_name?: string | null;
             execution_limits?: components["schemas"]["ExecutionLimits"];
             /**
              * Id
@@ -2608,9 +2615,9 @@ export interface components {
         ConnectGoogleRequest: {
             /**
              * Capabilities
-             * @description Least-privilege capability bundles: gmail.read, gmail.compose, gmail.send, calendar.read, calendar.write, drive.read, drive.file, contacts.read
+             * @description Least-privilege capability bundles
              */
-            capabilities?: string[];
+            capabilities?: components["schemas"]["GoogleCapability"][];
             /** Login Hint */
             login_hint?: string | null;
         };
@@ -3170,6 +3177,12 @@ export interface components {
             /** Tenant Id */
             tenant_id?: string | null;
         };
+        /**
+         * GoogleCapability
+         * @description Least-privilege Google Workspace capability bundles (each maps to exact OAuth scopes).
+         * @enum {string}
+         */
+        GoogleCapability: "gmail.read" | "gmail.compose" | "gmail.send" | "calendar.read" | "calendar.write" | "drive.read" | "drive.file" | "contacts.read";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -4623,7 +4636,7 @@ export interface components {
         /** ToolConnectRequest */
         ToolConnectRequest: {
             /** Capabilities */
-            capabilities: string[];
+            capabilities: components["schemas"]["GoogleCapability"][];
             /**
              * Provider
              * @constant
@@ -4638,10 +4651,20 @@ export interface components {
             category: string;
             /** Description */
             description: string;
+            /**
+             * Idempotency Strategy
+             * @description native_key | reconcile_lookup | none
+             */
+            idempotency_strategy: string;
             /** Input Schema */
             input_schema: {
                 [key: string]: unknown;
             };
+            /**
+             * Max Attempts
+             * @description Attempts including the first (retry policy)
+             */
+            max_attempts: number;
             /** Name */
             name: string;
             /** Output Schema */
@@ -4650,6 +4673,8 @@ export interface components {
             };
             /** Output Trust */
             output_trust: string;
+            /** Parallel Safe */
+            parallel_safe: boolean;
             /** Permission Level */
             permission_level: string;
             /** Policy Reasons */
@@ -4662,6 +4687,8 @@ export interface components {
             requires_approval: boolean;
             /** Risk Level */
             risk_level: string;
+            /** Timeout Seconds */
+            timeout_seconds: number;
             /** Verification Method */
             verification_method: string;
             /** Version */
@@ -4990,6 +5017,7 @@ export type FileMetadataOut = components['schemas']['FileMetadataOut'];
 export type FileOut = components['schemas']['FileOut'];
 export type FileStatus = components['schemas']['FileStatus'];
 export type FlagIn = components['schemas']['FlagIn'];
+export type GoogleCapability = components['schemas']['GoogleCapability'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type McpServerCreate = components['schemas']['MCPServerCreate'];
@@ -9237,6 +9265,7 @@ export const eventTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["s
 export const experimentCreateKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ExperimentCreate"]["kind"]> = ["agent_version", "planner_strategy", "memory_retrieval", "verification_strategy", "recovery_strategy", "acbe_strategy"];
 export const extractionStatusValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ExtractionStatus"]> = ["pending", "completed", "truncated", "skipped", "failed"];
 export const fileStatusValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["FileStatus"]> = ["uploaded", "processing", "ready", "quarantined", "failed", "deleted"];
+export const googleCapabilityValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["GoogleCapability"]> = ["gmail.read", "gmail.compose", "gmail.send", "calendar.read", "calendar.write", "drive.read", "drive.file", "contacts.read"];
 export const loginRequestToken_deliveryValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LoginRequest"]["token_delivery"]> = ["body", "cookie"];
 export const mCPServerStatusValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["MCPServerStatus"]> = ["pending_review", "approved", "disabled", "error"];
 export const mCPToolStatusValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["MCPToolStatus"]> = ["active", "schema_changed", "removed"];

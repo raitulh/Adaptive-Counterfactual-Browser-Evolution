@@ -74,3 +74,11 @@ describe("Google capability map", () => {
     expect(shortScope("openid")).toBe("openid");
   });
 });
+
+describe("Google capability table", () => {
+  it("has a presentation entry for every capability the contract publishes", async () => {
+    const { GOOGLE_CAPABILITY_IDS } = await import("./google-capabilities");
+    const { googleCapabilityValues } = await import("@/lib/api");
+    expect([...GOOGLE_CAPABILITY_IDS].sort()).toEqual([...googleCapabilityValues].sort());
+  });
+});

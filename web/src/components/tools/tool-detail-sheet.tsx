@@ -13,6 +13,32 @@ import { SchemaView } from "./schema-view";
 import { ToolConnectionStatus } from "./tool-connection";
 import { asPermissionLevel, asRiskLevel, categoryLabel, outputTrust, providerLabel, verificationMethodMeta } from "./tool-meta";
 
+/** How a side-effecting call is protected from running twice (ToolOut.idempotency_strategy). */
+const IDEMPOTENCY_LABELS: Record<string, { label: string; description: string }> = {
+  native_key: {
+    label: "Provider idempotency key",
+    description: "The provider receives a stable key, so a retried call cannot create a duplicate.",
+  },
+  reconcile_lookup: {
+    label: "Checked before any retry",
+    description: "If an attempt's outcome is unknown, AgentOS looks up whether it happened before trying again.",
+  },
+  none: { label: "Not needed", description: "Reading or naturally repeatable — running it twice changes nothing." },
+};
+
+function idempotencyLabel(tool: { idempotency_strategy: string; permission_level: string; max_attempts: number }) {
+  if (tool.idempotency_strategy === "none" && tool.permission_level !== "read") {
+    return {
+      label: "None available",
+      description:
+        tool.max_attempts > 1
+          ? "The provider offers no duplicate protection."
+          : "The provider offers no duplicate protection, so AgentOS never retries this call automatically.",
+    };
+  }
+  return IDEMPOTENCY_LABELS[tool.idempotency_strategy] ?? { label: tool.idempotency_strategy, description: "" };
+}
+
 function SheetSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
@@ -104,6 +130,21 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                         {trust?.label}
                         {trust?.description && <span className="block text-xs text-fg-muted">{trust.description}</span>}
                       </span>,
+                    ],
+                    [
+                      "Duplicate protection",
+                      <span key="idem">
+                        {idempotencyLabel(tool).label}
+                        {idempotencyLabel(tool).description && (
+                          <span className="block text-xs text-fg-muted">{idempotencyLabel(tool).description}</span>
+                        )}
+                      </span>,
+                    ],
+                    [
+                      "Timeout & retries",
+                      `${tool.timeout_seconds}s per attempt · ${
+                        tool.max_attempts > 1 ? `up to ${tool.max_attempts} attempts on transient errors` : "never retried automatically"
+                      }${tool.parallel_safe ? "" : " · runs one at a time"}`,
                     ],
                   ]}
                 />

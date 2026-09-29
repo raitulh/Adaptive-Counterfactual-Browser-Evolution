@@ -27,3 +27,21 @@ def test_openapi_publishes_lifecycle_enums() -> None:
 
 def test_connection_state_literal_matches_constants() -> None:
     assert set(get_args(ConnectionState)) == set(enum_values(ConnectionStatus))
+
+
+def test_google_capabilities_are_published_and_match_the_scope_map() -> None:
+    from app.integrations.google.oauth import CAPABILITY_SCOPES
+    from app.integrations.schemas import GoogleCapability
+
+    assert {c.value for c in GoogleCapability} == set(CAPABILITY_SCOPES)
+    schemas = create_app().openapi()["components"]["schemas"]
+    assert set(schemas["GoogleCapability"]["enum"]) == set(CAPABILITY_SCOPES)
+    items = schemas["ConnectGoogleRequest"]["properties"]["capabilities"]["items"]
+    assert items == {"$ref": "#/components/schemas/GoogleCapability"}
+
+
+def test_agent_versions_and_tools_expose_author_and_execution_settings() -> None:
+    schemas = create_app().openapi()["components"]["schemas"]
+    assert {"created_by", "created_by_name"} <= set(schemas["AgentVersionOut"]["properties"])
+    assert {"idempotency_strategy", "timeout_seconds", "max_attempts", "parallel_safe"} <= set(
+        schemas["ToolOut"]["properties"])

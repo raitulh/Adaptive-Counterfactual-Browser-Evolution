@@ -331,6 +331,30 @@
             "title": "Created At",
             "type": "string"
           },
+          "created_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Display name (or e-mail) of the author",
+            "title": "Created By Name"
+          },
           "execution_limits": {
             "$ref": "#/components/schemas/ExecutionLimits"
           },
@@ -1653,9 +1677,9 @@
         "additionalProperties": false,
         "properties": {
           "capabilities": {
-            "description": "Least-privilege capability bundles: gmail.read, gmail.compose, gmail.send, calendar.read, calendar.write, drive.read, drive.file, contacts.read",
+            "description": "Least-privilege capability bundles",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/GoogleCapability"
             },
             "title": "Capabilities",
             "type": "array"
@@ -3308,6 +3332,21 @@
         ],
         "title": "FlagIn",
         "type": "object"
+      },
+      "GoogleCapability": {
+        "description": "Least-privilege Google Workspace capability bundles (each maps to exact OAuth scopes).",
+        "enum": [
+          "gmail.read",
+          "gmail.compose",
+          "gmail.send",
+          "calendar.read",
+          "calendar.write",
+          "drive.read",
+          "drive.file",
+          "contacts.read"
+        ],
+        "title": "GoogleCapability",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -7105,7 +7144,7 @@
         "properties": {
           "capabilities": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/GoogleCapability"
             },
             "minItems": 1,
             "title": "Capabilities",
@@ -7138,10 +7177,20 @@
             "title": "Description",
             "type": "string"
           },
+          "idempotency_strategy": {
+            "description": "native_key | reconcile_lookup | none",
+            "title": "Idempotency Strategy",
+            "type": "string"
+          },
           "input_schema": {
             "additionalProperties": true,
             "title": "Input Schema",
             "type": "object"
+          },
+          "max_attempts": {
+            "description": "Attempts including the first (retry policy)",
+            "title": "Max Attempts",
+            "type": "integer"
           },
           "name": {
             "title": "Name",
@@ -7155,6 +7204,10 @@
           "output_trust": {
             "title": "Output Trust",
             "type": "string"
+          },
+          "parallel_safe": {
+            "title": "Parallel Safe",
+            "type": "boolean"
           },
           "permission_level": {
             "title": "Permission Level",
@@ -7186,6 +7239,10 @@
             "title": "Risk Level",
             "type": "string"
           },
+          "timeout_seconds": {
+            "title": "Timeout Seconds",
+            "type": "number"
+          },
           "verification_method": {
             "title": "Verification Method",
             "type": "string"
@@ -7207,6 +7264,10 @@
           "required_scopes",
           "verification_method",
           "output_trust",
+          "idempotency_strategy",
+          "timeout_seconds",
+          "max_attempts",
+          "parallel_safe",
           "input_schema",
           "output_schema",
           "available_to_you"

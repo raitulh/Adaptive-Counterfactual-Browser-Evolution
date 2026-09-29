@@ -14,6 +14,7 @@ export {
   eventTypeValues,
   extractionStatusValues,
   fileStatusValues,
+  googleCapabilityValues,
   mCPServerStatusValues as mcpServerStatusValues,
   mCPToolStatusValues as mcpToolStatusValues,
   memoryStatusValues,

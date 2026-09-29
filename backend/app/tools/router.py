@@ -14,7 +14,7 @@ from app.audit.service import AuditCategory
 from app.common.context import RequestContext
 from app.core.exceptions import NotFound, ValidationFailed
 from app.integrations import service as integrations
-from app.integrations.schemas import ConnectGoogleResponse
+from app.integrations.schemas import ConnectGoogleResponse, GoogleCapability
 from app.organizations.rbac import P
 from app.permissions.service import PermissionService, load_policy_inputs
 from app.tools.models import ToolPermission
@@ -35,6 +35,10 @@ class ToolOut(BaseModel):
     required_scopes: list[str]
     verification_method: str
     output_trust: str
+    idempotency_strategy: str = Field(description="native_key | reconcile_lookup | none")
+    timeout_seconds: float
+    max_attempts: int = Field(description="Attempts including the first (retry policy)")
+    parallel_safe: bool
     input_schema: dict[str, Any]
     output_schema: dict[str, Any]
     available_to_you: bool
@@ -44,7 +48,7 @@ class ToolOut(BaseModel):
 class ToolConnectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: Literal["google"]
-    capabilities: list[str] = Field(min_length=1)
+    capabilities: list[GoogleCapability] = Field(min_length=1)
 
 
 class ToolRuleIn(BaseModel):
@@ -74,6 +78,8 @@ async def list_tools(ctx: Ctx, db: DbSession) -> list[ToolOut]:
             provider=spec.provider, permission_level=spec.permission_level.value, risk_level=spec.risk_level.value,
             requires_approval=decision.needs_approval, required_scopes=spec.required_scopes,
             verification_method=spec.verification_method, output_trust=spec.output_trust.value,
+            idempotency_strategy=spec.idempotency_strategy, timeout_seconds=spec.timeout_seconds,
+            max_attempts=spec.retry_policy.max_attempts, parallel_safe=spec.parallel_safe,
             input_schema=spec.input_schema, output_schema=spec.output_schema,
             available_to_you=decision.allowed, policy_reasons=decision.reasons))
     return sorted(out, key=lambda t: t.name)
@@ -83,7 +89,7 @@ async def list_tools(ctx: Ctx, db: DbSession) -> list[ToolOut]:
              summary="Connect the account a tool provider needs (returns an OAuth authorization URL)")
 async def connect(body: ToolConnectRequest,
                   ctx: RequestContext = Depends(require(P.INTEGRATIONS_MANAGE))) -> ConnectGoogleResponse:
-    url, scopes = await integrations.start_google_connect(ctx, body.capabilities, None)
+    url, scopes = await integrations.start_google_connect(ctx, [c.value for c in body.capabilities], None)
     return ConnectGoogleResponse(authorization_url=url, requested_scopes=scopes)
 
 

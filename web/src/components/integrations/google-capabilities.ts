@@ -1,16 +1,18 @@
 /**
  * Google Workspace capability bundles accepted by `POST /integrations/google/connect`.
  *
- * The identifiers and their OAuth scopes mirror the backend's least-privilege map
- * (app/integrations/google/oauth.py → CAPABILITY_SCOPES). The OpenAPI contract only lists the
- * accepted identifiers in a description string (ConnectGoogleRequest.capabilities), so the web app
- * keeps this presentation table; the backend rejects unknown values with 422.
+ * The identifiers come from the contract (`GoogleCapability` enum — `id` is typed by it, and a unit
+ * test fails if a published value has no entry here). The OAuth scopes per capability mirror the
+ * backend's least-privilege map (app/integrations/google/oauth.py → CAPABILITY_SCOPES) for display.
  */
+import { googleCapabilityValues, type GoogleCapability as GoogleCapabilityId } from "@/lib/api";
+
+export type { GoogleCapabilityId };
 
 export type GoogleProduct = "gmail" | "calendar" | "drive" | "contacts";
 
 export interface GoogleCapability {
-  id: string;
+  id: GoogleCapabilityId;
   product: GoogleProduct;
   label: string;
   /** What an agent can do with it, in plain words. */
@@ -103,7 +105,7 @@ export const GOOGLE_CAPABILITIES: GoogleCapability[] = [
 
 export const GOOGLE_CAPABILITY_IDS = GOOGLE_CAPABILITIES.map((c) => c.id);
 
-const byId = new Map(GOOGLE_CAPABILITIES.map((c) => [c.id, c]));
+const byId = new Map<string, GoogleCapability>(GOOGLE_CAPABILITIES.map((c) => [c.id, c]));
 const byScope = new Map(GOOGLE_CAPABILITIES.flatMap((c) => c.scopes.map((s) => [s, c] as const)));
 
 export function capability(id: string): GoogleCapability | undefined {
@@ -137,8 +139,8 @@ export function scopesForCapabilities(ids: readonly string[]): string[] {
   return [...new Set(scopes)];
 }
 
-/** Keep a stable, canonical order and drop unknown values. */
-export function sortCapabilities(ids: Iterable<string>): string[] {
-  const set = new Set(ids);
-  return GOOGLE_CAPABILITY_IDS.filter((id) => set.has(id));
+/** Keep a stable, canonical order and drop values the contract does not define. */
+export function sortCapabilities(ids: Iterable<string>): GoogleCapabilityId[] {
+  const set = new Set<string>(ids);
+  return googleCapabilityValues.filter((id) => set.has(id));
 }

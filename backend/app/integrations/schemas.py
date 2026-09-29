@@ -2,19 +2,34 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CAPABILITIES = ("gmail.read", "gmail.compose", "gmail.send", "calendar.read", "calendar.write", "drive.read",
-                "drive.file", "contacts.read")
+
+class GoogleCapability(StrEnum):
+    """Least-privilege Google Workspace capability bundles (each maps to exact OAuth scopes)."""
+
+    GMAIL_READ = "gmail.read"
+    GMAIL_COMPOSE = "gmail.compose"
+    GMAIL_SEND = "gmail.send"
+    CALENDAR_READ = "calendar.read"
+    CALENDAR_WRITE = "calendar.write"
+    DRIVE_READ = "drive.read"
+    DRIVE_FILE = "drive.file"
+    CONTACTS_READ = "contacts.read"
+
+
+CAPABILITIES = tuple(c.value for c in GoogleCapability)
 
 
 class ConnectGoogleRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    capabilities: list[str] = Field(default_factory=lambda: ["calendar.read", "calendar.write", "gmail.send",
-                                                             "contacts.read"],
-                                    description=f"Least-privilege capability bundles: {', '.join(CAPABILITIES)}")
+    capabilities: list[GoogleCapability] = Field(
+        default_factory=lambda: [GoogleCapability.CALENDAR_READ, GoogleCapability.CALENDAR_WRITE,
+                                 GoogleCapability.GMAIL_SEND, GoogleCapability.CONTACTS_READ],
+        description="Least-privilege capability bundles")
     login_hint: str | None = Field(default=None, max_length=320)
 
 

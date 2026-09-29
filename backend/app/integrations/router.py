@@ -26,7 +26,7 @@ async def list_integrations(ctx: Ctx, db: DbSession) -> list[ConnectionOut]:
              summary="Start connecting Google (Gmail/Calendar/Drive/Contacts) with least-privilege scopes")
 async def connect_google(body: ConnectGoogleRequest,
                          ctx: RequestContext = Depends(require(P.INTEGRATIONS_MANAGE))) -> ConnectGoogleResponse:
-    url, scopes = await service.start_google_connect(ctx, body.capabilities, body.login_hint)
+    url, scopes = await service.start_google_connect(ctx, [c.value for c in body.capabilities], body.login_hint)
     return ConnectGoogleResponse(authorization_url=url, requested_scopes=scopes)
 
 

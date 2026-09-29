@@ -171,6 +171,7 @@ export function AgentVersions({
                     </span>
                     <span className="text-xs text-fg-muted">
                       <RelativeTime value={v.created_at} />
+                      {v.created_by_name && <> · by {v.created_by_name}</>}
                     </span>
                     <span className="font-mono text-2xs text-fg-subtle">sha256 {shortChecksum(v.checksum)}</span>
                   </span>

@@ -67,6 +67,8 @@ class AgentVersionOut(AgentVersionIn):
     version_number: int
     checksum: str
     created_at: datetime
+    created_by: uuid.UUID | None = None
+    created_by_name: str | None = Field(default=None, description="Display name (or e-mail) of the author")
 
 
 class AgentOut(BaseModel):

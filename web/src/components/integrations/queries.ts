@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { integrationsApi, type ConnectionOut } from "@/lib/api";
 import { qk } from "@/lib/query/keys";
+import type { GoogleCapabilityId } from "./google-capabilities";
 
 export function useConnections(enabled = true) {
   return useQuery({
@@ -24,7 +25,7 @@ export function activeGoogleConnection(connections: readonly ConnectionOut[] | u
  */
 export function useConnectGoogle() {
   return useMutation({
-    mutationFn: (vars: { capabilities: string[]; loginHint?: string | null }) =>
+    mutationFn: (vars: { capabilities: GoogleCapabilityId[]; loginHint?: string | null }) =>
       integrationsApi.connectGoogle({ capabilities: vars.capabilities, login_hint: vars.loginHint ?? null }),
     onSuccess: (res) => {
       window.location.assign(res.authorization_url);

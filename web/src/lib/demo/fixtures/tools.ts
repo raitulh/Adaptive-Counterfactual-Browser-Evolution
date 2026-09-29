@@ -46,6 +46,8 @@ export interface ToolSpec {
   verification_method: string;
   output_trust: "controlled_agent_output" | "untrusted_external_content";
   parallel_safe: boolean;
+  idempotency_strategy: "native_key" | "reconcile_lookup" | "none";
+  timeout_seconds: number;
   max_attempts: number;
   base_delay_seconds: number;
   feature_flag?: string;
@@ -73,6 +75,8 @@ function tool(partial: Partial<ToolSpec> & Pick<ToolSpec, "name" | "description"
     verification_method: "output_schema",
     output_trust: "controlled_agent_output",
     parallel_safe: true,
+    idempotency_strategy: "none",
+    timeout_seconds: 30,
     max_attempts: 3,
     base_delay_seconds: 2,
     input_schema: obj({}),
@@ -81,7 +85,8 @@ function tool(partial: Partial<ToolSpec> & Pick<ToolSpec, "name" | "description"
   };
 }
 
-const google = { provider: "google" } as const;
+const google = { provider: "google", timeout_seconds: 20 } as const;
+const reconciled = { idempotency_strategy: "reconcile_lookup" } as const;
 const untrusted = { output_trust: "untrusted_external_content" } as const;
 const compose = obj({ to: emails, cc: emails, subject: str(), body: str() }, ["to", "subject", "body"]);
 
@@ -127,6 +132,7 @@ export const TOOL_CATALOGUE: ToolSpec[] = [
     description: "Create a calendar event (optionally inviting attendees)",
     category: "calendar",
     ...google,
+    idempotency_strategy: "native_key",
     permission_level: "write",
     risk_level: "medium",
     required_scopes: [SCOPES.calendarWrite],
@@ -150,6 +156,7 @@ export const TOOL_CATALOGUE: ToolSpec[] = [
     description: "Modify an existing calendar event (title/time/description)",
     category: "calendar",
     ...google,
+    ...reconciled,
     permission_level: "write",
     risk_level: "medium",
     requires_approval: true,
@@ -163,6 +170,7 @@ export const TOOL_CATALOGUE: ToolSpec[] = [
     description: "Cancel (delete) a calendar event and notify attendees",
     category: "calendar",
     ...google,
+    ...reconciled,
     permission_level: "high_risk_write",
     risk_level: "high",
     requires_approval: true,
@@ -197,6 +205,8 @@ export const TOOL_CATALOGUE: ToolSpec[] = [
     description: "Send an e-mail from the user's mailbox",
     category: "email",
     ...google,
+    ...reconciled,
+    timeout_seconds: 30,
     permission_level: "high_risk_write",
     risk_level: "high",
     requires_approval: true,
@@ -212,6 +222,7 @@ export const TOOL_CATALOGUE: ToolSpec[] = [
     description: "Create an e-mail draft (not sent)",
     category: "email",
     ...google,
+    ...reconciled,
     permission_level: "write",
     risk_level: "low",
     required_scopes: [SCOPES.gmailCompose],
