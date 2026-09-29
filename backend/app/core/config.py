@@ -116,11 +116,11 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
     google_redirect_uri: str = "http://localhost:8000/api/v1/integrations/google/callback"
-    google_login_redirect_uri: str = "http://localhost:8000/api/v1/auth/oauth/google/callback"
+    google_login_redirect_uri: str = "http://localhost:3000/callback/google"  # web frontend callback page
     google_api_timeout_seconds: float = 20.0
     oauth_state_ttl_seconds: int = 600
-    frontend_oauth_success_url: str = "http://localhost:3000/integrations?status=connected"
-    frontend_oauth_error_url: str = "http://localhost:3000/integrations?status=error"
+    frontend_oauth_success_url: str = "http://localhost:3000/app/integrations?status=connected"
+    frontend_oauth_error_url: str = "http://localhost:3000/app/integrations?status=error"
 
     # ------------------------------------------------------ object storage
     object_storage_backend: Literal["local", "s3"] = "local"

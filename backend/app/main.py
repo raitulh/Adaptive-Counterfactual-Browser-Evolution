@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import AsyncIterator
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,6 +83,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     install_exception_handlers(app)
     app.include_router(build_api_router(), prefix=settings.api_prefix)
+
+    base_openapi = app.openapi
+
+    def openapi_with_contract_enums() -> dict[str, Any]:
+        if app.openapi_schema is None:
+            from app.api.contract import add_contract_enums
+
+            app.openapi_schema = add_contract_enums(base_openapi())
+        return app.openapi_schema
+
+    app.openapi = openapi_with_contract_enums  # type: ignore[method-assign]
 
     if settings.metrics_enabled:
         @app.get("/metrics", include_in_schema=False)

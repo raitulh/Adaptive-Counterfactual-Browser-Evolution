@@ -6,6 +6,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.common.enums import PermissionLevel, RiskLevel, VerificationStatus
+from app.tasks.state import StepStatus, TaskStatus
+
 
 class TaskCreate(BaseModel):
     goal: str = Field(min_length=1, max_length=4000, description="Natural-language goal")
@@ -23,7 +26,7 @@ class TaskOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     task_id: uuid.UUID = Field(validation_alias="id")
-    status: str
+    status: TaskStatus
     progress: float
     goal: str
     agent_id: uuid.UUID | None
@@ -52,14 +55,14 @@ class StepOut(BaseModel):
     action: str
     tool_name: str
     tool_version: str
-    status: str
-    permission_level: str
-    risk_level: str
+    status: StepStatus
+    permission_level: PermissionLevel
+    risk_level: RiskLevel
     requires_approval: bool
     policy_reasons: list[str]
     approval_request_id: uuid.UUID | None
     verification_method: str
-    verification_status: str
+    verification_status: VerificationStatus
     attempt_count: int
     output_summary: str | None
     output_trust: str | None
@@ -76,7 +79,7 @@ class VerificationOut(BaseModel):
     id: uuid.UUID
     step_id: uuid.UUID | None
     scope: str
-    status: str
+    status: VerificationStatus
     method: str
     expected: dict[str, Any]
     observed: dict[str, Any]

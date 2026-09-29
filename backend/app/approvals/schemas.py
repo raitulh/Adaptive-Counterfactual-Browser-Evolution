@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.common.enums import ApprovalStatus, PermissionLevel, RiskLevel
+
 
 class ApprovalOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -19,10 +21,10 @@ class ApprovalOut(BaseModel):
     summary: str
     target: str | None
     arguments_preview: dict[str, Any]
-    risk_level: str
-    permission_level: str
+    risk_level: RiskLevel
+    permission_level: PermissionLevel
     reasons: list[str]
-    status: str
+    status: ApprovalStatus
     expires_at: datetime
     approved_by: uuid.UUID | None
     approved_at: datetime | None

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,12 +23,16 @@ class ConnectGoogleResponse(BaseModel):
     requested_scopes: list[str]
 
 
+ConnectionState = Literal["connected", "expired", "revoked", "insufficient_scope", "temporarily_unavailable",
+                          "disconnected"]
+
+
 class ConnectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     provider: str
     account_email: str | None
-    status: str
+    status: ConnectionState
     scopes: list[str] = Field(default_factory=list)
     capabilities: list[str] = Field(default_factory=list)
     token_expires_at: datetime | None

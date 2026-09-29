@@ -37,9 +37,10 @@ are stored encrypted and never returned by the API.
 
 * **Authorized redirect URIs** — both, exactly (scheme, host, port, path, no trailing slash):
   * `http://localhost:8000/api/v1/integrations/google/callback`
-  * `http://localhost:8000/api/v1/auth/oauth/google/callback`
+  * `http://localhost:3000/callback/google` (Sign in with Google returns to the web app's
+    callback page, which completes the login through `GET /api/v1/auth/oauth/google/callback`)
   * production: `https://api.example.com/api/v1/integrations/google/callback` and
-    `https://api.example.com/api/v1/auth/oauth/google/callback`
+    `https://app.example.com/callback/google`
 * Authorized JavaScript origins are not needed (the code exchange happens on the server).
 
 Configure the backend:
@@ -48,9 +49,9 @@ Configure the backend:
 GOOGLE_CLIENT_ID=<client id>.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=<client secret>            # a secret: Secret Manager in production
 GOOGLE_REDIRECT_URI=https://api.example.com/api/v1/integrations/google/callback
-GOOGLE_LOGIN_REDIRECT_URI=https://api.example.com/api/v1/auth/oauth/google/callback
-FRONTEND_OAUTH_SUCCESS_URL=https://app.example.com/integrations?status=connected
-FRONTEND_OAUTH_ERROR_URL=https://app.example.com/integrations?status=error
+GOOGLE_LOGIN_REDIRECT_URI=https://app.example.com/callback/google
+FRONTEND_OAUTH_SUCCESS_URL=https://app.example.com/app/integrations?status=connected
+FRONTEND_OAUTH_ERROR_URL=https://app.example.com/app/integrations?status=error
 ```
 
 `GET /api/v1/health` reports `providers.google_oauth.configured`.
