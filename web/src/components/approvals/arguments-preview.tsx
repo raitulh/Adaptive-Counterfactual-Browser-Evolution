@@ -7,6 +7,40 @@ import { cn } from "@/lib/utils";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
+/**
+ * Reading order for the fields people check first (the backend sends keys sorted alphabetically,
+ * which puts "end" before "start"). Unlisted keys keep their order after these.
+ */
+const READING_ORDER = [
+  "summary",
+  "subject",
+  "title",
+  "name",
+  "to",
+  "cc",
+  "bcc",
+  "attendees",
+  "start",
+  "end",
+  "date",
+  "time",
+  "duration_minutes",
+  "body",
+  "description",
+  "content",
+];
+
+function orderEntries(entries: [string, unknown][]): [string, unknown][] {
+  const rank = (k: string) => {
+    const i = READING_ORDER.indexOf(k);
+    return i === -1 ? READING_ORDER.length : i;
+  };
+  return entries
+    .map((e, i) => [e, i] as const)
+    .sort((a, b) => rank(a[0][0]) - rank(b[0][0]) || a[1] - b[1])
+    .map(([e]) => e);
+}
+
 function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
 }
@@ -73,7 +107,7 @@ export function ArgumentsPreview({
   depth?: number;
   className?: string;
 }) {
-  const entries = Object.entries(args ?? {});
+  const entries = orderEntries(Object.entries(args ?? {}));
   const shown = entries.filter(([, v]) => !isEmpty(v));
   const empty = entries.length - shown.length;
   if (entries.length === 0) return <p className="text-xs text-fg-subtle">No arguments.</p>;
