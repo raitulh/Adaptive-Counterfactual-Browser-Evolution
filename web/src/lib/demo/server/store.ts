@@ -143,10 +143,10 @@ export interface MeRec extends UserOut {
 }
 
 export interface Usage {
-  totals: Record<string, number>;
-  costUsd: number;
-  /** date → kind → quantity */
+  /** date (YYYY-MM-DD, UTC) → kind → quantity */
   byDay: Map<string, Map<string, number>>;
+  /** date → cost in USD */
+  costByDay: Map<string, number>;
 }
 
 export interface CalendarEvent {
@@ -188,7 +188,7 @@ export class DemoStore {
   automationRuns: AutomationRunOut[] = [];
   auditLog: AuditOut[] = [];
   notifications: NotificationRec[] = [];
-  usage: Usage = { totals: {}, costUsd: 0, byDay: new Map() };
+  usage: Usage = { byDay: new Map(), costByDay: new Map() };
   mcpServers: McpServerOut[] = [];
   mcpTools: McpToolRec[] = [];
   evaluationRuns: EvaluationRunRec[] = [];
@@ -315,13 +315,12 @@ export class DemoStore {
     } as AuditOut);
   }
 
-  addUsage(kind: string, quantity = 1, costUsd = 0): void {
-    this.usage.totals[kind] = (this.usage.totals[kind] ?? 0) + quantity;
-    this.usage.costUsd += costUsd;
-    const day = this.nowIso().slice(0, 10);
+  addUsage(kind: string, quantity = 1, costUsd = 0, at = this.now()): void {
+    const day = iso(at).slice(0, 10);
     const kinds = this.usage.byDay.get(day) ?? new Map<string, number>();
     kinds.set(kind, (kinds.get(kind) ?? 0) + quantity);
     this.usage.byDay.set(day, kinds);
+    if (costUsd) this.usage.costByDay.set(day, (this.usage.costByDay.get(day) ?? 0) + costUsd);
   }
 
   /** Scopes granted by the connected Google account (empty when disconnected). */

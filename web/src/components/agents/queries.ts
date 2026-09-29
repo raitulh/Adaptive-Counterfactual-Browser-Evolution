@@ -15,10 +15,11 @@ export function useAgentsList(pageSize = 24) {
   });
 }
 
-export function useAgent(agentId: string) {
+export function useAgent(agentId: string, enabled = true) {
   return useQuery({
     queryKey: qk.agents.detail(agentId),
     queryFn: ({ signal }) => agentsApi.get(agentId, { signal }),
+    enabled,
   });
 }
 

@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { IntegrationsPage } from "@/components/integrations/integrations-page";
 
-// Scaffold: replaced by the feature implementation.
-export default function IntegrationsPage() {
+export const metadata: Metadata = { title: "Integrations" };
+
+export default function Page() {
   return (
-    <PageContainer>
-      <PageHeader title="Integrations" description="Connect the tools your agents need." />
-    </PageContainer>
+    <Suspense>
+      <IntegrationsPage />
+    </Suspense>
   );
 }

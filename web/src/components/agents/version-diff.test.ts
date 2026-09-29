@@ -134,7 +134,7 @@ describe("formatFieldValue", () => {
     expect(formatFieldValue("execution_limits", "max_steps", null)).toBe("No limit");
     expect(formatFieldValue("model_policy", "default", null)).toBe("Platform default");
     expect(formatFieldValue("execution_limits", "max_duration_seconds", 5400)).toBe("1 h 30 min");
-    expect(formatFieldValue("execution_limits", "max_cost_usd", 2.5)).toBe("$2.5");
+    expect(formatFieldValue("execution_limits", "max_cost_usd", 2.5)).toBe("$2.50");
     expect(formatFieldValue("memory_policy", "enabled", false)).toBe("Off");
     expect(formatFieldValue("verification_policy", "readback_delay_ms", 500)).toBe("500 ms");
   });

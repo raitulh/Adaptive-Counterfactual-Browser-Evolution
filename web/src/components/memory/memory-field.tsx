@@ -36,7 +36,7 @@ function hash01(id: string, salt = 0): number {
 export function MemoryField({ memories, now, className }: { memories: MemoryOut[]; now: number; className?: string }) {
   const size = 240;
   const c = size / 2;
-  const rMax = c - 26;
+  const rMax = c - 44;
   const rMin = 16;
 
   const types = React.useMemo(() => {
@@ -91,22 +91,22 @@ export function MemoryField({ memories, now, className }: { memories: MemoryOut[
                 key={`div-${t}`}
                 x1={c + Math.cos(a) * rMin}
                 y1={c + Math.sin(a) * rMin}
-                x2={c + Math.cos(a) * (rMax + 6)}
-                y2={c + Math.sin(a) * (rMax + 6)}
+                x2={c + Math.cos(a) * (rMax + 4)}
+                y2={c + Math.sin(a) * (rMax + 4)}
                 className="stroke-white/[0.05]"
               />
             );
           })}
         {types.map((t, i) => {
           const a = (i + 0.5) * sector - Math.PI / 2;
-          const x = c + Math.cos(a) * (rMax + 16);
-          const y = c + Math.sin(a) * (rMax + 16);
+          const x = c + Math.cos(a) * (rMax + 14);
+          const y = c + Math.sin(a) * (rMax + 12);
           return (
             <text
               key={`label-${t}`}
               x={x}
               y={y}
-              textAnchor={Math.abs(Math.cos(a)) < 0.3 ? "middle" : Math.cos(a) > 0 ? "start" : "end"}
+              textAnchor="middle"
               dominantBaseline="middle"
               className="fill-fg-subtle text-[9px] uppercase tracking-wider"
             >

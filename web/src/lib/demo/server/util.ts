@@ -1,7 +1,32 @@
 /** Small helpers shared by the demo server and fixtures (no network, no globals beyond crypto). */
 
+let idSource: (() => string) | null = null;
+let randomSource: (() => number) | null = null;
+
 export function uuid(): string {
-  return globalThis.crypto.randomUUID();
+  return idSource ? idSource() : globalThis.crypto.randomUUID();
+}
+
+/** Math.random, or a seeded PRNG while seeding (so seeded ids and timelines are reproducible). */
+export function random(): number {
+  return randomSource ? randomSource() : Math.random();
+}
+
+/** Run `fn` with deterministic ids (`seedId(kind, 1..)`) and a deterministic PRNG. */
+export function deterministic<T>(kind: number, fn: () => T): T {
+  let n = 0;
+  let state = 42;
+  idSource = () => seedId(kind, ++n);
+  randomSource = () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
+  try {
+    return fn();
+  } finally {
+    idSource = null;
+    randomSource = null;
+  }
 }
 
 /** Stable, valid (v4-shaped) UUIDs for seeded records so deep links survive a reload. */
@@ -53,7 +78,12 @@ export function randomToken(prefix: string): string {
 
 /** fnmatch-style glob (only `*` and `?`), as used by tool rules and policies. */
 export function globMatch(name: string, pattern: string): boolean {
-  const re = new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
+  const re = new RegExp(
+    `^${pattern
+      .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+      .replace(/\*/g, ".*")
+      .replace(/\?/g, ".")}$`,
+  );
   return re.test(name);
 }
 

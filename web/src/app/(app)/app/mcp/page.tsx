@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { McpPage } from "@/components/mcp/mcp-page";
 
-// Scaffold: replaced by the feature implementation.
-export default function McpPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="MCP" description="Model Context Protocol servers and their tools." />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "MCP Center" };
+
+export default function Page() {
+  return <McpPage />;
 }

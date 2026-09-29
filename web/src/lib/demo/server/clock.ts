@@ -6,6 +6,8 @@
  *  - instantly, on a virtual clock, to generate the seeded history (past tasks with real timelines).
  */
 
+import { random } from "./util";
+
 export interface DemoConfig {
   /** Multiplier for every simulated latency (steps, planning, retries, keep-alives). */
   timeScale: number;
@@ -13,9 +15,20 @@ export interface DemoConfig {
 
 const config: DemoConfig = { timeScale: 1 };
 
+// Simulated wall clock: advances 1/timeScale ms per real ms (identical to Date.now() at scale 1), so
+// deadlines computed from `now()` (retry backoff, approval expiry) agree with the scaled timers.
+let anchorReal = Date.now();
+let anchorSim = anchorReal;
+
+function simNow(): number {
+  return Math.round(anchorSim + (Date.now() - anchorReal) / config.timeScale);
+}
+
 export function configureDemoClock(partial: Partial<DemoConfig>): void {
   if (partial.timeScale !== undefined) {
     if (!(partial.timeScale > 0)) throw new Error("timeScale must be > 0");
+    anchorSim = simNow();
+    anchorReal = Date.now();
     config.timeScale = partial.timeScale;
   }
 }
@@ -33,9 +46,19 @@ export interface Scheduler {
 
 /** Real timers (scaled). Used for everything the visitor does. */
 export const realScheduler: Scheduler = {
-  now: () => Date.now(),
+  now: simNow,
   after(ms, fn) {
-    const handle = setTimeout(fn, Math.max(0, ms * config.timeScale));
+    const handle = setTimeout(
+      () => {
+        try {
+          fn();
+        } catch (err) {
+          // A simulated worker failing must never take the page down; the API keeps serving state.
+          console.error("[demo backend] background job failed", err);
+        }
+      },
+      Math.max(0, ms * config.timeScale),
+    );
     return () => clearTimeout(handle);
   },
 };
@@ -89,5 +112,5 @@ export class VirtualScheduler implements Scheduler {
 
 /** Uniformly distributed latency in [min, max] ms. */
 export function latency(minMs: number, maxMs: number): number {
-  return Math.round(minMs + Math.random() * (maxMs - minMs));
+  return Math.round(minMs + random() * (maxMs - minMs));
 }

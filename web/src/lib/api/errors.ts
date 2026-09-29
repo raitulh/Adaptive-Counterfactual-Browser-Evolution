@@ -13,7 +13,8 @@ export type ApiErrorKind =
   | "forbidden" // 403: authenticated but not allowed
   | "not_found" // 404
   | "conflict" // 409: state conflicts, duplicates
-  | "rate_limited" // 429
+  | "rate_limited" // 429: too many requests right now (retry after a delay)
+  | "quota_exceeded" // 429: a plan limit or quota (retrying will not help)
   | "payload_too_large" // 413
   | "unavailable" // 502/503/504: provider or API temporarily unavailable
   | "server" // other 5xx
@@ -36,6 +37,9 @@ export interface ErrorEnvelope {
   };
 }
 
+/** 429 codes that mean "slow down"; every other 429 is a plan limit (quota_exceeded, automation_limit_reached, …). */
+const RATE_LIMIT_CODES = new Set(["rate_limited", "integration_rate_limited", "model_rate_limited"]);
+
 function kindFor(status: number, code: string): ApiErrorKind {
   if (status === 0) return code === "aborted" ? "aborted" : "network";
   if (status === 401) return "unauthorized";
@@ -44,7 +48,7 @@ function kindFor(status: number, code: string): ApiErrorKind {
   if (status === 409) return "conflict";
   if (status === 413) return "payload_too_large";
   if (status === 422 || status === 400) return "validation";
-  if (status === 429) return "rate_limited";
+  if (status === 429) return RATE_LIMIT_CODES.has(code) ? "rate_limited" : "quota_exceeded";
   if (status === 502 || status === 503 || status === 504) return "unavailable";
   if (status >= 500) return "server";
   return "unknown";
@@ -99,7 +103,7 @@ export class AgentOSApiError extends Error {
   get userMessage(): string {
     const byCode = CODE_MESSAGES[this.code];
     if (byCode) return byCode;
-    if (this.kind === "validation" || this.kind === "conflict" || this.kind === "unknown") {
+    if (this.kind === "validation" || this.kind === "conflict" || this.kind === "quota_exceeded" || this.kind === "unknown") {
       return this.message || "The request could not be completed.";
     }
     if (this.kind === "not_found" || this.kind === "forbidden") {

@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { FilesView } from "@/components/files/files-view";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Files" };
+
 export default function FilesPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Files" description="Documents your agents can read." />
-    </PageContainer>
+    <Suspense>
+      <FilesView />
+    </Suspense>
   );
 }

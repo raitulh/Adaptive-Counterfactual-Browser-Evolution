@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ToolsPage } from "@/components/tools/tools-page";
 
-// Scaffold: replaced by the feature implementation.
-export default function ToolsPage() {
+export const metadata: Metadata = { title: "Tools" };
+
+export default function Page() {
   return (
-    <PageContainer>
-      <PageHeader title="Tools" description="Built-in and connected tools, and the rules that govern them." />
-    </PageContainer>
+    <Suspense>
+      <ToolsPage />
+    </Suspense>
   );
 }

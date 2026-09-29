@@ -110,7 +110,7 @@ export function MemoryView() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
             <RecallPanel section={section} onClearScope={() => setParam("section", null)} />
             <Card className="hidden flex-col gap-2 p-5 lg:flex">
               <div className="flex items-center justify-between">
@@ -194,6 +194,8 @@ export function MemoryView() {
   );
 }
 
+const RECALL_SUGGESTIONS = ["my meeting preferences", "people I work with", "upcoming deadlines", "how I like emails written"];
+
 function RecallPanel({ section, onClearScope }: { section: Section; onClearScope: () => void }) {
   const [draft, setDraft] = React.useState("");
   const [query, setQuery] = React.useState("");
@@ -269,6 +271,24 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
       <div aria-live="polite" className="sr-only">
         {query && count !== null ? `${count} ${count === 1 ? "memory" : "memories"} recalled` : ""}
       </div>
+      {!query && (
+        <div className="relative mt-4 flex flex-wrap gap-2" aria-label="Suggestions">
+          {RECALL_SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                setDraft(s);
+                setCount(null);
+                setQuery(s);
+              }}
+              className="rounded-full border border-line bg-surface-2/60 px-3 py-1 text-xs text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
       {query && (
         <div className="relative mt-5 border-t border-line pt-5">
           <div className="mb-3 flex items-center justify-between gap-2">

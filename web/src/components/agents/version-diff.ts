@@ -2,6 +2,7 @@
  * Agent version comparison: a line-based diff for instructions and structured, field-level diffs for
  * the policies and limits. Pure functions — no React — so the logic is unit-tested.
  */
+import { usd } from "@/lib/format";
 import type {
   AgentVersionIn,
   ExecutionLimits,
@@ -343,7 +344,7 @@ export function formatFieldValue(section: SectionKey, field: string, value: Scal
     return "—";
   }
   if (typeof value === "boolean") return value ? "On" : "Off";
-  if (section === "execution_limits" && field === "max_cost_usd" && typeof value === "number") return `$${value}`;
+  if (section === "execution_limits" && field === "max_cost_usd" && typeof value === "number") return usd(value);
   if (section === "execution_limits" && field === "max_duration_seconds" && typeof value === "number") return formatSeconds(value);
   if (section === "verification_policy" && field === "readback_delay_ms") return `${value} ms`;
   if (section === "model_policy" && field === "planning_tier") return String(value).charAt(0).toUpperCase() + String(value).slice(1);

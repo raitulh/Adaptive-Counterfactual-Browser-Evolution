@@ -107,7 +107,11 @@ export class Body {
       if (!optional) this.issues.push({ loc: ["body"], msg: "Field required", type: "missing" });
       this.data = {};
     } else if (typeof raw !== "object" || Array.isArray(raw)) {
-      this.issues.push({ loc: ["body"], msg: "Input should be a valid dictionary or object", type: "model_attributes_type" });
+      this.issues.push({
+        loc: ["body"],
+        msg: "Input should be a valid dictionary or object",
+        type: "model_attributes_type",
+      });
       this.data = {};
     } else {
       this.data = raw as Obj;
@@ -184,7 +188,11 @@ export class Body {
     const v = this.data[field];
     if (v === undefined || v === null) return null;
     if (typeof v !== "number" || Number.isNaN(v) || (opts.int && !Number.isInteger(v))) {
-      this.add(field, opts.int ? "Input should be a valid integer" : "Input should be a valid number", opts.int ? "int_type" : "float_type");
+      this.add(
+        field,
+        opts.int ? "Input should be a valid integer" : "Input should be a valid number",
+        opts.int ? "int_type" : "float_type",
+      );
       return null;
     }
     if (opts.min !== undefined && v < opts.min) {
@@ -270,10 +278,22 @@ export function queryInt(ctx: Ctx, name: string, def: number, min: number, max: 
   if (raw === null || raw === "") return def;
   const n = Number(raw);
   if (!Number.isInteger(n)) {
-    throw invalid([{ loc: ["query", name], msg: "Input should be a valid integer, unable to parse string as an integer", type: "int_parsing" }]);
+    throw invalid([
+      {
+        loc: ["query", name],
+        msg: "Input should be a valid integer, unable to parse string as an integer",
+        type: "int_parsing",
+      },
+    ]);
   }
-  if (n < min) throw invalid([{ loc: ["query", name], msg: `Input should be greater than or equal to ${min}`, type: "greater_than_equal" }]);
-  if (n > max) throw invalid([{ loc: ["query", name], msg: `Input should be less than or equal to ${max}`, type: "less_than_equal" }]);
+  if (n < min)
+    throw invalid([
+      { loc: ["query", name], msg: `Input should be greater than or equal to ${min}`, type: "greater_than_equal" },
+    ]);
+  if (n > max)
+    throw invalid([
+      { loc: ["query", name], msg: `Input should be less than or equal to ${max}`, type: "less_than_equal" },
+    ]);
   return n;
 }
 
@@ -283,14 +303,22 @@ export function queryBool(ctx: Ctx, name: string, def = false): boolean {
   const v = raw.toLowerCase();
   if (["true", "1", "yes", "on", "t", "y"].includes(v)) return true;
   if (["false", "0", "no", "off", "f", "n"].includes(v)) return false;
-  throw invalid([{ loc: ["query", name], msg: "Input should be a valid boolean, unable to interpret input", type: "bool_parsing" }]);
+  throw invalid([
+    { loc: ["query", name], msg: "Input should be a valid boolean, unable to interpret input", type: "bool_parsing" },
+  ]);
 }
 
 export function queryEnum<T extends string>(ctx: Ctx, name: string, values: readonly T[]): T | null {
   const raw = ctx.query.get(name);
   if (raw === null || raw === "") return null;
   if (!values.includes(raw as T)) {
-    throw invalid([{ loc: ["query", name], msg: `String should match pattern '^(${values.join("|")})$'`, type: "string_pattern_mismatch" }]);
+    throw invalid([
+      {
+        loc: ["query", name],
+        msg: `String should match pattern '^(${values.join("|")})$'`,
+        type: "string_pattern_mismatch",
+      },
+    ]);
   }
   return raw as T;
 }
@@ -298,7 +326,8 @@ export function queryEnum<T extends string>(ctx: Ctx, name: string, values: read
 export function queryUuid(ctx: Ctx, name: string): string | null {
   const raw = ctx.query.get(name);
   if (raw === null || raw === "") return null;
-  if (!isUuid(raw)) throw invalid([{ loc: ["query", name], msg: "Input should be a valid UUID", type: "uuid_parsing" }]);
+  if (!isUuid(raw))
+    throw invalid([{ loc: ["query", name], msg: "Input should be a valid UUID", type: "uuid_parsing" }]);
   return raw;
 }
 
@@ -340,10 +369,16 @@ function decodeCursor(cursor: string): { t: string; i: string } {
 }
 
 /** Newest first by (created_at, id), `limit` 1..200 (default 50), opaque cursor — like `apply_keyset`. */
-export function paginate<T extends Keyed, O = T>(ctx: Ctx, rows: T[], map: (row: T) => O = (r) => r as unknown as O): Page<O> {
+export function paginate<T extends Keyed, O = T>(
+  ctx: Ctx,
+  rows: T[],
+  map: (row: T) => O = (r) => r as unknown as O,
+): Page<O> {
   const limit = queryInt(ctx, "limit", 50, 1, 200);
   const cursor = ctx.query.get("cursor");
-  const sorted = [...rows].sort((a, b) => (a.created_at === b.created_at ? (a.id < b.id ? 1 : -1) : a.created_at < b.created_at ? 1 : -1));
+  const sorted = [...rows].sort((a, b) =>
+    a.created_at === b.created_at ? (a.id < b.id ? 1 : -1) : a.created_at < b.created_at ? 1 : -1,
+  );
   let start = sorted;
   if (cursor) {
     const { t, i } = decodeCursor(cursor);

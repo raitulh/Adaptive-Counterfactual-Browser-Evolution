@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { AutomationsView } from "@/components/automations/automations-view";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Automations" };
+
 export default function AutomationsPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Automations" description="Turn repetitive work into autonomous runs." />
-    </PageContainer>
-  );
+  return <AutomationsView />;
 }

@@ -80,17 +80,19 @@ function VersionSelect({
  */
 export function AgentVersions({
   agentId,
+  enabled = true,
   currentVersionId,
   pair,
   onPairChange,
 }: {
   agentId: string;
+  enabled?: boolean;
   currentVersionId: string | null;
   pair: ComparePair | null;
   onPairChange: (pair: ComparePair | null) => void;
 }) {
   const developerMode = useUiStore((s) => s.developerMode);
-  const q = useAgentVersions(agentId);
+  const q = useAgentVersions(agentId, enabled);
   const versions = React.useMemo(() => [...(q.data ?? [])].sort((a, b) => b.version_number - a.version_number), [q.data]);
   const current = versions.find((v) => v.id === currentVersionId);
   const effective = React.useMemo(() => {

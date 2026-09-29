@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { SearchView } from "@/components/search/search-view";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Search" };
+
 export default function SearchPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Search" description="Research across the web, your documents and memory." />
-    </PageContainer>
+    <Suspense>
+      <SearchView />
+    </Suspense>
   );
 }

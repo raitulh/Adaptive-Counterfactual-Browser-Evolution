@@ -183,11 +183,13 @@ export function ChipsInput({
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => {
-            // Delay so a click on an option registers first.
-            window.setTimeout(() => setOpen(false), 120);
+            // Commit typed text so it is never silently dropped (option clicks don't blur: they preventDefault).
+            if (text.trim()) add(text);
+            setOpen(false);
+            setActive(-1);
           }}
           onKeyDown={onKeyDown}
-          className={cn("h-6 min-w-[8rem] flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle", mono && "font-mono text-[13px]")}
+          className={cn("h-6 min-w-[8rem] flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle", mono && "font-mono text-[13px] placeholder:font-sans")}
         />
       </div>
       {showList && (

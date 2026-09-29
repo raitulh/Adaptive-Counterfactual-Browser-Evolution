@@ -1,7 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeftIcon, BotIcon, GitBranchPlusIcon, HistoryIcon, LayoutListIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  BotIcon,
+  GitBranchPlusIcon,
+  HistoryIcon,
+  LayoutListIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PowerOffIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -130,8 +140,10 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const { can } = usePermissions();
   const canManage = can("agents:manage");
 
-  const agentQ = useAgent(agentId);
-  const versionsQ = useAgentVersions(agentId);
+  // Stops detail refetches (404s) while a delete is in flight and the page navigates away.
+  const [removing, setRemoving] = React.useState(false);
+  const agentQ = useAgent(agentId, !removing);
+  const versionsQ = useAgentVersions(agentId, !removing);
   const tools = useToolCatalog();
   const remove = useDeleteAgent();
 
@@ -170,12 +182,14 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   const onDelete = async () => {
     if (!agent) return;
+    setRemoving(true);
     try {
       await remove.mutateAsync(agent.id);
       toast.success(`${agent.name} deleted`);
       setDeleteOpen(false);
       router.push("/app/agents");
     } catch (err) {
+      setRemoving(false);
       toastError(err, "Couldn't delete the agent");
     }
   };
@@ -233,6 +247,23 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         </header>
       )}
 
+      {agent?.status === "disabled" && (
+        <div role="status" className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-fg-muted">
+          <PowerOffIcon className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
+          <p>
+            <span className="font-medium text-fg">This agent is disabled.</span> New tasks can&apos;t use it until it is re-enabled; its versions are kept.
+            {canManage && (
+              <>
+                {" "}
+                <button type="button" onClick={() => setEditOpen(true)} className="text-accent underline-offset-2 hover:underline">
+                  Change status
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label="Agent sections" className="max-w-full overflow-x-auto">
           <TabsTrigger value="overview">
@@ -266,7 +297,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         </TabsContent>
 
         <TabsContent value="versions" className="mt-5">
-          <AgentVersions agentId={agentId} currentVersionId={agent?.current_version_id ?? null} pair={pair} onPairChange={setPair} />
+          <AgentVersions agentId={agentId} enabled={!removing} currentVersionId={agent?.current_version_id ?? null} pair={pair} onPairChange={setPair} />
         </TabsContent>
 
         {canManage && (
@@ -281,6 +312,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
                 onPublished={(version, previous) => {
                   setPair({ base: previous.version_number, target: version.version_number });
                   setTab("versions");
+                  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
                 }}
               />
             ) : (

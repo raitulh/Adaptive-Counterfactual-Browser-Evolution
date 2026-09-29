@@ -82,7 +82,7 @@ function NumberField({
             {...form.register(name)}
             inputMode={step ? "decimal" : "numeric"}
             placeholder={placeholder}
-            className={cn("font-mono tabular-nums", unit && "pr-14")}
+            className={cn("font-mono tabular-nums placeholder:font-sans", unit && "pr-14")}
             autoComplete="off"
           />
           {unit && (
@@ -176,6 +176,7 @@ export function AgentConfigFields({
   const suggestions = React.useMemo(() => patternSuggestions(names), [names]);
   const describeMatch = React.useCallback(
     (p: string) => {
+      if (!/[*?[]/.test(p)) return null; // exact names need no count
       const n = matchingNames(p, names).length;
       return `${n} ${n === 1 ? "tool" : "tools"}`;
     },
@@ -263,7 +264,7 @@ export function AgentConfigFields({
           ).map(([name, label, description]) => (
             <Field key={name} label={label} description={description} error={errors[name]?.message}>
               {(ids) => (
-                <Input {...ids} {...form.register(name)} placeholder="Platform default" className="font-mono text-[13px]" autoComplete="off" spellCheck={false} />
+                <Input {...ids} {...form.register(name)} placeholder="Platform default" className="font-mono text-[13px] placeholder:font-sans" autoComplete="off" spellCheck={false} />
               )}
             </Field>
           ))}

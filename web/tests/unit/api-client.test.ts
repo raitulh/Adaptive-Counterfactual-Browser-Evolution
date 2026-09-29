@@ -37,6 +37,11 @@ describe("AgentOSApiError", () => {
     const limited = errorFromResponse(json(429, {}, { "retry-after": "7" }), envelope("rate_limited"));
     expect(limited.retryAfterSeconds).toBe(7);
     expect(limited.isRetryable).toBe(true);
+    // Plan limits are also 429s, but they explain themselves and are not worth retrying.
+    const quota = errorFromResponse(json(429, {}), envelope("automation_limit_reached", "Your plan allows 3 automations."));
+    expect(quota.kind).toBe("quota_exceeded");
+    expect(quota.userMessage).toBe("Your plan allows 3 automations.");
+    expect(quota.isRetryable).toBe(false);
     const html = errorFromResponse(new Response("<html>stack trace</html>", { status: 500, statusText: "Internal Server Error" }), null);
     expect(html.userMessage).not.toContain("stack");
     expect(normalizeError(new TypeError("fetch failed")).kind).toBe("network");

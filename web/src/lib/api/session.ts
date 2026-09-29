@@ -131,10 +131,11 @@ async function callRefresh(refreshToken?: string): Promise<Session> {
     body = JSON.stringify({ refresh_token: refreshToken, token_delivery: "cookie" });
   } else {
     const csrf = readCsrfCookie();
-    if (!csrf) {
+    // The in-browser demo backend (NEXT_PUBLIC_DEMO_MODE) keeps its demo user signed in without cookies.
+    if (!csrf && !env.demoMode) {
       throw new AgentOSApiError({ status: 401, code: "no_session", message: "No active session." });
     }
-    headers["x-csrf-token"] = csrf;
+    if (csrf) headers["x-csrf-token"] = csrf;
     body = JSON.stringify({});
   }
   let response: Response;

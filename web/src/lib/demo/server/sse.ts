@@ -172,7 +172,11 @@ export function taskEventStream(opts: {
   });
 }
 
-export function userEventStream(opts: { bus: EventBus; userId: string; signal: AbortSignal | null }): ReadableStream<Uint8Array> {
+export function userEventStream(opts: {
+  bus: EventBus;
+  userId: string;
+  signal: AbortSignal | null;
+}): ReadableStream<Uint8Array> {
   return sseStream(opts.signal, (c) => {
     c.onCleanup(opts.bus.subscribeUser(opts.userId, (message) => c.send(sseFrame(message.type, message))));
   });
