@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { ProfileSettings } from "@/components/settings/profile-settings";
 
-// Scaffold: replaced by the feature implementation.
-export default function SettingsProfilePage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Profile" description="" />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "Profile · Settings" };
+
+export default function ProfileSettingsPage() {
+  return <ProfileSettings />;
 }

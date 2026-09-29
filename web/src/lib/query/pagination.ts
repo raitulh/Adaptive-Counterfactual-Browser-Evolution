@@ -13,7 +13,8 @@ export interface CursorQueryOptions<T> {
   fetchPage: (cursor: string | null, signal: AbortSignal) => Promise<Page<T>>;
   enabled?: boolean;
   staleTime?: number;
-  refetchInterval?: number | false;
+  /** A fixed interval, or a function of the loaded items (e.g. poll only while something is processing). */
+  refetchInterval?: number | false | ((items: T[]) => number | false);
 }
 
 export function useCursorQuery<T>({ queryKey, fetchPage, enabled = true, staleTime, refetchInterval }: CursorQueryOptions<T>) {
@@ -21,7 +22,10 @@ export function useCursorQuery<T>({ queryKey, fetchPage, enabled = true, staleTi
     queryKey,
     enabled,
     staleTime,
-    refetchInterval,
+    refetchInterval:
+      typeof refetchInterval === "function"
+        ? (q) => refetchInterval(q.state.data?.pages.flatMap((p) => p.items) ?? [])
+        : refetchInterval,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) => fetchPage(pageParam, signal),
     getNextPageParam: (last: Page<T>) => (last.has_more && last.next_cursor ? last.next_cursor : undefined),

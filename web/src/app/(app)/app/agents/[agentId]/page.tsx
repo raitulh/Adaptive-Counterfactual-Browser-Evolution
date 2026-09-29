@@ -1,10 +1,14 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { AgentDetail } from "@/components/agents/agent-detail";
 
-// Scaffold: replaced by the feature implementation.
-export default function AgentsAgentidPage() {
+export const metadata: Metadata = { title: "Agent" };
+
+export default async function Page({ params }: { params: Promise<{ agentId: string }> }) {
+  const { agentId } = await params;
   return (
-    <PageContainer>
-      <PageHeader title="Agent" description="" />
-    </PageContainer>
+    <Suspense>
+      <AgentDetail agentId={agentId} />
+    </Suspense>
   );
 }

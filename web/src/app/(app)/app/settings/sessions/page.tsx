@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { SessionsSettings } from "@/components/settings/sessions-settings";
 
-// Scaffold: replaced by the feature implementation.
-export default function SettingsSessionsPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Sessions" description="" />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "Sessions · Settings" };
+
+export default function SessionsSettingsPage() {
+  return <SessionsSettings />;
 }

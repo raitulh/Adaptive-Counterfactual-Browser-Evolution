@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { MemoryView } from "@/components/memory/memory-view";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Memory" };
+
 export default function MemoryPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Memory" description="What AgentOS knows about you and your workspace." />
-    </PageContainer>
+    <Suspense>
+      <MemoryView />
+    </Suspense>
   );
 }

@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { SecuritySettings } from "@/components/settings/security-settings";
 
-// Scaffold: replaced by the feature implementation.
-export default function SettingsSecurityPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Security" description="" />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "Security · Settings" };
+
+export default function SecuritySettingsPage() {
+  return <SecuritySettings />;
 }

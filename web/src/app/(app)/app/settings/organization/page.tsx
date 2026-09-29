@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { OrganizationSettings } from "@/components/organization/organization-settings";
 
-// Scaffold: replaced by the feature implementation.
-export default function SettingsOrganizationPage() {
+export const metadata: Metadata = { title: "Organization · Settings" };
+
+export default function OrganizationSettingsPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Organization" description="" />
-    </PageContainer>
+    <Suspense>
+      <OrganizationSettings />
+    </Suspense>
   );
 }

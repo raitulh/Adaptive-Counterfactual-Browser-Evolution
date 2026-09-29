@@ -1,0 +1,22 @@
+import { it, expect } from "vitest";
+it("probe", async () => {
+  const b = "XyZ";
+  const body = `--${b}\r\nContent-Disposition: form-data; name="file"; filename="a.txt"\r\nContent-Type: text/plain\r\n\r\nhello world\r\n--${b}\r\nContent-Disposition: form-data; name="purpose"\r\n\r\nuser_upload\r\n--${b}--\r\n`;
+  const req = new Request("http://localhost:3000/api/v1/files", { method: "POST", body, headers: { "content-type": `multipart/form-data; boundary=${b}` } });
+  console.log("ct", req.headers.get("content-type"));
+  const parsed = await req.formData();
+  const f = parsed.get("file");
+  console.log("file", typeof f, f && (f as File).name, f && (await (f as File).text()));
+  const ac = new AbortController();
+  const r2 = new Request("http://x/y", { signal: ac.signal });
+  const r3 = new Request(r2, { headers: { a: "b" } });
+  let aborted = false;
+  r3.signal.addEventListener("abort", () => (aborted = true));
+  ac.abort();
+  console.log("aborted follows", aborted, typeof TextDecoderStream, typeof crypto.randomUUID, typeof crypto.subtle, typeof URL.createObjectURL, typeof BroadcastChannel, typeof navigator.locks);
+  const stream = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(new TextEncoder().encode("hi")); c.close(); } });
+  const res = new Response(stream, { headers: { "content-type": "text/event-stream" } });
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+  console.log("read", (await reader.read()).value);
+  expect(1).toBe(1);
+});
