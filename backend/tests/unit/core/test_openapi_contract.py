@@ -22,6 +22,7 @@ def test_openapi_publishes_lifecycle_enums() -> None:
     assert schemas["TaskOut"]["properties"]["status"] == {"$ref": "#/components/schemas/TaskStatus"}
     assert schemas["StepOut"]["properties"]["status"] == {"$ref": "#/components/schemas/StepStatus"}
     assert set(schemas["StepStatus"]["enum"]) == {s.value for s in StepStatus}
+    assert "tasks:create" in schemas["PermissionCode"]["enum"]
 
 
 def test_connection_state_literal_matches_constants() -> None:

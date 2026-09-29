@@ -20,6 +20,7 @@ from app.integrations.models import ConnectionStatus
 from app.mcp.models import MCPServerStatus, MCPToolStatus
 from app.memory.models import MemoryStatus
 from app.notifications.service import NotificationEvent
+from app.organizations.rbac import P
 from app.recovery.service import RecoveryAction
 from app.tasks.state import StepStatus, TaskStatus
 
@@ -41,6 +42,7 @@ CONTRACT_ENUMS: dict[str, Any] = {
     "MCPServerStatus": MCPServerStatus,
     "MCPToolStatus": MCPToolStatus,
     "MemoryStatus": MemoryStatus,
+    "PermissionCode": P,
 }
 
 

@@ -1,0 +1,5 @@
+.next
+node_modules
+src/lib/api/generated
+playwright-report
+test-results

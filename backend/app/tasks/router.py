@@ -32,6 +32,7 @@ from app.tasks.schemas import (
     TaskEventsPage,
     TaskInput,
     TaskOut,
+    TaskSummaryOut,
 )
 from app.tasks.state import TERMINAL, TaskStatus
 from app.verification.models import VerificationResult
@@ -95,10 +96,11 @@ async def get_task(task_id: uuid.UUID, ctx: Ctx, db: DbSession) -> TaskDetail:
     return detail
 
 
-@router.get("/{task_id}/summary", summary="User-facing execution summary (what happened / changed / verified)")
-async def get_summary(task_id: uuid.UUID, ctx: Ctx, db: DbSession) -> dict[str, Any]:
+@router.get("/{task_id}/summary", response_model=TaskSummaryOut,
+            summary="User-facing execution summary (what happened / changed / verified)")
+async def get_summary(task_id: uuid.UUID, ctx: Ctx, db: DbSession) -> TaskSummaryOut:
     task = await service.get_visible_task(db, ctx, task_id)
-    return await build_summary(db, task)
+    return TaskSummaryOut.model_validate(await build_summary(db, task))
 
 
 @router.get("/{task_id}/events", response_model=TaskEventsPage, summary="Ordered task events after a sequence number")
@@ -253,7 +255,9 @@ async def stream_events(task_id: uuid.UUID, request: Request, db: DbSession,
                     status_now = (await s.execute(select(Task.status).where(Task.id == task_id))).scalar_one()
                 for row in rows:
                     last = row.seq
-                    yield _sse(row.event_type, {"seq": row.seq, "task_id": str(task_id), "step_id": row.step_id,
+                    # Same fields as TaskEventOut (plus task_id), so clients merge SSE and REST events uniformly.
+                    yield _sse(row.event_type, {"seq": row.seq, "task_id": str(task_id), "event_type": row.event_type,
+                                                "step_id": row.step_id, "actor_type": row.actor_type,
                                                 "payload": row.payload, "created_at": row.created_at}, row.seq)
                 if not rows and status_now in _STREAM_END_VALUES:
                     yield _sse("end", {"task_id": str(task_id), "status": status_now})

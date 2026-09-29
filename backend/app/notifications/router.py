@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Query, Response, status
 from pydantic import BaseModel, ConfigDict
@@ -21,10 +23,10 @@ class NotificationOut(BaseModel):
     event_type: str
     title: str
     body: str
-    data: dict
+    data: dict[str, Any]
     status: str
-    read_at: object | None
-    created_at: object
+    read_at: datetime | None
+    created_at: datetime
 
 
 @router.get("", response_model=Page[NotificationOut], summary="List in-app notifications")

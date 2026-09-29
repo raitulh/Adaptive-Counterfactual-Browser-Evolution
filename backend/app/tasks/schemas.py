@@ -128,3 +128,58 @@ class ExecutionLogOut(BaseModel):
     level: str
     message: str
     created_at: datetime
+
+
+class SummaryStepItem(BaseModel):
+    step: str
+    action: str
+    tool: str
+    status: StepStatus
+    summary: str | None = None
+
+
+class SummaryChangeItem(BaseModel):
+    step: str
+    tool: str
+    description: str | None = None
+    external_ref: str | None = None
+
+
+class SummaryVerificationItem(BaseModel):
+    step: str
+    method: str
+    status: VerificationStatus
+    differences: list[str | None] = Field(default_factory=list)
+
+
+class SummaryFailureItem(BaseModel):
+    step: str
+    tool: str
+    status: StepStatus
+    error_class: str | None = None
+    message: str | None = None
+
+
+class SummaryWaitingItem(BaseModel):
+    type: Literal["approval", "input", "confirm_outcome"]
+    approval_id: str | None = None
+    summary: str | None = None
+    expires_at: str | None = None
+    question: str | None = None
+    step: str | None = None
+    message: str | None = None
+
+
+class TaskSummaryOut(BaseModel):
+    """Deterministic, user-facing account of a task: built from recorded steps and verifications only."""
+
+    status: TaskStatus
+    headline: str
+    what_happened: list[SummaryStepItem]
+    what_changed: list[SummaryChangeItem]
+    what_was_verified: list[SummaryVerificationItem]
+    what_failed: list[SummaryFailureItem]
+    waiting_for_user: list[SummaryWaitingItem]
+    partial_completion: bool
+    direct_response: str | None = None
+    direct_response_note: str | None = None

@@ -1,0 +1,197 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * AgentOS design tokens.
+ * Near-black warm-neutral foundation, one brand accent ("ion" cyan) and semantic tones that map
+ * to the task lifecycle: violet = verification, amber = awaiting a human, orange = recovery,
+ * emerald = verified success, red = failure. All text tokens pass WCAG AA on every surface.
+ */
+@theme {
+  /* Surfaces (low → high elevation) */
+  --color-bg: #07080a;
+  --color-surface-1: #0d0f13;
+  --color-surface-2: #13161c;
+  --color-surface-3: #1a1e26;
+  --color-surface-4: #222733;
+  --color-overlay: rgb(3 4 6 / 0.72);
+
+  /* Lines */
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.13);
+  --color-line-focus: #5ce1e6;
+
+  /* Text */
+  --color-fg: #eceef2;
+  --color-fg-muted: #a1a7b3;
+  --color-fg-subtle: #7d8594;
+  --color-fg-on-accent: #041316;
+
+  /* Brand accent: ion */
+  --color-accent: #5ce1e6;
+  --color-accent-strong: #22c4cc;
+  --color-accent-soft: rgb(92 225 230 / 0.12);
+
+  /* Semantic tones */
+  --color-success: #3fd69a;
+  --color-warning: #f5b84a;
+  --color-danger: #f87171;
+  --color-info: #7cb4ff;
+  --color-verify: #a99bff;
+  --color-recover: #fb9a4b;
+  --color-neutral: #a1a7b3;
+
+  /* Typography */
+  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-display-sm: 2.5rem;
+  --text-display-sm--line-height: 1.05;
+  --text-display-sm--letter-spacing: -0.035em;
+  --text-display: 3.75rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.045em;
+  --text-display-lg: 5.5rem;
+  --text-display-lg--line-height: 0.95;
+  --text-display-lg--letter-spacing: -0.05em;
+
+  /* Shape */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Depth: minimal shadows, rely on surfaces + lines */
+  --shadow-panel: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  --shadow-float: 0 1px 0 0 rgb(255 255 255 / 0.05) inset, 0 24px 60px -20px rgb(0 0 0 / 0.75);
+  --shadow-glow: 0 0 0 1px rgb(92 225 230 / 0.35), 0 0 24px -4px rgb(92 225 230 / 0.35);
+
+  /* Motion (see src/lib/motion.ts for the JS side) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --animate-pulse-ring: pulse-ring 2.2s var(--ease-out-expo) infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-spin-slow: spin 3.5s linear infinite;
+  --animate-signal: signal 1.6s ease-in-out infinite;
+  --animate-dash: dash 1.4s linear infinite;
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.7;
+    }
+    80%,
+    100% {
+      transform: scale(2.1);
+      opacity: 0;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes signal {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html {
+    color-scheme: dark;
+    background-color: var(--color-bg);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background: rgb(92 225 230 / 0.28);
+    color: var(--color-fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-line-focus);
+    outline-offset: 2px;
+  }
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
+  /* Thin, quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+  }
+}
+
+@utility surface-panel {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+}
+
+@utility text-balance-safe {
+  text-wrap: balance;
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@utility shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.03) 0%,
+    rgb(255 255 255 / 0.08) 40%,
+    rgb(255 255 255 / 0.03) 80%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Respect reduced motion everywhere; critical state is never conveyed by animation alone. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -4570,7 +4570,9 @@
             "type": "string"
           },
           "created_at": {
-            "title": "Created At"
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
           },
           "data": {
             "additionalProperties": true,
@@ -4588,7 +4590,10 @@
           },
           "read_at": {
             "anyOf": [
-              {},
+              {
+                "format": "date-time",
+                "type": "string"
+              },
               {
                 "type": "null"
               }
@@ -5238,6 +5243,37 @@
         ],
         "title": "Page[TaskOut]",
         "type": "object"
+      },
+      "PermissionCode": {
+        "description": "Canonical PermissionCode values (published for API clients).",
+        "enum": [
+          "tasks:create",
+          "tasks:read",
+          "tasks:read_all",
+          "tasks:cancel",
+          "approvals:decide",
+          "approvals:decide_any",
+          "agents:read",
+          "agents:manage",
+          "memory:read",
+          "memory:write",
+          "tools:read",
+          "tools:manage",
+          "integrations:manage",
+          "automations:manage",
+          "files:read",
+          "files:write",
+          "audit:read",
+          "usage:read",
+          "members:manage",
+          "org:manage",
+          "mcp:manage",
+          "billing:manage",
+          "experiments:manage",
+          "search:use"
+        ],
+        "title": "PermissionCode",
+        "type": "string"
       },
       "PermissionLevel": {
         "description": "What class of effect a tool/action has on the outside world.",
@@ -6054,6 +6090,248 @@
         "title": "SuiteOut",
         "type": "object"
       },
+      "SummaryChangeItem": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "external_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Ref"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "tool"
+        ],
+        "title": "SummaryChangeItem",
+        "type": "object"
+      },
+      "SummaryFailureItem": {
+        "properties": {
+          "error_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Class"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StepStatus"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "tool",
+          "status"
+        ],
+        "title": "SummaryFailureItem",
+        "type": "object"
+      },
+      "SummaryStepItem": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StepStatus"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "action",
+          "tool",
+          "status"
+        ],
+        "title": "SummaryStepItem",
+        "type": "object"
+      },
+      "SummaryVerificationItem": {
+        "properties": {
+          "differences": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Differences",
+            "type": "array"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VerificationStatus"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "method",
+          "status"
+        ],
+        "title": "SummaryVerificationItem",
+        "type": "object"
+      },
+      "SummaryWaitingItem": {
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "type": {
+            "enum": [
+              "approval",
+              "input",
+              "confirm_outcome"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "SummaryWaitingItem",
+        "type": "object"
+      },
       "SwitchOrganizationRequest": {
         "properties": {
           "organization_id": {
@@ -6621,6 +6899,91 @@
         ],
         "title": "TaskStatus",
         "type": "string"
+      },
+      "TaskSummaryOut": {
+        "description": "Deterministic, user-facing account of a task: built from recorded steps and verifications only.",
+        "properties": {
+          "direct_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direct Response"
+          },
+          "direct_response_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direct Response Note"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "partial_completion": {
+            "title": "Partial Completion",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "waiting_for_user": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryWaitingItem"
+            },
+            "title": "Waiting For User",
+            "type": "array"
+          },
+          "what_changed": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryChangeItem"
+            },
+            "title": "What Changed",
+            "type": "array"
+          },
+          "what_failed": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryFailureItem"
+            },
+            "title": "What Failed",
+            "type": "array"
+          },
+          "what_happened": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryStepItem"
+            },
+            "title": "What Happened",
+            "type": "array"
+          },
+          "what_was_verified": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryVerificationItem"
+            },
+            "title": "What Was Verified",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "headline",
+          "what_happened",
+          "what_changed",
+          "what_was_verified",
+          "what_failed",
+          "waiting_for_user",
+          "partial_completion"
+        ],
+        "title": "TaskSummaryOut",
+        "type": "object"
       },
       "TaskTemplate": {
         "additionalProperties": false,
@@ -13472,9 +13835,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Summary Api V1 Tasks  Task Id  Summary Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskSummaryOut"
                 }
               }
             },
