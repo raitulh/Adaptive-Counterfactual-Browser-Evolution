@@ -1,0 +1,178 @@
+# AgentOS web app (Next.js standalone server; image built from web/Dockerfile).
+#
+# The browser only ever talks to this origin (app.agentos.example.com). Calls to /api/v1/* are
+# streamed to the API Service by the web app's same-origin pass-through, so the refresh and CSRF
+# cookies are first-party and no CORS is involved. AGENTOS_API_ORIGIN is read per request.
+#
+# NEXT_PUBLIC_* values are compiled into the image — build one image per public hostname
+# (docker build --build-arg NEXT_PUBLIC_SITE_URL=https://app.agentos.example.com ...).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentos-web
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentos-web
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentos
+        app.kubernetes.io/component: web
+    spec:
+      serviceAccountName: agentos-web
+      automountServiceAccountToken: false
+      # Open Server-Sent Event streams are closed on shutdown; clients reconnect with
+      # Last-Event-ID to another replica, so a short grace period is enough.
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentos
+              app.kubernetes.io/component: web
+      containers:
+        - name: web
+          image: agentos-web
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: AGENTOS_API_ORIGIN
+              value: http://agentos-api.agentos.svc.cluster.local
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=384
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              # Let endpoint removal reach the ingress before the server stops accepting.
+              exec:
+                command: ["node", "-e", "setTimeout(() => {}, 5000)"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: next-cache
+          emptyDir:
+            sizeLimit: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentos-web
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agentos-web
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agentos-web
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agentos-web
+  labels:
+    app.kubernetes.io/name: agentos
+    app.kubernetes.io/component: web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: web

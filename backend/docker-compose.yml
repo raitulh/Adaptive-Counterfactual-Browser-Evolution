@@ -7,11 +7,14 @@
 #   docker compose --profile observability up -d  # + OpenTelemetry collector
 #   docker compose --profile evaluation up -d     # + dedicated evaluation/ACBE worker
 #
+# The web app (Next.js) runs at http://localhost:3000 and reaches the API over the Compose
+# network through its same-origin /api/v1 pass-through, so auth cookies are first-party.
+#
 # Requires Docker Compose v2 with BuildKit. The build context is the repository root
 # (`..`) because the backend depends on the root `acbe` package.
 #
 # Memory budget (limits): postgres 1g + redis 256m + api 512m + worker 768m +
-# scheduler 256m ≈ 2.8 GB core; browser +1.5g, minio +512m, collector +256m,
+# scheduler 256m + web 384m ≈ 3.2 GB core; browser +1.5g, minio +512m, collector +256m,
 # evaluation worker +512m.
 #
 # No secrets live in this file. Values come from .env (git-ignored). The only
@@ -153,6 +156,44 @@ services:
       resources:
         limits:
           memory: 512m
+          cpus: "1.0"
+
+  web:
+    image: agentos-web:local
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_SITE_URL: ${WEB_PUBLIC_URL:-http://localhost:3000}
+    environment:
+      # Read per request by the /api/v1 pass-through (not baked into the image).
+      AGENTOS_API_ORIGIN: http://api:8000
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      # Next.js writes its image/ISR cache here at runtime.
+      - /app/.next/cache:size=64m,uid=10001,gid=10001
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 384m
           cpus: "1.0"
 
   worker:

@@ -1,0 +1,12 @@
+# Context is the repository root: send only what the web image needs.
+*
+!web/
+!backend/docs/openapi.json
+web/node_modules
+web/.next
+web/.env
+web/.env.*
+!web/.env.example
+web/playwright-report
+web/test-results
+web/coverage

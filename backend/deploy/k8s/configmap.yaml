@@ -15,15 +15,17 @@ data:
   # ---------------------------------------------------------------- application
   APP_ENV: "production"
   APP_REGION: "europe-west1"
-  PUBLIC_BASE_URL: "https://api.agentos.example.com"
+  # Absolute links the API generates (e.g. signed local-storage downloads) use the web origin.
+  PUBLIC_BASE_URL: "https://app.agentos.example.com"
   CORS_ORIGINS: "https://app.agentos.example.com"
   # The Ingress only routes the public host. An application-level host allowlist would also
   # reject kubelet probes and Prometheus scrapes, which address pods by IP.
   TRUSTED_HOSTS: "*"
   COOKIE_SECURE: "true"
   EXPOSE_OPENAPI: "false"
-  # Trust X-Forwarded-* only from the ingress controller's pods (their Pod CIDR). uvicorn reads
-  # this because the Deployment does not pass --forwarded-allow-ips. Narrow it to your range.
+  # Trust X-Forwarded-* only from the ingress controller's pods and the web pods (which relay
+  # browser requests to the API) — i.e. their Pod CIDR. uvicorn reads this because the
+  # Deployment does not pass --forwarded-allow-ips. Narrow it to your range.
   FORWARDED_ALLOW_IPS: "10.0.0.0/8"
 
   # ---------------------------------------------------------------- database / redis pools
@@ -43,10 +45,13 @@ data:
 
   # ---------------------------------------------------------------- Google OAuth (client ID is public)
   GOOGLE_CLIENT_ID: "000000000000-example.apps.googleusercontent.com"
-  GOOGLE_REDIRECT_URI: "https://api.agentos.example.com/api/v1/integrations/google/callback"
-  GOOGLE_LOGIN_REDIRECT_URI: "https://api.agentos.example.com/api/v1/auth/oauth/google/callback"
-  FRONTEND_OAUTH_SUCCESS_URL: "https://app.agentos.example.com/integrations?status=connected"
-  FRONTEND_OAUTH_ERROR_URL: "https://app.agentos.example.com/integrations?status=error"
+  # Register both redirect URIs on the OAuth client. Sign-in returns to the web app's callback
+  # page (which completes the exchange via POST /auth/oauth/google/callback); the Workspace
+  # connection callback is served by the API through the web app's /api/v1 pass-through.
+  GOOGLE_REDIRECT_URI: "https://app.agentos.example.com/api/v1/integrations/google/callback"
+  GOOGLE_LOGIN_REDIRECT_URI: "https://app.agentos.example.com/callback/google"
+  FRONTEND_OAUTH_SUCCESS_URL: "https://app.agentos.example.com/app/integrations?status=connected"
+  FRONTEND_OAUTH_ERROR_URL: "https://app.agentos.example.com/app/integrations?status=error"
 
   # ---------------------------------------------------------------- object storage (GCS via S3 interoperability)
   OBJECT_STORAGE_BACKEND: "s3"

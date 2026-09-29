@@ -80,6 +80,58 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+    # Web app pods relay browser API calls (same-origin pass-through).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentos
+              app.kubernetes.io/component: web
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Ingress controller → web app.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+# Web app → API only. It needs nothing else (no database, no internet).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-egress-api
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentos
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentos
+              app.kubernetes.io/component: api
+      ports:
+        - protocol: TCP
+          port: 8000
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

@@ -1,5 +1,10 @@
-# Public entry point (ingress-nginx). TLS terminates here; the API trusts X-Forwarded-*
-# only from the controller's range (FORWARDED_ALLOW_IPS in the ConfigMap).
+# Public entry points (ingress-nginx). TLS terminates here; the API trusts X-Forwarded-*
+# only from the controller's and the web pods' ranges (FORWARDED_ALLOW_IPS in the ConfigMap).
+#
+# * app.agentos.example.com → web app. Browsers use only this host: the web app streams
+#   /api/v1/* to the API Service, so cookies are first-party and SameSite=Strict holds.
+# * api.agentos.example.com → API, for programmatic clients (optional; remove the rule if
+#   nothing outside the cluster calls the API directly).
 #
 # * Request size: 26m admits FILE_MAX_UPLOAD_BYTES (25 MiB) plus multipart overhead; the
 #   API still enforces MAX_REQUEST_BODY_BYTES (2 MiB) on every non-upload route.
@@ -34,7 +39,20 @@ spec:
     - hosts:
         - api.agentos.example.com
       secretName: agentos-api-tls
+    - hosts:
+        - app.agentos.example.com
+      secretName: agentos-web-tls
   rules:
+    - host: app.agentos.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agentos-web
+                port:
+                  name: http
     - host: api.agentos.example.com
       http:
         paths:
