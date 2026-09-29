@@ -277,8 +277,13 @@ describe("SSE", () => {
     });
     const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
     let text = "";
-    while (!text.includes(": keep-alive")) text += (await reader.read()).value ?? "";
-    expect(text).toMatch(/^: connected\n\nid: 1\nevent: TASK_CREATED\ndata: \{/);
+    // Keep-alives are timer-driven, so under load one may precede the replayed history: read until
+    // both have arrived instead of assuming an order the protocol does not promise.
+    while (!(text.includes(": keep-alive") && text.includes("event: TASK_CREATED"))) {
+      text += (await reader.read()).value ?? "";
+    }
+    expect(text.startsWith(": connected\n\n")).toBe(true);
+    expect(text).toMatch(/id: 1\nevent: TASK_CREATED\ndata: \{/);
     controller.abort();
     await expect(reader.read()).resolves.toMatchObject({ done: true });
   });
