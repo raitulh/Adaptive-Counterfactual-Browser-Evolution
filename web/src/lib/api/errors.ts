@@ -62,6 +62,13 @@ const FRIENDLY: Partial<Record<ApiErrorKind, string>> = {
   aborted: "The request was cancelled.",
 };
 
+/** Auth outcomes whose 401 is an answer, not an ended session. */
+const CODE_MESSAGES: Record<string, string> = {
+  invalid_credentials: "Incorrect email or password.",
+  invalid_mfa_code: "That authentication code is not valid. Try the current code from your app.",
+  csrf_failed: "Your sign-in could not be verified. Reload the page and try again.",
+};
+
 export class AgentOSApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -90,6 +97,8 @@ export class AgentOSApiError extends Error {
 
   /** Message safe to show to users. Backend messages are already user-safe for 4xx. */
   get userMessage(): string {
+    const byCode = CODE_MESSAGES[this.code];
+    if (byCode) return byCode;
     if (this.kind === "validation" || this.kind === "conflict" || this.kind === "unknown") {
       return this.message || "The request could not be completed.";
     }

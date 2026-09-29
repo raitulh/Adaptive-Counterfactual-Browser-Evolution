@@ -28,6 +28,11 @@ describe("AgentOSApiError", () => {
     expect(notFound.userMessage).not.toContain("org X");
   });
 
+  it("explains wrong-credential 401s instead of reporting an ended session", () => {
+    expect(errorFromResponse(json(401, {}), envelope("invalid_credentials")).userMessage).toBe("Incorrect email or password.");
+    expect(errorFromResponse(json(401, {}), envelope("token_expired")).userMessage).toMatch(/sign in again/);
+  });
+
   it("reads Retry-After for rate limits and never shows raw non-envelope bodies", () => {
     const limited = errorFromResponse(json(429, {}, { "retry-after": "7" }), envelope("rate_limited"));
     expect(limited.retryAfterSeconds).toBe(7);
