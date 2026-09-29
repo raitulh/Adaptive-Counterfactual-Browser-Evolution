@@ -25,7 +25,7 @@ void main() {
   float t = fract(atan(vPos.x, vPos.y) / 6.28318530718 + 1.0);
   float on = step(t, uArc);
   float head = smoothstep(uArc - 0.08, uArc, t) * on;
-  vec3 col = mix(uBase * 0.35, uColor * (0.8 + head * 1.6), on);
+  vec3 col = mix(uBase * 0.35, uColor * (0.62 + head * 1.4), on);
   float a = (0.16 + on * 0.84) * uOpacity;
   gl_FragColor = vec4(col, a);
 }
@@ -39,6 +39,9 @@ export const RING_RADIUS = 2.3;
  */
 export function VerificationRing({ levels, stage }: { levels: LevelsRef; stage: SystemStage }) {
   const group = useRef<THREE.Group>(null);
+  const ring = useRef<THREE.Mesh>(null);
+  const tickLines = useRef<THREE.LineSegments>(null);
+  const recover = useRef<THREE.Mesh>(null);
   const pulse = useRef<THREE.Mesh>(null);
   const state = useRef({ arc: 0, complete: 0, recover: 0, pulseT: 0 });
 
@@ -114,28 +117,29 @@ export function VerificationRing({ levels, stage }: { levels: LevelsRef; stage: 
     s.complete += ((target.complete ? 1 : 0) - s.complete) * damp(2.5, dt);
     s.recover += (target.recover - s.recover) * damp(5, dt);
 
-    const u = ringMat.uniforms;
-    u.uArc.value = s.arc;
-    u.uOpacity.value = L.ring;
-    (u.uColor.value as THREE.Color).copy(verifyColor).lerp(successColor, s.complete);
-    tickMat.opacity = 0.22 * L.ring;
-    recoverMat.opacity = 0.85 * s.recover * L.ring;
+    if (ring.current) {
+      const u = (ring.current.material as THREE.ShaderMaterial).uniforms;
+      u.uArc.value = s.arc;
+      u.uOpacity.value = L.ring;
+      (u.uColor.value as THREE.Color).copy(verifyColor).lerp(successColor, s.complete);
+    }
+    if (tickLines.current) (tickLines.current.material as THREE.LineBasicMaterial).opacity = 0.34 * L.ring;
+    if (recover.current) (recover.current.material as THREE.MeshBasicMaterial).opacity = 0.85 * s.recover * L.ring;
 
     // A calm "verified" pulse once the ring completes.
     if (pulse.current) {
       s.pulseT = (s.pulseT + dt / 2.6) % 1;
-      const scale = 1 + s.pulseT * 0.22;
-      pulse.current.scale.setScalar(scale);
-      pulseMat.opacity = s.complete * (1 - s.pulseT) * 0.5 * L.ring;
+      pulse.current.scale.setScalar(1 + s.pulseT * 0.22);
+      (pulse.current.material as THREE.MeshBasicMaterial).opacity = s.complete * (1 - s.pulseT) * 0.5 * L.ring;
     }
     if (group.current) group.current.rotation.z = Math.sin(L.time * 0.05) * 0.02;
   });
 
   return (
     <group ref={group}>
-      <mesh geometry={ringGeo} material={ringMat} renderOrder={2} />
-      <lineSegments geometry={ticks} material={tickMat} />
-      <mesh geometry={recoverGeo} material={recoverMat} />
+      <mesh ref={ring} geometry={ringGeo} material={ringMat} renderOrder={2} />
+      <lineSegments ref={tickLines} geometry={ticks} material={tickMat} />
+      <mesh ref={recover} geometry={recoverGeo} material={recoverMat} />
       <mesh ref={pulse} geometry={pulseGeo} material={pulseMat} />
     </group>
   );

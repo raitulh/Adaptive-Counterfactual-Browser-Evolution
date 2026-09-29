@@ -7,6 +7,7 @@ import "server-only";
 export {
   getPublicPlans,
   publicApiBase,
+  publicApiDocsUrl,
   publicApiOrigin,
   type PublicFetchFailure,
   type PublicFetchOptions,

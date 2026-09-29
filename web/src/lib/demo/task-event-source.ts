@@ -28,6 +28,8 @@ export interface DemoTask {
   context: string | null;
   status: TaskStatus;
   plan_version: number;
+  /** `task.plan` once the plan is persisted (PLAN_CREATED). */
+  plan: Record<string, unknown> | null;
   created_at: string | null;
 }
 
@@ -102,13 +104,13 @@ const systemClock: Clock = {
 const SIM_TASK_ID = "01926f3a-0000-7000-8000-5e1ad0000001";
 const STEP_IDS: Record<ScenarioStepKey, string> = {
   find_slot: "01926f3a-0001-7000-8000-5e1ad0000011",
-  find_rahim: "01926f3a-0002-7000-8000-5e1ad0000012",
+  find_contact: "01926f3a-0002-7000-8000-5e1ad0000012",
   create_meeting: "01926f3a-0003-7000-8000-5e1ad0000013",
   send_confirmation: "01926f3a-0004-7000-8000-5e1ad0000014",
 };
 const APPROVAL_IDS: Record<ScenarioStepKey, string> = {
   find_slot: "01926f3a-00a1-7000-8000-5e1ad00000a1",
-  find_rahim: "01926f3a-00a2-7000-8000-5e1ad00000a2",
+  find_contact: "01926f3a-00a2-7000-8000-5e1ad00000a2",
   create_meeting: "01926f3a-00a3-7000-8000-5e1ad00000a3",
   send_confirmation: "01926f3a-00a4-7000-8000-5e1ad00000a4",
 };
@@ -132,6 +134,7 @@ export function initialSnapshot(scenario: Scenario = schedulingScenario): TaskRu
       context: scenario.context,
       status: "created",
       plan_version: 0,
+      plan: null,
       created_at: null,
     },
     steps: [],
@@ -172,7 +175,7 @@ export function applyTaskEvent(snap: TaskRunSnapshot, event: TaskEvent, rc: Redu
       task = { ...task, created_at: at };
       break;
     case "PLAN_CREATED":
-      task = { ...task, plan_version: Number(p.plan_version ?? 1) };
+      task = { ...task, plan_version: Number(p.plan_version ?? 1), plan: rc.scenario.plan };
       steps = planSteps(rc.scenario, (k) => STEP_IDS[k]);
       break;
     case "TOOL_CALL_STARTED":

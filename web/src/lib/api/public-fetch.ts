@@ -18,7 +18,7 @@ export type PublicFetchFailure = {
 };
 export type PublicFetchResult<T> = { ok: true; data: T } | PublicFetchFailure;
 
-type EnvLike = Partial<Record<"AGENTOS_API_ORIGIN" | "NEXT_PUBLIC_API_URL", string | undefined>>;
+type EnvLike = { readonly [key: string]: string | undefined };
 
 /**
  * Base URL of the API for server-side calls, ending in `/api/v1`:
@@ -36,6 +36,22 @@ export function publicApiBase(vars: EnvLike = process.env): string {
 /** Origin that serves the interactive API reference (`/docs`) — the API origin itself. */
 export function publicApiOrigin(vars: EnvLike = process.env): string {
   return publicApiBase(vars).replace(/\/api\/v1$/, "");
+}
+
+/**
+ * Where visitors can open the interactive API reference (the API serves it at `/docs`), or null when
+ * the only known API origin is an internal address that must not be published.
+ */
+export function publicApiDocsUrl(vars: EnvLike = process.env): string | null {
+  const publicUrl = vars.NEXT_PUBLIC_API_URL?.trim();
+  if (publicUrl && /^https?:\/\//i.test(publicUrl)) return `${new URL(publicUrl).origin}/docs`;
+  const origin = (vars.AGENTOS_API_ORIGIN?.trim() || "http://localhost:8000").replace(/\/+$/, "");
+  try {
+    const host = new URL(origin).hostname;
+    return host === "localhost" || host === "127.0.0.1" ? `${origin}/docs` : null;
+  } catch {
+    return null;
+  }
 }
 
 const TIMEOUT_MS = 4_000;

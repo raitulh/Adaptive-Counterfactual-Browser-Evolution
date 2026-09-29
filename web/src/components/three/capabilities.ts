@@ -13,13 +13,7 @@
 export type VisualMode = "3d" | "2d";
 export type VisualQuality = "high" | "low";
 export type VisualReason =
-  | "capable"
-  | "forced"
-  | "webgl-unavailable"
-  | "software-renderer"
-  | "reduced-motion"
-  | "save-data"
-  | "low-power";
+  "capable" | "forced" | "webgl-unavailable" | "software-renderer" | "reduced-motion" | "save-data" | "low-power";
 
 export interface DeviceCapabilities {
   webgl: boolean;
@@ -46,7 +40,9 @@ export type VisualOverride = "3d" | "2d" | null;
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software|basic render/i;
 
 export function isLowPower(c: Pick<DeviceCapabilities, "deviceMemory" | "hardwareConcurrency">): boolean {
-  return (c.deviceMemory !== null && c.deviceMemory <= 2) || (c.hardwareConcurrency !== null && c.hardwareConcurrency <= 2);
+  return (
+    (c.deviceMemory !== null && c.deviceMemory <= 2) || (c.hardwareConcurrency !== null && c.hardwareConcurrency <= 2)
+  );
 }
 
 export function qualityFor(c: DeviceCapabilities): VisualQuality {
@@ -61,9 +57,9 @@ export function qualityFor(c: DeviceCapabilities): VisualQuality {
 export function planVisual(c: DeviceCapabilities, override: VisualOverride = null): VisualPlan {
   const quality = qualityFor(c);
   if (override === "2d") return { mode: "2d", quality, animate: !c.reducedMotion, reason: "forced" };
-  if (override === "3d" && c.webgl) return { mode: "3d", quality, animate: true, reason: "forced" };
-
+  // Reduced motion always wins, even over a forced mode.
   if (c.reducedMotion) return { mode: "2d", quality, animate: false, reason: "reduced-motion" };
+  if (override === "3d" && c.webgl) return { mode: "3d", quality, animate: true, reason: "forced" };
   if (!c.webgl) return { mode: "2d", quality, animate: true, reason: "webgl-unavailable" };
   if (c.saveData) return { mode: "2d", quality, animate: true, reason: "save-data" };
   if (c.softwareRenderer) return { mode: "2d", quality, animate: true, reason: "software-renderer" };
@@ -90,7 +86,8 @@ export function probeWebGL(createCanvas: () => HTMLCanvasElement = () => documen
 } {
   try {
     const canvas = createCanvas();
-    const gl = (canvas.getContext("webgl2") ?? canvas.getContext("webgl")) as (GLLike & object) | null;
+    // The scene uses three.js r18x, which requires WebGL 2.
+    const gl = canvas.getContext("webgl2") as (GLLike & object) | null;
     if (!gl) return { webgl: false, softwareRenderer: false };
     let renderer = "";
     const debug = gl.getExtension("WEBGL_debug_renderer_info") as { UNMASKED_RENDERER_WEBGL: number } | null;

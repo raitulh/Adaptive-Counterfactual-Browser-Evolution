@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { STAGE_PRESETS, type SystemStage } from "./stage";
 
+export { mulberry32 } from "./random";
+
 /**
  * Damped presentation levels shared by every layer of the scene. The scene root eases these toward
  * the current stage's preset each frame (frame-rate independent), and layers read them in their own
@@ -83,14 +85,23 @@ export function circleGeometry(radius: number, segments: number): THREE.BufferGe
   return g;
 }
 
-/** Deterministic pseudo-random numbers (so every visitor sees the same composition). */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+let ringTexture: THREE.Texture | null = null;
+
+/** A thin circle outline (white, tinted per use) for tool and plan nodes. */
+export function getRingTexture(): THREE.Texture {
+  if (ringTexture) return ringTexture;
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.strokeStyle = "rgba(255,255,255,1)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 8, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ringTexture = new THREE.CanvasTexture(canvas);
+  ringTexture.colorSpace = THREE.SRGBColorSpace;
+  return ringTexture;
 }

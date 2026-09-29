@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getPublicPlans, publicApiBase, publicApiOrigin } from "./public-fetch";
+import { getPublicPlans, publicApiBase, publicApiDocsUrl, publicApiOrigin } from "./public-fetch";
 
 const PLAN = {
   name: "free",
@@ -30,6 +30,22 @@ describe("publicApiBase", () => {
   });
 });
 
+describe("publicApiDocsUrl", () => {
+  it("links the API origin's /docs when the API is public", () => {
+    expect(publicApiDocsUrl({ NEXT_PUBLIC_API_URL: "https://api.example.com/api/v1" })).toBe(
+      "https://api.example.com/docs",
+    );
+  });
+  it("links local development APIs", () => {
+    expect(publicApiDocsUrl({})).toBe("http://localhost:8000/docs");
+  });
+  it("never publishes an internal upstream address", () => {
+    expect(
+      publicApiDocsUrl({ AGENTOS_API_ORIGIN: "http://agentos-api.internal:8000", NEXT_PUBLIC_API_URL: "/api/v1" }),
+    ).toBeNull();
+  });
+});
+
 describe("getPublicPlans", () => {
   const env = { AGENTOS_API_ORIGIN: "http://api.test" };
 
@@ -55,14 +71,20 @@ describe("getPublicPlans", () => {
 
   it("rejects malformed bodies", async () => {
     const notJson = vi.fn().mockResolvedValue(new Response("<html>", { status: 200 }));
-    await expect(getPublicPlans({ fetchImpl: notJson, env })).resolves.toMatchObject({ ok: false, reason: "invalid_response" });
+    await expect(getPublicPlans({ fetchImpl: notJson, env })).resolves.toMatchObject({
+      ok: false,
+      reason: "invalid_response",
+    });
     const wrongShape = vi.fn().mockResolvedValue(json([{ name: "free" }]));
     await expect(getPublicPlans({ fetchImpl: wrongShape, env })).resolves.toMatchObject({
       ok: false,
       reason: "invalid_response",
     });
     const notArray = vi.fn().mockResolvedValue(json({ items: [PLAN] }));
-    await expect(getPublicPlans({ fetchImpl: notArray, env })).resolves.toMatchObject({ ok: false, reason: "invalid_response" });
+    await expect(getPublicPlans({ fetchImpl: notArray, env })).resolves.toMatchObject({
+      ok: false,
+      reason: "invalid_response",
+    });
   });
 
   it("times out slow upstreams", async () => {
@@ -70,7 +92,9 @@ describe("getPublicPlans", () => {
       (_url: string, init: RequestInit) =>
         new Promise<Response>((_, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason))),
     );
-    await expect(getPublicPlans({ fetchImpl: fetchImpl as unknown as typeof fetch, env, timeoutMs: 10 })).resolves.toEqual({
+    await expect(
+      getPublicPlans({ fetchImpl: fetchImpl as unknown as typeof fetch, env, timeoutMs: 10 }),
+    ).resolves.toEqual({
       ok: false,
       reason: "unreachable",
     });

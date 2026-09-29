@@ -184,6 +184,13 @@
   animation: var(--animate-shimmer);
 }
 
+/* In-page anchors (e.g. "Explore the system") glide, except with reduced motion (below). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Respect reduced motion everywhere; critical state is never conveyed by animation alone. */
 @media (prefers-reduced-motion: reduce) {
   *,

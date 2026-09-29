@@ -54,17 +54,17 @@ export const CORE_VERTEX = /* glsl */ `
 uniform float uTime;
 uniform float uAmp;
 varying vec3 vNormal;
-varying vec3 vView;
+varying vec3 vViewPos;
 varying float vNoise;
 ${SIMPLEX_NOISE}
 void main() {
-  float n = snoise(position * 1.4 + vec3(0.0, uTime * 0.22, uTime * 0.12));
-  float n2 = snoise(position * 3.2 - vec3(uTime * 0.28));
+  // Shared vertices get identical offsets, so the faceted body breathes without tearing.
+  float n = snoise(position * 1.6 + vec3(0.0, uTime * 0.2, uTime * 0.1));
   vNoise = n;
-  vec3 p = position + normal * (n * 0.07 + n2 * 0.018) * uAmp;
+  vec3 p = position + normal * n * 0.045 * uAmp;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vNormal = normalize(normalMatrix * normal);
-  vView = normalize(-mv.xyz);
+  vViewPos = mv.xyz;
   gl_Position = projectionMatrix * mv;
 }
 `;
@@ -76,14 +76,20 @@ uniform vec3 uHot;
 uniform float uIntensity;
 uniform float uTime;
 varying vec3 vNormal;
-varying vec3 vView;
+varying vec3 vViewPos;
 varying float vNoise;
 void main() {
-  float ndv = clamp(dot(normalize(vNormal), normalize(vView)), 0.0, 1.0);
-  float fres = pow(1.0 - ndv, 2.3);
-  float center = pow(ndv, 3.2);
-  float bands = 0.5 + 0.5 * sin(vNoise * 16.0 + uTime * 1.1);
-  vec3 col = uDeep + uColor * (fres * 1.3 + bands * 0.07 * (1.0 - fres)) + uHot * center * 0.5;
+  vec3 view = normalize(-vViewPos);
+  // Facet normal from screen-space derivatives: a crystalline, engineered surface.
+  vec3 facet = normalize(cross(dFdx(vViewPos), dFdy(vViewPos)));
+  float fdv = clamp(abs(dot(facet, view)), 0.0, 1.0);
+  float sdv = clamp(dot(normalize(vNormal), view), 0.0, 1.0);
+  float rim = pow(1.0 - sdv, 2.6);
+  float facetLight = pow(1.0 - fdv, 1.6);
+  float scan = smoothstep(0.92, 1.0, sin(vNoise * 22.0 + uTime * 1.4)) * 0.35;
+  vec3 col = uDeep
+    + uColor * (facetLight * 0.55 + rim * 1.25 + scan * 0.4)
+    + uHot * pow(sdv, 5.0) * 0.55;
   gl_FragColor = vec4(col * uIntensity, 1.0);
 }
 `;

@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore, type RefObject } from "react";
-import {
-  planVisual,
-  readCapabilities,
-  readOverride,
-  type DeviceCapabilities,
-  type VisualPlan,
-} from "./capabilities";
+import { planVisual, readCapabilities, readOverride, type DeviceCapabilities, type VisualPlan } from "./capabilities";
 
 // Device capabilities are probed once per page load (a WebGL probe is not free).
 let capabilities: DeviceCapabilities | null = null;

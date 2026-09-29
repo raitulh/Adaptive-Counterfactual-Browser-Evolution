@@ -10,7 +10,7 @@
  */
 import type { EventType, PermissionLevel, RiskLevel, StepOut } from "@/lib/api";
 
-export type ScenarioStepKey = "find_slot" | "find_rahim" | "create_meeting" | "send_confirmation";
+export type ScenarioStepKey = "find_slot" | "find_contact" | "create_meeting" | "send_confirmation";
 
 /** Context passed to payload builders so times can be expressed relative to "now". */
 export interface ScenarioContext {
@@ -68,6 +68,8 @@ export interface Scenario {
   goal: string;
   context: string;
   planSummary: string;
+  /** The validated plan as the planner stores it on the task (`task.plan`): steps, `$ref`s, dependencies. */
+  plan: Record<string, unknown>;
   steps: ScenarioStepTemplate[];
   beats: ScenarioBeat[];
   /** Pending approvals expire after this long (display only; the simulation never expires them). */
@@ -83,8 +85,7 @@ const state = (from: string, to: string, reason: string, actor: ScenarioEventSpe
     payload: () => ({ from, to, reason }),
   }) satisfies ScenarioEventSpec;
 
-const fmtTime = (d: Date) =>
-  d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+const fmtTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 export const RAHIM = { name: "Rahim Chowdhury", email: "rahim@example.org" } as const;
 
@@ -97,7 +98,12 @@ export function tomorrowSlot(startedAt: number): { start: Date; end: Date } {
 }
 
 /** Beats for one side-effecting step after its approval was granted: run → read back → complete. */
-function afterApproval(step: ScenarioStepKey, tool: string, action: string, readBack: { started: string; passed: string }) {
+function afterApproval(
+  step: ScenarioStepKey,
+  tool: string,
+  action: string,
+  readBack: { started: string; passed: string },
+) {
   return [
     emit(150, { type: "APPROVAL_GRANTED", step, actor: "user", payload: (c) => ({ approval_id: c.approvalId(step) }) }),
     emit(250, state("waiting_approval", "queued", "approval granted", "user")),
@@ -139,7 +145,11 @@ function afterRejection(step: ScenarioStepKey, skipped: ScenarioStepKey[]): Emit
       payload: () => ({ step, error: "approval_rejected", error_class: "policy" }),
     }),
     ...skipped.map((s) =>
-      emit(200, { type: "STEP_SKIPPED", step: s, payload: () => ({ step: s, reason: "a prerequisite did not complete" }) }),
+      emit(200, {
+        type: "STEP_SKIPPED",
+        step: s,
+        payload: () => ({ step: s, reason: "a prerequisite did not complete" }),
+      }),
     ),
     emit(450, {
       type: "TASK_FAILED",
@@ -181,7 +191,7 @@ const STEPS: ScenarioStepTemplate[] = [
     }),
   },
   {
-    key: "find_rahim",
+    key: "find_contact",
     action: "Look up Rahim's e-mail address",
     tool_name: "contacts.lookup",
     tool_version: "v1",
@@ -265,7 +275,11 @@ const finishRead = (step: ScenarioStepKey, tool: string, ms: number): EmitBeat[]
   }),
   emit(250, { type: "VERIFICATION_STARTED", step, payload: () => ({ step, method: "output_schema" }) }),
   emit(550, { type: "VERIFICATION_PASSED", step, payload: () => ({ step, method: "output_schema" }) }),
-  emit(250, { type: "STEP_COMPLETED", step, payload: (c) => ({ step, summary: scenarioResult(step, c).output_summary }) }),
+  emit(250, {
+    type: "STEP_COMPLETED",
+    step,
+    payload: (c) => ({ step, summary: scenarioResult(step, c).output_summary }),
+  }),
 ];
 
 /**
@@ -278,6 +292,60 @@ export const schedulingScenario: Scenario = {
   planSummary:
     "Find tomorrow's first free 30-minute slot, look up Rahim, create the event with him as attendee, then e-mail him a confirmation.",
   steps: STEPS,
+  plan: {
+    goal: "Find a free 30-minute slot tomorrow, schedule a meeting, and send a confirmation.",
+    summary:
+      "Find tomorrow's first free 30-minute slot, look up Rahim, create the event with him as attendee, then e-mail him a confirmation.",
+    steps: [
+      {
+        step_id: "find_slot",
+        action: "Find a free 30-minute slot tomorrow",
+        tool: "calendar.find_free_slots",
+        arguments: { date: "tomorrow", duration_minutes: 30 },
+        dependencies: [],
+        risk_level: "low",
+        requires_approval: false,
+      },
+      {
+        step_id: "find_contact",
+        action: "Look up Rahim's e-mail address",
+        tool: "contacts.lookup",
+        arguments: { name: "Rahim" },
+        dependencies: [],
+        risk_level: "low",
+        requires_approval: false,
+      },
+      {
+        step_id: "create_meeting",
+        action: "Schedule a 30-minute meeting with Rahim",
+        tool: "calendar.create_event",
+        arguments: {
+          summary: "Meeting with Rahim",
+          start: { $ref: "steps.find_slot.output.slots.0.start" },
+          end: { $ref: "steps.find_slot.output.slots.0.end" },
+          attendees: [{ $ref: "steps.find_contact.output.best.email" }],
+        },
+        dependencies: ["find_slot", "find_contact"],
+        risk_level: "high",
+        requires_approval: true,
+      },
+      {
+        step_id: "send_confirmation",
+        action: "Send Rahim a confirmation e-mail",
+        tool: "gmail.send",
+        arguments: {
+          to: [{ $ref: "steps.find_contact.output.best.email" }],
+          subject: "Meeting confirmation",
+          body: "Hi Rahim, confirming our meeting on {{steps.create_meeting.output.start}}.",
+        },
+        dependencies: ["create_meeting", "find_contact"],
+        risk_level: "high",
+        requires_approval: true,
+      },
+    ],
+    needs_user_input: [],
+    direct_response: null,
+  },
   approvalTtlMs: SCHEDULING_SCENARIO_TTL_MS,
   beats: [
     // Understanding the goal
@@ -298,13 +366,16 @@ export const schedulingScenario: Scenario = {
     ...readStep("find_slot", "calendar.find_free_slots", "Find free 30-minute slots tomorrow"),
     emit(120, {
       type: "TOOL_CALL_STARTED",
-      step: "find_rahim",
-      payload: () => ({ step: "find_rahim", tool: "contacts.lookup", attempt: 1, action: "Look up contact “Rahim”" }),
+      step: "find_contact",
+      payload: () => ({ step: "find_contact", tool: "contacts.lookup", attempt: 1, action: "Look up contact “Rahim”" }),
     }),
     ...finishRead("find_slot", "calendar.find_free_slots", 800),
-    ...finishRead("find_rahim", "contacts.lookup", 300),
+    ...finishRead("find_contact", "contacts.lookup", 300),
     // Approval for the calendar write — nothing has been written yet
-    emit(600, approvalRequest("create_meeting", (c) => STEPS[2].approval!(c).summary)),
+    emit(
+      600,
+      approvalRequest("create_meeting", (c) => STEPS[2].approval!(c).summary),
+    ),
     emit(200, state("running", "waiting_approval", "approval required")),
     {
       kind: "gate",
@@ -315,7 +386,10 @@ export const schedulingScenario: Scenario = {
           passed: "read_back",
         }),
         // Approval for the e-mail — a separate action needs its own approval
-        emit(600, approvalRequest("send_confirmation", (c) => STEPS[3].approval!(c).summary)),
+        emit(
+          600,
+          approvalRequest("send_confirmation", (c) => STEPS[3].approval!(c).summary),
+        ),
         emit(200, state("running", "waiting_approval", "approval required")),
         {
           kind: "gate",

@@ -61,7 +61,17 @@ export interface StagePreset {
 }
 
 export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
-  dormant: { core: 0.35, orbit: 0.2, links: 0, graph: 0, ring: 0, memory: 0.18, lattice: 0.15, active: [], camera: [0, 0.4, 13] },
+  dormant: {
+    core: 0.35,
+    orbit: 0.2,
+    links: 0,
+    graph: 0,
+    ring: 0,
+    memory: 0.18,
+    lattice: 0.15,
+    active: [],
+    camera: [0, 0.58, 19.5],
+  },
   idle: {
     core: 1,
     orbit: 0.9,
@@ -71,9 +81,19 @@ export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
     memory: 0.5,
     lattice: 0.45,
     active: ["calendar", "gmail", "memory"],
-    camera: [0, 0.7, 11.5],
+    camera: [0, 1.01, 17.2],
   },
-  goal: { core: 1.3, orbit: 0.45, links: 0.12, graph: 0, ring: 0.15, memory: 0.3, lattice: 0.3, active: [], camera: [0, 0.25, 9.4] },
+  goal: {
+    core: 1.3,
+    orbit: 0.45,
+    links: 0.12,
+    graph: 0,
+    ring: 0.15,
+    memory: 0.3,
+    lattice: 0.3,
+    active: [],
+    camera: [0, 0.36, 14.1],
+  },
   plan: {
     core: 1,
     orbit: 0.6,
@@ -83,7 +103,7 @@ export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
     memory: 0.35,
     lattice: 0.7,
     active: ["calendar", "memory"],
-    camera: [-0.9, 1.9, 10.6],
+    camera: [-1.3, 2.75, 15.9],
   },
   act: {
     core: 1.1,
@@ -94,7 +114,7 @@ export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
     memory: 0.35,
     lattice: 0.55,
     active: ["calendar", "gmail"],
-    camera: [1.3, 0.9, 10.8],
+    camera: [1.89, 1.3, 16.2],
   },
   verify: {
     core: 0.9,
@@ -105,7 +125,7 @@ export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
     memory: 0.3,
     lattice: 0.35,
     active: ["calendar", "gmail"],
-    camera: [0, 0.2, 8.8],
+    camera: [0, 0.29, 13.2],
   },
   learn: {
     core: 1,
@@ -116,7 +136,7 @@ export const STAGE_PRESETS: Record<SystemStage, StagePreset> = {
     memory: 1,
     lattice: 0.3,
     active: ["memory"],
-    camera: [0, 3.6, 11.6],
+    camera: [0, 5.22, 17.4],
   },
 };
 
@@ -147,7 +167,15 @@ export function graphNodeStates(stage: SystemStage, progress: number): GraphNode
     case "verify": {
       const meeting: GraphNodeState = p < 0.35 ? "verifying" : "completed";
       const mail: GraphNodeState =
-        p < 0.35 ? "pending" : p < 0.5 ? "waiting_approval" : p < 0.65 ? "running" : p < 0.85 ? "verifying" : "completed";
+        p < 0.35
+          ? "pending"
+          : p < 0.5
+            ? "waiting_approval"
+            : p < 0.65
+              ? "running"
+              : p < 0.85
+                ? "verifying"
+                : "completed";
       return ["completed", "completed", meeting, mail];
     }
     case "learn":
@@ -164,7 +192,10 @@ export function approvalGateOpen(stage: SystemStage, progress: number): boolean 
 }
 
 /** Verification ring arc (0..1) and whether it reads as verified completion. */
-export function verificationArc(stage: SystemStage, progress: number): { arc: number; complete: boolean; recover: number } {
+export function verificationArc(
+  stage: SystemStage,
+  progress: number,
+): { arc: number; complete: boolean; recover: number } {
   const p = Math.min(1, Math.max(0, progress));
   switch (stage) {
     case "verify": {
