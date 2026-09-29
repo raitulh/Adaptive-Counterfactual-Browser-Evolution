@@ -63,7 +63,7 @@ export const taskStatusMeta: Record<TaskStatus, TaskStatusMeta> = {
   requires_reconciliation: { label: "Needs confirmation", tone: "recover", phase: "recover", attention: true, description: "An action's outcome could not be confirmed automatically." },
   paused: { label: "Paused", tone: "neutral", phase: "execute", description: "Paused. Resume to continue." },
   cancel_requested: { label: "Cancelling", tone: "neutral", phase: "execute", live: true, description: "Stopping at the next safe point." },
-  completed: { label: "Completed", tone: "success", phase: "complete", terminal: true, description: "Finished and verified." },
+  completed: { label: "Completed", tone: "success", phase: "complete", terminal: true, description: "Finished. Verification results are shown for each step." },
   failed: { label: "Failed", tone: "danger", phase: "complete", description: "The task did not complete." },
   blocked: { label: "Blocked", tone: "danger", phase: "recover", attention: true, description: "Blocked by a missing connection, permission or policy." },
   expired: { label: "Expired", tone: "neutral", phase: "complete", description: "Expired before it could finish." },
