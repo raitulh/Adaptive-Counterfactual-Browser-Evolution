@@ -16,7 +16,7 @@ export const SelectTrigger = React.forwardRef<
   <S.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-sm text-fg outline-none transition-colors focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 data-[placeholder]:text-fg-subtle aria-[invalid=true]:border-danger/60 [&>span]:truncate",
+      "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-sm text-fg transition-colors outline-none focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 aria-[invalid=true]:border-danger/60 data-[placeholder]:text-fg-subtle [&>span]:truncate",
       className,
     )}
     {...props}
@@ -50,27 +50,30 @@ export const SelectContent = React.forwardRef<
 ));
 SelectContent.displayName = "SelectContent";
 
-export const SelectItem = React.forwardRef<React.ComponentRef<typeof S.Item>, React.ComponentPropsWithoutRef<typeof S.Item>>(
-  ({ className, children, ...props }, ref) => (
-    <S.Item
-      ref={ref}
-      className={cn(
-        "relative flex cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-[13px] text-fg-muted outline-none data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-fg data-[disabled]:opacity-40",
-        className,
-      )}
-      {...props}
-    >
-      <span className="absolute left-2 flex size-4 items-center justify-center">
-        <S.ItemIndicator>
-          <CheckIcon className="size-4 text-accent" />
-        </S.ItemIndicator>
-      </span>
-      <S.ItemText>{children}</S.ItemText>
-    </S.Item>
-  ),
-);
+export const SelectItem = React.forwardRef<
+  React.ComponentRef<typeof S.Item>,
+  React.ComponentPropsWithoutRef<typeof S.Item>
+>(({ className, children, ...props }, ref) => (
+  <S.Item
+    ref={ref}
+    className={cn(
+      "relative flex cursor-default items-center rounded-md py-1.5 pr-2 pl-8 text-[13px] text-fg-muted outline-none select-none data-[disabled]:opacity-40 data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-fg",
+      className,
+    )}
+    {...props}
+  >
+    <span className="absolute left-2 flex size-4 items-center justify-center">
+      <S.ItemIndicator>
+        <CheckIcon className="size-4 text-accent" />
+      </S.ItemIndicator>
+    </span>
+    <S.ItemText>{children}</S.ItemText>
+  </S.Item>
+));
 SelectItem.displayName = "SelectItem";
 
 export function SelectLabel({ className, ...props }: React.ComponentPropsWithoutRef<typeof S.Label>) {
-  return <S.Label className={cn("px-2 py-1.5 text-2xs uppercase tracking-wider text-fg-subtle", className)} {...props} />;
+  return (
+    <S.Label className={cn("px-2 py-1.5 text-2xs tracking-wider text-fg-subtle uppercase", className)} {...props} />
+  );
 }

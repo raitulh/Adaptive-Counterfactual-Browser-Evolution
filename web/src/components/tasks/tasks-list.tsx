@@ -13,7 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton, Switch } from "@/components/ui/controls";
 import { Label } from "@/components/ui/field";
 import { PageContainer, PageHeader } from "@/components/ui/page";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState, ErrorState } from "@/components/ui/states";
 import { usePermissions } from "@/lib/auth/hooks";
 import { qk } from "@/lib/query/keys";
@@ -28,7 +36,21 @@ const ALL = "all";
 
 const GROUPS: Array<{ label: string; values: TaskStatus[] }> = [
   { label: "Needs you", values: ["waiting_approval", "waiting_input", "requires_reconciliation", "blocked"] },
-  { label: "In progress", values: ["created", "planning", "planned", "validating", "queued", "running", "verifying", "recovering", "cancel_requested", "paused"] },
+  {
+    label: "In progress",
+    values: [
+      "created",
+      "planning",
+      "planned",
+      "validating",
+      "queued",
+      "running",
+      "verifying",
+      "recovering",
+      "cancel_requested",
+      "paused",
+    ],
+  },
   { label: "Finished", values: ["completed", "failed", "expired", "cancelled"] },
 ];
 
@@ -72,7 +94,11 @@ export function TasksList() {
 
   return (
     <PageContainer>
-      <PageHeader title="Tasks" description="Everything your agents are working on — live status, progress and outcomes." actions={newTask} />
+      <PageHeader
+        title="Tasks"
+        description="Everything your agents are working on — live status, progress and outcomes."
+        actions={newTask}
+      />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
@@ -112,7 +138,7 @@ export function TasksList() {
         <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : (
         <div className="overflow-hidden rounded-xl border border-line bg-surface-1">
-          <div className="hidden grid-cols-[minmax(0,1fr)_9.5rem_7rem_8rem_1rem] gap-x-4 border-b border-line px-4 py-2 text-2xs font-medium uppercase tracking-wider text-fg-subtle md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_9.5rem_7rem_8rem_1rem] gap-x-4 border-b border-line px-4 py-2 text-2xs font-medium tracking-wider text-fg-subtle uppercase md:grid">
             <span>Goal</span>
             <span>Status</span>
             <span>Progress</span>
@@ -162,7 +188,12 @@ export function TasksList() {
           )}
           {list.hasNextPage && (
             <div className="flex justify-center border-t border-line p-2">
-              <Button variant="ghost" size="sm" onClick={() => void list.fetchNextPage()} loading={list.isFetchingNextPage}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void list.fetchNextPage()}
+                loading={list.isFetchingNextPage}
+              >
                 Load more
               </Button>
             </div>

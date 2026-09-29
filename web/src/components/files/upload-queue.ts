@@ -145,7 +145,9 @@ export interface UploadQueue {
 
 let fallbackCounter = 0;
 const defaultId = () =>
-  typeof globalThis.crypto?.randomUUID === "function" ? globalThis.crypto.randomUUID() : `u-${Date.now()}-${++fallbackCounter}`;
+  typeof globalThis.crypto?.randomUUID === "function"
+    ? globalThis.crypto.randomUUID()
+    : `u-${Date.now()}-${++fallbackCounter}`;
 
 export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   const concurrency = Math.max(1, options.concurrency ?? 2);

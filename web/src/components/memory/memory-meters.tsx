@@ -25,7 +25,10 @@ export function ConfidenceRing({ value, size = 34, className }: { value: number;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, value));
   return (
-    <span className={cn("relative inline-flex shrink-0 items-center justify-center", className)} style={{ width: size, height: size }}>
+    <span
+      className={cn("relative inline-flex shrink-0 items-center justify-center", className)}
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={3} className="stroke-white/[0.07]" />
         <circle
@@ -39,7 +42,7 @@ export function ConfidenceRing({ value, size = 34, className }: { value: number;
           className={cn(RING_STROKE[level.tone], "transition-[stroke-dasharray] duration-500 ease-out")}
         />
       </svg>
-      <span className="absolute text-[10px] font-semibold tabular-nums text-fg">{Math.round(clamped * 100)}</span>
+      <span className="absolute text-[10px] font-semibold text-fg tabular-nums">{Math.round(clamped * 100)}</span>
     </span>
   );
 }
@@ -57,8 +60,10 @@ export function ConfidenceMeter({ value, compact }: { value: number; compact?: b
         <ConfidenceRing value={value} size={compact ? 28 : 34} />
         {!compact && (
           <span className="flex flex-col leading-tight">
-            <span className="text-2xs uppercase tracking-wider text-fg-subtle">Confidence</span>
-            <span className={cn("text-xs font-medium", toneClasses[level.tone].text)}>{level.label.replace(" confidence", "")}</span>
+            <span className="text-2xs tracking-wider text-fg-subtle uppercase">Confidence</span>
+            <span className={cn("text-xs font-medium", toneClasses[level.tone].text)}>
+              {level.label.replace(" confidence", "")}
+            </span>
           </span>
         )}
       </span>
@@ -77,12 +82,12 @@ export function ImportanceMeter({ value, className }: { value: number; className
         role="img"
         aria-label={`Importance ${pct(value)}`}
       >
-        <span className="text-2xs uppercase tracking-wider text-fg-subtle">Importance</span>
+        <span className="text-2xs tracking-wider text-fg-subtle uppercase">Importance</span>
         <span className="flex items-center gap-0.5" aria-hidden>
           {Array.from({ length: 5 }).map((_, i) => (
             <span key={i} className={cn("h-1.5 w-3.5 rounded-full", i < filled ? "bg-fg-muted" : "bg-white/[0.07]")} />
           ))}
-          <span className="ml-1.5 text-xs tabular-nums text-fg-muted">{pct(value)}</span>
+          <span className="ml-1.5 text-xs text-fg-muted tabular-nums">{pct(value)}</span>
         </span>
       </span>
     </Tooltip>
@@ -117,12 +122,13 @@ export function FreshnessMeter({
   return (
     <Tooltip content={hint}>
       <span className={cn("inline-flex min-w-0 flex-col gap-1 outline-none", className)} tabIndex={0}>
-        <span className="text-2xs uppercase tracking-wider text-fg-subtle">Freshness</span>
+        <span className="text-2xs tracking-wider text-fg-subtle uppercase">Freshness</span>
         <span className="flex items-center gap-2">
           <span
             className={cn(
               "relative h-1.5 w-20 overflow-hidden rounded-full bg-white/[0.07]",
-              freshness.label === "Unverified" && "bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.08)_0_3px,transparent_3px_6px)]",
+              freshness.label === "Unverified" &&
+                "bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.08)_0_3px,transparent_3px_6px)]",
             )}
             role="meter"
             aria-label="Freshness window used"
@@ -132,7 +138,11 @@ export function FreshnessMeter({
             aria-valuetext={`${freshness.label}. Verified ${relativeTime(lastVerifiedAt)}. ${hint}`}
           >
             <span
-              className={cn("absolute inset-y-0 left-0 rounded-full", toneClasses[freshness.tone].bg, freshness.label !== "Fresh" && "opacity-80")}
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full",
+                toneClasses[freshness.tone].bg,
+                freshness.label !== "Fresh" && "opacity-80",
+              )}
               style={{ width: `${Math.max(4, used * 100)}%` }}
             />
           </span>
@@ -158,12 +168,15 @@ export function ScoreMeter({ value, label = "Match" }: { value: number; label?: 
   const v = Math.max(0, Math.min(1, value));
   return (
     <span className="inline-flex flex-col gap-1" role="img" aria-label={`${label} score ${v.toFixed(2)}`}>
-      <span className="text-2xs uppercase tracking-wider text-fg-subtle">{label}</span>
+      <span className="text-2xs tracking-wider text-fg-subtle uppercase">{label}</span>
       <span className="flex items-center gap-2" aria-hidden>
         <span className="relative h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.07]">
-          <span className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${Math.max(4, v * 100)}%` }} />
+          <span
+            className="absolute inset-y-0 left-0 rounded-full bg-accent"
+            style={{ width: `${Math.max(4, v * 100)}%` }}
+          />
         </span>
-        <span className="font-mono text-xs tabular-nums text-fg-muted">{v.toFixed(2)}</span>
+        <span className="font-mono text-xs text-fg-muted tabular-nums">{v.toFixed(2)}</span>
       </span>
     </span>
   );

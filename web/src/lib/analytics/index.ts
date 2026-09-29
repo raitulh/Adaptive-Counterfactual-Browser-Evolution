@@ -34,9 +34,7 @@ export interface AnalyticsSink {
 const FORBIDDEN_KEYS = /goal|content|text|message|email|password|token|secret|query|body|answer|note|reason/i;
 
 let sink: AnalyticsSink | null =
-  env.analyticsProvider === "console"
-    ? { track: (event, props) => console.info("[analytics]", event, props) }
-    : null;
+  env.analyticsProvider === "console" ? { track: (event, props) => console.info("[analytics]", event, props) } : null;
 
 export function setAnalyticsSink(next: AnalyticsSink | null): void {
   sink = next;

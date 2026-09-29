@@ -41,7 +41,7 @@ export interface ErrorEnvelope {
 const RATE_LIMIT_CODES = new Set(["rate_limited", "integration_rate_limited", "model_rate_limited"]);
 
 function kindFor(status: number, code: string): ApiErrorKind {
-  if (status === 0) return code === "aborted" ? "aborted" : "network";
+  if (status === 0) return code === "aborted" ? "aborted" : code === "client_error" ? "unknown" : "network";
   if (status === 401) return "unauthorized";
   if (status === 403) return "forbidden";
   if (status === 404) return "not_found";
@@ -103,7 +103,14 @@ export class AgentOSApiError extends Error {
   get userMessage(): string {
     const byCode = CODE_MESSAGES[this.code];
     if (byCode) return byCode;
-    if (this.kind === "validation" || this.kind === "conflict" || this.kind === "quota_exceeded" || this.kind === "unknown") {
+    // A bug or unexpected state in the app itself: never show the raw exception text.
+    if (this.code === "client_error") return "Something went wrong on this page. Please try again.";
+    if (
+      this.kind === "validation" ||
+      this.kind === "conflict" ||
+      this.kind === "quota_exceeded" ||
+      this.kind === "unknown"
+    ) {
       return this.message || "The request could not be completed.";
     }
     if (this.kind === "not_found" || this.kind === "forbidden") {

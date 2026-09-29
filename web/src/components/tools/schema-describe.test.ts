@@ -29,7 +29,10 @@ describe("describeSchema", () => {
   it("resolves local $ref and nested objects, and never follows remote refs", () => {
     const rows = describeSchema({
       type: "object",
-      $defs: { Mode: { type: "string", enum: ["fast", "safe"] }, Opts: { type: "object", properties: { mode: { $ref: "#/$defs/Mode" } } } },
+      $defs: {
+        Mode: { type: "string", enum: ["fast", "safe"] },
+        Opts: { type: "object", properties: { mode: { $ref: "#/$defs/Mode" } } },
+      },
       properties: { options: { $ref: "#/$defs/Opts" }, remote: { $ref: "https://evil.example/schema.json" } },
     });
     expect(rows.map((r) => r.path)).toEqual(["options", "options.mode", "remote"]);

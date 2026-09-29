@@ -31,10 +31,16 @@ export function SchemaView({
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-1">
           {rows.map((row) => (
-            <li key={row.path} className="flex flex-col gap-1 px-3 py-2.5" style={{ paddingLeft: `${0.75 + row.depth * 1}rem` }}>
+            <li
+              key={row.path}
+              className="flex flex-col gap-1 px-3 py-2.5"
+              style={{ paddingLeft: `${0.75 + row.depth * 1}rem` }}
+            >
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-mono text-[13px] text-fg">
-                  {row.depth > 0 && <span className="text-fg-subtle">{row.path.slice(0, row.path.length - row.name.length)}</span>}
+                  {row.depth > 0 && (
+                    <span className="text-fg-subtle">{row.path.slice(0, row.path.length - row.name.length)}</span>
+                  )}
                   {row.name}
                 </span>
                 <span className="font-mono text-2xs text-info">{row.type}</span>

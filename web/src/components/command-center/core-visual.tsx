@@ -21,7 +21,8 @@ function usePausedOffscreen<T extends Element>() {
     if (!el || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.05 });
     io.observe(el);
-    const onVisibility = () => setVisible(document.visibilityState === "visible" && el.getBoundingClientRect().bottom > 0);
+    const onVisibility = () =>
+      setVisible(document.visibilityState === "visible" && el.getBoundingClientRect().bottom > 0);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       io.disconnect();
@@ -50,7 +51,7 @@ export function CoreVisual({ state, className }: { state: CoreState; className?:
       data-state={state}
       className={cn(
         "relative aspect-square w-full select-none",
-        "motion-reduce:[&_*]:!animate-none motion-reduce:[&_*]:![animation:none]",
+        "motion-reduce:[&_*]:![animation:none] motion-reduce:[&_*]:!animate-none",
         !visible && "[&_*]:![animation-play-state:paused]",
         className,
       )}
@@ -85,7 +86,15 @@ export function CoreVisual({ state, className }: { state: CoreState; className?:
         {/* Outer orbit: tools */}
         <circle cx="160" cy="160" r="142" fill="none" stroke="rgb(255 255 255 / 0.07)" strokeWidth="1" />
         <g style={spin(working ? 38 : 70)}>
-          <circle cx="160" cy="160" r="142" fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="1" strokeDasharray="2 10" />
+          <circle
+            cx="160"
+            cy="160"
+            r="142"
+            fill="none"
+            stroke="rgb(255 255 255 / 0.12)"
+            strokeWidth="1"
+            strokeDasharray="2 10"
+          />
           {ORBIT_NODES.map((deg, i) => {
             const rad = (deg * Math.PI) / 180;
             const x = 160 + 142 * Math.cos(rad);
@@ -108,14 +117,30 @@ export function CoreVisual({ state, className }: { state: CoreState; className?:
         {/* Middle ring: verification arc (violet) */}
         <circle cx="160" cy="160" r="102" fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="1" />
         <g style={spin(working ? 16 : 30, true)}>
-          <path d="M160 58 A102 102 0 0 1 262 160" fill="none" stroke={`url(#${gid}-arc)`} strokeWidth="2.5" strokeLinecap="round" />
+          <path
+            d="M160 58 A102 102 0 0 1 262 160"
+            fill="none"
+            stroke={`url(#${gid}-arc)`}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
           <circle cx="262" cy="160" r="4.5" fill="#A99BFF" />
         </g>
 
         {/* Attention node: someone must act */}
         {attention && (
           <g>
-            <circle cx="88" cy="88" r="14" fill="rgb(245 184 74 / 0.12)" style={{ transformBox: "fill-box", transformOrigin: "center", animation: "core-pulse 2.2s cubic-bezier(0.16,1,0.3,1) infinite" }} />
+            <circle
+              cx="88"
+              cy="88"
+              r="14"
+              fill="rgb(245 184 74 / 0.12)"
+              style={{
+                transformBox: "fill-box",
+                transformOrigin: "center",
+                animation: "core-pulse 2.2s cubic-bezier(0.16,1,0.3,1) infinite",
+              }}
+            />
             <circle cx="88" cy="88" r="6" fill="#F5B84A" />
           </g>
         )}
@@ -124,13 +149,25 @@ export function CoreVisual({ state, className }: { state: CoreState; className?:
         <circle cx="160" cy="160" r="66" fill="none" stroke="rgb(92 225 230 / 0.28)" strokeWidth="1" />
         {working && (
           <g style={spin(3.2)}>
-            <path d="M160 94 A66 66 0 0 1 226 160" fill="none" stroke={`url(#${gid}-exec)`} strokeWidth="2" strokeLinecap="round" />
+            <path
+              d="M160 94 A66 66 0 0 1 226 160"
+              fill="none"
+              stroke={`url(#${gid}-exec)`}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </g>
         )}
 
         {/* Core */}
         <circle cx="160" cy="160" r="58" fill={`url(#${gid}-halo)`} />
-        <g style={{ transformBox: "fill-box", transformOrigin: "center", animation: `core-breathe ${working ? 2.4 : 4.8}s ease-in-out infinite` }}>
+        <g
+          style={{
+            transformBox: "fill-box",
+            transformOrigin: "center",
+            animation: `core-breathe ${working ? 2.4 : 4.8}s ease-in-out infinite`,
+          }}
+        >
           <circle cx="160" cy="160" r="34" fill={`url(#${gid}-core)`} />
           <circle cx="148" cy="148" r="9" fill="rgb(255 255 255 / 0.35)" style={{ filter: "blur(4px)" }} />
         </g>

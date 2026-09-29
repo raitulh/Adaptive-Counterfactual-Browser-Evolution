@@ -60,17 +60,19 @@ export const toolPatternSchema = z
   .max(LIMITS.toolPatternLength, `At most ${LIMITS.toolPatternLength} characters`)
   .regex(/^\S+$/, "Patterns cannot contain spaces");
 
-const patternList = z
-  .array(toolPatternSchema)
-  .max(LIMITS.toolPatterns, `At most ${LIMITS.toolPatterns} patterns`);
+const patternList = z.array(toolPatternSchema).max(LIMITS.toolPatterns, `At most ${LIMITS.toolPatterns} patterns`);
 
 export const agentConfigSchema = z.object({
-  instructions: z.string().max(LIMITS.instructions, `At most ${LIMITS.instructions.toLocaleString("en-US")} characters`),
+  instructions: z
+    .string()
+    .max(LIMITS.instructions, `At most ${LIMITS.instructions.toLocaleString("en-US")} characters`),
   planningTier: z.enum(PLANNING_TIERS),
   defaultModel: modelName,
   fastModel: modelName,
   reasoningModel: modelName,
-  fallbacks: z.array(z.string().trim().min(1).max(LIMITS.modelName)).max(LIMITS.fallbacks, `At most ${LIMITS.fallbacks} fallback models`),
+  fallbacks: z
+    .array(z.string().trim().min(1).max(LIMITS.modelName))
+    .max(LIMITS.fallbacks, `At most ${LIMITS.fallbacks} fallback models`),
   allowedTools: patternList,
   deniedTools: patternList,
   memoryEnabled: z.boolean(),
@@ -83,9 +85,12 @@ export const agentConfigSchema = z.object({
   maxCostUsd: z
     .string()
     .trim()
-    .refine((v) => v === "" || (DECIMAL.test(v) && Number(v) >= LIMITS.maxCostUsd.min && Number(v) <= LIMITS.maxCostUsd.max), {
-      message: "Amount from 0 to 1000 (up to 4 decimals), or empty for no limit",
-    }),
+    .refine(
+      (v) => v === "" || (DECIMAL.test(v) && Number(v) >= LIMITS.maxCostUsd.min && Number(v) <= LIMITS.maxCostUsd.max),
+      {
+        message: "Amount from 0 to 1000 (up to 4 decimals), or empty for no limit",
+      },
+    ),
   maxBrowserActions: optionalInt(LIMITS.maxBrowserActions),
   readbackAttempts: requiredInt(LIMITS.readbackAttempts),
   readbackDelayMs: requiredInt(LIMITS.readbackDelayMs),

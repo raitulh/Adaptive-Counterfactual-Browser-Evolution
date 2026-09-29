@@ -20,12 +20,23 @@ const LEVEL: Record<string, string> = {
 function LogLine({ log, stepLabel }: { log: ExecutionLogOut; stepLabel?: string }) {
   return (
     <div className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 border-b border-line px-3 py-2 text-[13px] last:border-0">
-      <time dateTime={log.created_at} title={dateTime(log.created_at)} className="pt-px font-mono text-2xs tabular-nums text-fg-subtle">
+      <time
+        dateTime={log.created_at}
+        title={dateTime(log.created_at)}
+        className="pt-px font-mono text-2xs text-fg-subtle tabular-nums"
+      >
         {clockTime(log.created_at)}
       </time>
-      <span className={cn("mt-px rounded border px-1.5 font-mono text-[10px] uppercase leading-4", LEVEL[log.level] ?? LEVEL.info)}>{log.level}</span>
+      <span
+        className={cn(
+          "mt-px rounded border px-1.5 font-mono text-[10px] leading-4 uppercase",
+          LEVEL[log.level] ?? LEVEL.info,
+        )}
+      >
+        {log.level}
+      </span>
       <div className="min-w-0">
-        <p className="break-words leading-relaxed text-fg">{log.message}</p>
+        <p className="leading-relaxed break-words text-fg">{log.message}</p>
         {stepLabel && <p className="truncate text-xs text-fg-subtle">{stepLabel}</p>}
       </div>
     </div>
@@ -50,7 +61,12 @@ export function TaskLogs({
   const rows = logs ?? [];
   const virtual = rows.length > 200;
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is designed for this usage
-  const virtualizer = useVirtualizer({ count: virtual ? rows.length : 0, getScrollElement: () => parentRef.current, estimateSize: () => 52, overscan: 10 });
+  const virtualizer = useVirtualizer({
+    count: virtual ? rows.length : 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 52,
+    overscan: 10,
+  });
 
   if (error && !logs) return <ErrorState error={error} onRetry={onRetry} compact title="Couldn't load the log" />;
   if (isLoading) {
@@ -63,7 +79,14 @@ export function TaskLogs({
     );
   }
   if (rows.length === 0) {
-    return <EmptyState size="sm" icon={<ScrollTextIcon />} title="No log lines yet" description="Execution notes appear here as AgentOS runs steps." />;
+    return (
+      <EmptyState
+        size="sm"
+        icon={<ScrollTextIcon />}
+        title="No log lines yet"
+        description="Execution notes appear here as AgentOS runs steps."
+      />
+    );
   }
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface-1">
@@ -71,8 +94,17 @@ export function TaskLogs({
         <div ref={parentRef} className="max-h-[70vh] overflow-y-auto" tabIndex={0} aria-label="Execution log">
           <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((item) => (
-              <div key={item.key} data-index={item.index} ref={virtualizer.measureElement} className="absolute left-0 top-0 w-full" style={{ transform: `translateY(${item.start}px)` }}>
-                <LogLine log={rows[item.index]} stepLabel={rows[item.index].step_id ? labels.get(rows[item.index].step_id!) : undefined} />
+              <div
+                key={item.key}
+                data-index={item.index}
+                ref={virtualizer.measureElement}
+                className="absolute top-0 left-0 w-full"
+                style={{ transform: `translateY(${item.start}px)` }}
+              >
+                <LogLine
+                  log={rows[item.index]}
+                  stepLabel={rows[item.index].step_id ? labels.get(rows[item.index].step_id!) : undefined}
+                />
               </div>
             ))}
           </div>

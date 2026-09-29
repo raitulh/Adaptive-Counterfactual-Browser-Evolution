@@ -33,7 +33,10 @@ export function ServerStatusBadge({ status, className }: { status: string; class
 function ToolCountsCell({ tools, server, loading }: { tools?: McpToolOut[]; server: McpServerOut; loading: boolean }) {
   if (loading && !tools) return <Skeleton className="h-4 w-24" />;
   if (!tools) return <span className="text-xs text-fg-subtle">—</span>;
-  if (tools.length === 0) return <span className="text-xs text-fg-subtle">{server.last_sync_at ? "No tools advertised" : "Not synced yet"}</span>;
+  if (tools.length === 0)
+    return (
+      <span className="text-xs text-fg-subtle">{server.last_sync_at ? "No tools advertised" : "Not synced yet"}</span>
+    );
   const c = countTools(tools, server);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
@@ -51,17 +54,25 @@ function ToolCountsCell({ tools, server, loading }: { tools?: McpToolOut[]; serv
   );
 }
 
-function ServerRow({ server, tools, toolsLoading, canManage }: { server: McpServerOut; tools?: McpToolOut[]; toolsLoading: boolean; canManage: boolean }) {
+function ServerRow({
+  server,
+  tools,
+  toolsLoading,
+  canManage,
+}: {
+  server: McpServerOut;
+  tools?: McpToolOut[];
+  toolsLoading: boolean;
+  canManage: boolean;
+}) {
   const router = useRouter();
   return (
-    <li
-      className="group relative grid gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center md:gap-5"
-    >
+    <li className="group relative grid gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center md:gap-5">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/app/mcp/${server.id}`}
-            className="font-mono text-sm font-medium text-fg outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-accent/50"
+            className="font-mono text-sm font-medium text-fg outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-accent/50 focus-visible:after:ring-inset"
           >
             {server.name}
           </Link>
@@ -73,7 +84,8 @@ function ServerRow({ server, tools, toolsLoading, canManage }: { server: McpServ
         <p className="mt-1 flex items-center gap-1 text-2xs text-fg-subtle">
           {server.has_auth ? (
             <>
-              <KeyRoundIcon className="size-3" aria-hidden /> <span className="font-mono">{server.auth_header_name ?? "credential"}</span> header set
+              <KeyRoundIcon className="size-3" aria-hidden />{" "}
+              <span className="font-mono">{server.auth_header_name ?? "credential"}</span> header set
             </>
           ) : (
             <>
@@ -83,11 +95,11 @@ function ServerRow({ server, tools, toolsLoading, canManage }: { server: McpServ
         </p>
       </div>
       <div className="relative">
-        <p className="mb-0.5 text-2xs uppercase tracking-wider text-fg-subtle md:hidden">Tools</p>
+        <p className="mb-0.5 text-2xs tracking-wider text-fg-subtle uppercase md:hidden">Tools</p>
         <ToolCountsCell tools={tools} server={server} loading={toolsLoading} />
       </div>
       <div className="relative min-w-0 text-xs">
-        <p className="mb-0.5 text-2xs uppercase tracking-wider text-fg-subtle md:hidden">Last sync</p>
+        <p className="mb-0.5 text-2xs tracking-wider text-fg-subtle uppercase md:hidden">Last sync</p>
         {server.last_sync_at ? (
           <span className="text-fg-muted">
             Synced <RelativeTime value={server.last_sync_at} />
@@ -136,7 +148,13 @@ export function McpPage() {
       attention += c.unreviewed + c.schemaChanged;
       changed += c.schemaChanged;
     });
-    return { usable, attention, changed, pending: list.filter((s) => s.status === "pending_review").length, approved: list.filter((s) => s.status === "approved").length };
+    return {
+      usable,
+      attention,
+      changed,
+      pending: list.filter((s) => s.status === "pending_review").length,
+      approved: list.filter((s) => s.status === "approved").length,
+    };
   }, [list, toolQueries]);
 
   const registerButton = canManage ? (
@@ -180,7 +198,12 @@ export function McpPage() {
       ) : (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard label="Servers" value={list.length} hint={`${totals.approved} approved`} icon={<ServerIcon />} />
+            <MetricCard
+              label="Servers"
+              value={list.length}
+              hint={`${totals.approved} approved`}
+              icon={<ServerIcon />}
+            />
             <MetricCard
               label="Awaiting approval"
               value={totals.pending}
@@ -197,7 +220,7 @@ export function McpPage() {
             />
           </div>
           <Card className="overflow-hidden">
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-5 border-b border-line px-4 py-2 text-2xs font-medium uppercase tracking-wider text-fg-subtle md:grid">
+            <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-5 border-b border-line px-4 py-2 text-2xs font-medium tracking-wider text-fg-subtle uppercase md:grid">
               <span>Server</span>
               <span>Tools</span>
               <span>Sync</span>
@@ -205,7 +228,13 @@ export function McpPage() {
             </div>
             <ul className="divide-y divide-line" aria-label="MCP servers">
               {list.map((s, i) => (
-                <ServerRow key={s.id} server={s} tools={toolQueries[i]?.data} toolsLoading={Boolean(toolQueries[i]?.isLoading)} canManage={canManage} />
+                <ServerRow
+                  key={s.id}
+                  server={s}
+                  tools={toolQueries[i]?.data}
+                  toolsLoading={Boolean(toolQueries[i]?.isLoading)}
+                  canManage={canManage}
+                />
               ))}
             </ul>
           </Card>

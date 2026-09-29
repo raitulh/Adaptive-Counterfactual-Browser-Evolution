@@ -18,10 +18,23 @@ const version: AgentVersionOut = {
   checksum: "abc",
   created_at: "2026-09-01T10:00:00Z",
   instructions: "Schedule meetings politely.",
-  model_policy: { planning_tier: "reasoning", default: "gemini-2.5-pro", fast: null, reasoning: null, fallbacks: ["gemini-2.5-flash"] },
+  model_policy: {
+    planning_tier: "reasoning",
+    default: "gemini-2.5-pro",
+    fast: null,
+    reasoning: null,
+    fallbacks: ["gemini-2.5-flash"],
+  },
   tool_policy: { allowed: ["calendar.*", "contacts.lookup"], denied: ["calendar.cancel_event"] },
   memory_policy: { enabled: false, max_items: 0, extract_after_task: false },
-  execution_limits: { max_steps: 12, max_tool_calls: null, max_model_calls: null, max_duration_seconds: 600, max_cost_usd: 1.25, max_browser_actions: 0 },
+  execution_limits: {
+    max_steps: 12,
+    max_tool_calls: null,
+    max_model_calls: null,
+    max_duration_seconds: 600,
+    max_cost_usd: 1.25,
+    max_browser_actions: 0,
+  },
   verification_policy: { readback_attempts: 5, readback_delay_ms: 1000 },
 };
 
@@ -64,7 +77,13 @@ describe("form → payload mapping", () => {
       maxSteps: "25",
     };
     const p = formValuesToVersionPayload(agentConfigSchema.parse(values));
-    expect(p.model_policy).toEqual({ planning_tier: "default", default: null, fast: "gemini-2.5-flash-lite", reasoning: null, fallbacks: ["a", "b"] });
+    expect(p.model_policy).toEqual({
+      planning_tier: "default",
+      default: null,
+      fast: "gemini-2.5-flash-lite",
+      reasoning: null,
+      fallbacks: ["a", "b"],
+    });
     expect(p.tool_policy).toEqual({ allowed: ["gmail.*"], denied: [] });
     expect(p.execution_limits?.max_steps).toBe(25);
     expect(p.execution_limits?.max_cost_usd).toBeNull();

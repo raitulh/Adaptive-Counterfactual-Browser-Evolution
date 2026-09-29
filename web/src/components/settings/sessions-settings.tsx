@@ -1,7 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BotIcon, ChevronDownIcon, LaptopIcon, LogOutIcon, MonitorSmartphoneIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
+import {
+  BotIcon,
+  ChevronDownIcon,
+  LaptopIcon,
+  LogOutIcon,
+  MonitorSmartphoneIcon,
+  SmartphoneIcon,
+  TabletIcon,
+} from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +43,9 @@ export function SessionsSettings() {
   const now = useNow();
 
   const all = sessions.data ?? [];
-  const active = all.filter((s) => isSessionActive(s, now)).sort((a, b) => Number(Boolean(b.current)) - Number(Boolean(a.current)));
+  const active = all
+    .filter((s) => isSessionActive(s, now))
+    .sort((a, b) => Number(Boolean(b.current)) - Number(Boolean(a.current)));
   const inactive = all.filter((s) => !isSessionActive(s, now));
   const others = active.filter((s) => !s.current);
 
@@ -63,7 +73,10 @@ export function SessionsSettings() {
     },
     onSuccess: ({ total, failed }) => {
       setConfirmOthers(false);
-      if (failed) toast.error(`Signed out ${total - failed} of ${total} sessions`, { description: "Some sessions could not be revoked. Try again." });
+      if (failed)
+        toast.error(`Signed out ${total - failed} of ${total} sessions`, {
+          description: "Some sessions could not be revoked. Try again.",
+        });
       else toast.success(total === 1 ? "Signed out 1 other session" : `Signed out ${total} other sessions`);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: qk.sessions }),
@@ -97,7 +110,12 @@ export function SessionsSettings() {
             ))}
           </div>
         ) : active.length === 0 ? (
-          <EmptyState size="sm" icon={<MonitorSmartphoneIcon />} title="No active sessions" description="Sessions appear here when you sign in on a device." />
+          <EmptyState
+            size="sm"
+            icon={<MonitorSmartphoneIcon />}
+            title="No active sessions"
+            description="Sessions appear here when you sign in on a device."
+          />
         ) : (
           <ul className="-my-1 flex flex-col divide-y divide-line">
             {active.map((s) => (
@@ -113,7 +131,12 @@ export function SessionsSettings() {
                       </Button>
                     </Tooltip>
                   ) : (
-                    <Button variant="danger-outline" size="sm" onClick={() => setTarget(s)} aria-label={`Sign out ${summarizeUserAgent(s.user_agent).label}`}>
+                    <Button
+                      variant="danger-outline"
+                      size="sm"
+                      onClick={() => setTarget(s)}
+                      aria-label={`Sign out ${summarizeUserAgent(s.user_agent).label}`}
+                    >
                       Revoke
                     </Button>
                   )
@@ -153,7 +176,9 @@ export function SessionsSettings() {
         description={
           target ? (
             <>
-              <span className="font-medium text-fg">{target.device_name || summarizeUserAgent(target.user_agent).label}</span>
+              <span className="font-medium text-fg">
+                {target.device_name || summarizeUserAgent(target.user_agent).label}
+              </span>
               {target.ip_address ? ` (${target.ip_address})` : ""} will be signed out immediately.
             </>
           ) : null
@@ -179,15 +204,30 @@ export function SessionsSettings() {
 }
 
 function DeviceIcon({ device }: { device: ReturnType<typeof summarizeUserAgent>["device"] }) {
-  const Icon = device === "mobile" ? SmartphoneIcon : device === "tablet" ? TabletIcon : device === "bot" ? BotIcon : LaptopIcon;
+  const Icon =
+    device === "mobile" ? SmartphoneIcon : device === "tablet" ? TabletIcon : device === "bot" ? BotIcon : LaptopIcon;
   return <Icon className="size-4" aria-hidden />;
 }
 
-function SessionRow({ session: s, action, muted, now }: { session: SessionOut; action?: React.ReactNode; muted?: boolean; now: number }) {
+function SessionRow({
+  session: s,
+  action,
+  muted,
+  now,
+}: {
+  session: SessionOut;
+  action?: React.ReactNode;
+  muted?: boolean;
+  now: number;
+}) {
   const developerMode = useUiStore((st) => st.developerMode);
   const ua = summarizeUserAgent(s.user_agent);
   const title = s.device_name || ua.label;
-  const ended = s.revoked_at ? `Signed out ${dateTime(s.revoked_at)}` : new Date(s.expires_at).getTime() <= now ? `Expired ${dateTime(s.expires_at)}` : null;
+  const ended = s.revoked_at
+    ? `Signed out ${dateTime(s.revoked_at)}`
+    : new Date(s.expires_at).getTime() <= now
+      ? `Expired ${dateTime(s.expires_at)}`
+      : null;
   return (
     <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -213,15 +253,15 @@ function SessionRow({ session: s, action, muted, now }: { session: SessionOut; a
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
             {s.device_name && s.user_agent ? (
-              <Tooltip content={<span className="break-all font-mono text-2xs">{s.user_agent}</span>}>
+              <Tooltip content={<span className="font-mono text-2xs break-all">{s.user_agent}</span>}>
                 <span tabIndex={0} className="outline-none">
                   {ua.label}
                 </span>
               </Tooltip>
             ) : s.user_agent ? (
-              <Tooltip content={<span className="break-all font-mono text-2xs">{s.user_agent}</span>}>
-                <span tabIndex={0} className="outline-none underline decoration-dotted underline-offset-2">
-                  User agent
+              <Tooltip content={<span className="font-mono text-2xs break-all">{s.user_agent}</span>}>
+                <span tabIndex={0} className="max-w-72 truncate font-mono text-2xs outline-none">
+                  {s.user_agent}
                 </span>
               </Tooltip>
             ) : null}

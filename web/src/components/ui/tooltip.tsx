@@ -32,7 +32,7 @@ export function Tooltip({
           align={align}
           sideOffset={6}
           className={cn(
-            "z-50 max-w-72 rounded-md border border-line-strong bg-surface-4 px-2.5 py-1.5 text-xs leading-snug text-fg shadow-float data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+            "z-50 max-w-72 rounded-md border border-line-strong bg-surface-4 px-2.5 py-1.5 text-xs leading-snug text-fg shadow-float data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0",
             className,
           )}
         >

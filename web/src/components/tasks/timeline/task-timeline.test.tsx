@@ -17,7 +17,15 @@ describe("TaskTimeline (pure)", () => {
   });
 
   it("offers advanced event data in developer mode and marks live work for screen readers", () => {
-    render(<TaskTimeline events={meetingEventsUntil(11)} steps={MEETING_STEPS} taskStatus="running" developerMode animate={false} />);
+    render(
+      <TaskTimeline
+        events={meetingEventsUntil(11)}
+        steps={MEETING_STEPS}
+        taskStatus="running"
+        developerMode
+        animate={false}
+      />,
+    );
     expect(screen.getAllByRole("button", { name: /Advanced event data/ }).length).toBeGreaterThan(3);
     expect(screen.getAllByText(/— In progress/).length).toBeGreaterThan(0);
   });

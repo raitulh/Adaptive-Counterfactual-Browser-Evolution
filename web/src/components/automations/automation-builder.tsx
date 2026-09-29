@@ -54,7 +54,11 @@ const schema = z.object({
     if (!r.ok) ctx.addIssue({ code: "custom", message: r.error });
   }),
   timezone: z.string().refine(isValidTimeZone, "Choose a valid time zone."),
-  goal: z.string().trim().min(1, "Describe what each run should do.").max(4000, "Keep the goal under 4,000 characters."),
+  goal: z
+    .string()
+    .trim()
+    .min(1, "Describe what each run should do.")
+    .max(4000, "Keep the goal under 4,000 characters."),
   context: z.string().max(8000, "Keep the context under 8,000 characters."),
   agent_id: z.string(),
   priority: intIn(0, 1000, "Priority"),
@@ -151,7 +155,15 @@ export function AutomationBuilderDialog({
   );
 }
 
-function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut | null; draft?: BuilderDraft; onDone: () => void }) {
+function BuilderForm({
+  automation,
+  draft,
+  onDone,
+}: {
+  automation: AutomationOut | null;
+  draft?: BuilderDraft;
+  onDone: () => void;
+}) {
   const router = useRouter();
   const create = useCreateAutomation();
   const update = useUpdateAutomation();
@@ -159,7 +171,11 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
   const [error, setError] = React.useState<unknown>(null);
   const [advanced, setAdvanced] = React.useState(false);
   const attempt = React.useRef<{ body: string; key: string } | null>(null);
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: defaults(automation, draft), mode: "onTouched" });
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: defaults(automation, draft),
+    mode: "onTouched",
+  });
   const [cron, timezone, goal, agentId, enabled, pauseOnFailure] = useWatch({
     control: form.control,
     name: ["cron", "timezone", "goal", "agent_id", "enabled", "pause_on_failure"],
@@ -195,10 +211,13 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
       } else {
         const body: AutomationCreate = { ...common, trigger_type: "schedule" };
         const serialized = JSON.stringify(body);
-        if (!attempt.current || attempt.current.body !== serialized) attempt.current = { body: serialized, key: newIdempotencyKey() };
+        if (!attempt.current || attempt.current.body !== serialized)
+          attempt.current = { body: serialized, key: newIdempotencyKey() };
         const saved = await create.mutateAsync({ body, idempotencyKey: attempt.current.key });
         toast.success("Automation created", {
-          description: saved.enabled ? "It will run on its schedule. Try “Run now” to see it work." : "Saved as paused.",
+          description: saved.enabled
+            ? "It will run on its schedule. Try “Run now” to see it work."
+            : "Saved as paused.",
         });
         onDone();
         router.push(`/app/automations/${saved.id}`);
@@ -229,15 +248,17 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
         </div>
         <DialogTitle>{editing ? "Edit automation" : "New automation"}</DialogTitle>
         <DialogDescription>
-          On each scheduled time, AgentOS creates a task from this template — with the same approvals, verification and recovery as
-          any task you start yourself.
+          On each scheduled time, AgentOS creates a task from this template — with the same approvals, verification and
+          recovery as any task you start yourself.
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-7">
           <FormSection title="What should run?">
             <Field label="Name" required error={errors.name?.message}>
-              {(ids) => <Input {...ids} {...form.register("name")} placeholder="Morning inbox digest" autoFocus={!editing} />}
+              {(ids) => (
+                <Input {...ids} {...form.register("name")} placeholder="Morning inbox digest" autoFocus={!editing} />
+              )}
             </Field>
             <Field
               label="Goal"
@@ -246,20 +267,39 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
               error={errors.goal?.message}
             >
               {(ids) => (
-                <Textarea {...ids} {...form.register("goal")} rows={3} placeholder="Summarize my unread emails from the last 24 hours and list anything that needs a reply." />
+                <Textarea
+                  {...ids}
+                  {...form.register("goal")}
+                  rows={3}
+                  placeholder="Summarize my unread emails from the last 24 hours and list anything that needs a reply."
+                />
               )}
             </Field>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Context" description="Optional background for every run." error={errors.context?.message}>
-                {(ids) => <Textarea {...ids} {...form.register("context")} rows={2} placeholder="Only include threads from customers." />}
+                {(ids) => (
+                  <Textarea
+                    {...ids}
+                    {...form.register("context")}
+                    rows={2}
+                    placeholder="Only include threads from customers."
+                  />
+                )}
               </Field>
-              <Field label="Agent" description="Which agent plans and executes each run." error={errors.agent_id?.message}>
+              <Field
+                label="Agent"
+                description="Which agent plans and executes each run."
+                error={errors.agent_id?.message}
+              >
                 {(ids) => (
                   <Controller
                     control={form.control}
                     name="agent_id"
                     render={({ field }) => (
-                      <Select value={field.value || "default"} onValueChange={(v) => field.onChange(v === "default" ? "" : v)}>
+                      <Select
+                        value={field.value || "default"}
+                        onValueChange={(v) => field.onChange(v === "default" ? "" : v)}
+                      >
                         <SelectTrigger {...ids}>
                           <SelectValue placeholder="Default agent" />
                         </SelectTrigger>
@@ -295,7 +335,11 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
                 />
               )}
             </Field>
-            <Field label="Time zone" description="The schedule follows this zone's local time, including daylight saving." error={errors.timezone?.message}>
+            <Field
+              label="Time zone"
+              description="The schedule follows this zone's local time, including daylight saving."
+              error={errors.timezone?.message}
+            >
               {(ids) => (
                 <Controller
                   control={form.control}
@@ -319,12 +363,16 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
               <label htmlFor="automation-enabled" className="text-[13px] font-medium text-fg">
                 {editing ? "Enabled" : "Start enabled"}
               </label>
-              <p className="mt-0.5 text-xs text-fg-subtle">Turned off, it keeps its settings but never runs on schedule.</p>
+              <p className="mt-0.5 text-xs text-fg-subtle">
+                Turned off, it keeps its settings but never runs on schedule.
+              </p>
             </div>
             <Controller
               control={form.control}
               name="enabled"
-              render={({ field }) => <Switch id="automation-enabled" checked={field.value} onCheckedChange={field.onChange} />}
+              render={({ field }) => (
+                <Switch id="automation-enabled" checked={field.value} onCheckedChange={field.onChange} />
+              )}
             />
           </div>
 
@@ -337,28 +385,52 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
               className="flex w-full items-center justify-between rounded-lg py-1 text-left text-sm font-semibold tracking-tight text-fg outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               Limits, retries and failure handling
-              <ChevronDownIcon className={cn("size-4 text-fg-subtle transition-transform", advanced && "rotate-180")} aria-hidden />
+              <ChevronDownIcon
+                className={cn("size-4 text-fg-subtle transition-transform", advanced && "rotate-180")}
+                aria-hidden
+              />
             </button>
             <div id="automation-advanced" hidden={!advanced} className="mt-4 flex flex-col gap-6">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Max runs" description="Stop after this many scheduled runs (manual runs don't count). Empty = no limit." error={errors.max_runs?.message}>
-                  {(ids) => <Input {...ids} {...form.register("max_runs")} inputMode="numeric" placeholder="No limit" />}
+                <Field
+                  label="Max runs"
+                  description="Stop after this many scheduled runs (manual runs don't count). Empty = no limit."
+                  error={errors.max_runs?.message}
+                >
+                  {(ids) => (
+                    <Input {...ids} {...form.register("max_runs")} inputMode="numeric" placeholder="No limit" />
+                  )}
                 </Field>
-                <Field label="Time limit per run (minutes)" description="Optional cap on each task's duration." error={errors.max_duration_minutes?.message}>
-                  {(ids) => <Input {...ids} {...form.register("max_duration_minutes")} inputMode="numeric" placeholder="Default" />}
+                <Field
+                  label="Time limit per run (minutes)"
+                  description="Optional cap on each task's duration."
+                  error={errors.max_duration_minutes?.message}
+                >
+                  {(ids) => (
+                    <Input
+                      {...ids}
+                      {...form.register("max_duration_minutes")}
+                      inputMode="numeric"
+                      placeholder="Default"
+                    />
+                  )}
                 </Field>
               </div>
               <fieldset className="flex flex-col gap-3">
                 <legend className="mb-1 text-[13px] font-medium text-fg">Retry policy</legend>
                 <p className="-mt-1 text-xs leading-relaxed text-fg-subtle">
-                  Retries apply to <em>starting</em> a run (for example when you&apos;re at your active-task limit). A task that already
-                  started is never re-run automatically, because its actions may have side effects.
+                  Retries apply to <em>starting</em> a run (for example when you&apos;re at your active-task limit). A
+                  task that already started is never re-run automatically, because its actions may have side effects.
                 </p>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Attempts" description="1–5" error={errors.retry_max_attempts?.message}>
                     {(ids) => <Input {...ids} {...form.register("retry_max_attempts")} inputMode="numeric" />}
                   </Field>
-                  <Field label="Backoff (seconds)" description="10–3600, doubles each attempt" error={errors.retry_backoff_seconds?.message}>
+                  <Field
+                    label="Backoff (seconds)"
+                    description="10–3600, doubles each attempt"
+                    error={errors.retry_backoff_seconds?.message}
+                  >
                     {(ids) => <Input {...ids} {...form.register("retry_backoff_seconds")} inputMode="numeric" />}
                   </Field>
                 </div>
@@ -370,12 +442,16 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
                     <label htmlFor="automation-pause" className="text-[13px] text-fg">
                       Pause after repeated failures
                     </label>
-                    <p className="mt-0.5 text-xs text-fg-subtle">You&apos;re notified either way; pausing stops a broken automation from piling up failed tasks.</p>
+                    <p className="mt-0.5 text-xs text-fg-subtle">
+                      You&apos;re notified either way; pausing stops a broken automation from piling up failed tasks.
+                    </p>
                   </div>
                   <Controller
                     control={form.control}
                     name="pause_on_failure"
-                    render={({ field }) => <Switch id="automation-pause" checked={field.value} onCheckedChange={field.onChange} />}
+                    render={({ field }) => (
+                      <Switch id="automation-pause" checked={field.value} onCheckedChange={field.onChange} />
+                    )}
                   />
                 </div>
                 <Field
@@ -384,24 +460,35 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
                   error={errors.max_consecutive_failures?.message}
                   className={cn(!pauseOnFailure && "opacity-50")}
                 >
-                  {(ids) => <Input {...ids} {...form.register("max_consecutive_failures")} inputMode="numeric" disabled={!pauseOnFailure} className="sm:w-40" />}
+                  {(ids) => (
+                    <Input
+                      {...ids}
+                      {...form.register("max_consecutive_failures")}
+                      inputMode="numeric"
+                      disabled={!pauseOnFailure}
+                      className="sm:w-40"
+                    />
+                  )}
                 </Field>
               </fieldset>
-              <Field label="Priority" description="0–1000; higher runs first when workers are busy. Default 100." error={errors.priority?.message}>
+              <Field
+                label="Priority"
+                description="0–1000; higher runs first when workers are busy. Default 100."
+                error={errors.priority?.message}
+              >
                 {(ids) => <Input {...ids} {...form.register("priority")} inputMode="numeric" className="sm:w-40" />}
               </Field>
             </div>
           </div>
-
         </div>
 
         <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-0 lg:self-start" aria-label="Preview">
           <div className="rounded-xl border border-line bg-surface-1 p-4">
-            <h3 className="mb-3 text-2xs font-medium uppercase tracking-wider text-fg-subtle">What happens</h3>
+            <h3 className="mb-3 text-2xs font-medium tracking-wider text-fg-subtle uppercase">What happens</h3>
             <ScheduleSentence cron={cron} timezone={timezone} goal={goal} agentName={agentName} />
           </div>
           <div className="rounded-xl border border-line bg-surface-1 p-4">
-            <h3 className="mb-3 text-2xs font-medium uppercase tracking-wider text-fg-subtle">Next 7 runs</h3>
+            <h3 className="mb-3 text-2xs font-medium tracking-wider text-fg-subtle uppercase">Next 7 runs</h3>
             <RunTimeline cron={cron} timezone={timezone} paused={!enabled} />
           </div>
         </aside>
@@ -426,7 +513,11 @@ function BuilderForm({ automation, draft, onDone }: { automation: AutomationOut 
               .
             </p>
           )}
-          {conflict && <p className="text-xs text-fg-muted">Close this dialog to load the latest version, then make your change again.</p>}
+          {conflict && (
+            <p className="text-xs text-fg-muted">
+              Close this dialog to load the latest version, then make your change again.
+            </p>
+          )}
         </div>
       )}
       <DialogFooter>

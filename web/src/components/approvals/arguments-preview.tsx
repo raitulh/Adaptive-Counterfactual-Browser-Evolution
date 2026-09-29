@@ -21,7 +21,11 @@ function Value({ value, depth }: { value: unknown; depth: number }) {
       );
     }
     if (value.includes("\n") || value.length > 120) {
-      return <p className="whitespace-pre-wrap rounded-md border border-line bg-bg/60 px-2.5 py-2 text-[13px] leading-relaxed text-fg">{value}</p>;
+      return (
+        <p className="rounded-md border border-line bg-bg/60 px-2.5 py-2 text-[13px] leading-relaxed whitespace-pre-wrap text-fg">
+          {value}
+        </p>
+      );
     }
     return <span className="break-words">{value}</span>;
   }
@@ -49,12 +53,26 @@ function Value({ value, depth }: { value: unknown; depth: number }) {
   }
   if (value && typeof value === "object") {
     if (depth > 3) return <span className="text-fg-subtle">…</span>;
-    return <ArgumentsPreview args={value as Record<string, unknown>} depth={depth + 1} className="rounded-md border border-line bg-bg/40 p-2" />;
+    return (
+      <ArgumentsPreview
+        args={value as Record<string, unknown>}
+        depth={depth + 1}
+        className="rounded-md border border-line bg-bg/40 p-2"
+      />
+    );
   }
   return <span className="text-fg-subtle">—</span>;
 }
 
-export function ArgumentsPreview({ args, depth = 0, className }: { args: Record<string, unknown>; depth?: number; className?: string }) {
+export function ArgumentsPreview({
+  args,
+  depth = 0,
+  className,
+}: {
+  args: Record<string, unknown>;
+  depth?: number;
+  className?: string;
+}) {
   const entries = Object.entries(args ?? {});
   const shown = entries.filter(([, v]) => !isEmpty(v));
   const empty = entries.length - shown.length;

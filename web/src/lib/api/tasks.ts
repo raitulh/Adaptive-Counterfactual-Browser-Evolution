@@ -77,9 +77,11 @@ export const tasksApi = {
   logs: (taskId: string, query: { limit?: number } = {}, o: Opts = {}): Promise<ExecutionLogOut[]> =>
     call(api.GET("/api/v1/tasks/{task_id}/logs", { params: { path: { task_id: taskId }, query }, signal: o.signal })),
 
-  cancel: (taskId: string) => call(api.POST("/api/v1/tasks/{task_id}/cancel", { params: { path: { task_id: taskId } } })),
+  cancel: (taskId: string) =>
+    call(api.POST("/api/v1/tasks/{task_id}/cancel", { params: { path: { task_id: taskId } } })),
   pause: (taskId: string) => call(api.POST("/api/v1/tasks/{task_id}/pause", { params: { path: { task_id: taskId } } })),
-  resume: (taskId: string) => call(api.POST("/api/v1/tasks/{task_id}/resume", { params: { path: { task_id: taskId } } })),
+  resume: (taskId: string) =>
+    call(api.POST("/api/v1/tasks/{task_id}/resume", { params: { path: { task_id: taskId } } })),
 
   provideInput: (taskId: string, body: TaskInput) =>
     call(api.POST("/api/v1/tasks/{task_id}/input", { params: { path: { task_id: taskId } }, body })),

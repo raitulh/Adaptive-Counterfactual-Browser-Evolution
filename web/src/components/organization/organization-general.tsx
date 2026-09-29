@@ -9,7 +9,15 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IdChip, KeyValue } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InlineError } from "@/components/ui/states";
@@ -21,6 +29,7 @@ import { qk } from "@/lib/query/keys";
 import { useUiStore } from "@/stores/ui";
 import { applyFieldErrors, ruleMessage } from "@/components/settings/form-errors";
 import { SettingsCard } from "@/components/settings/settings-layout";
+import { InlineAlert } from "@/components/settings/inline-alert";
 
 const nameSchema = z.object({ name: z.string().trim().min(1, "Enter a name").max(200, "At most 200 characters") });
 type NameValues = z.infer<typeof nameSchema>;
@@ -30,17 +39,44 @@ export function OrganizationGeneral({ organization }: { organization: Organizati
   return (
     <div className="flex flex-col gap-6">
       <RenameCard organization={organization} />
-      <SettingsCard title="Details" description="Set when the organization was created. Plan and status are managed by AgentOS platform administrators.">
+      <SettingsCard
+        title="Details"
+        description="Set when the organization was created. Plan and status are managed by AgentOS platform administrators."
+      >
         <KeyValue
           items={[
-            ["Plan", <Badge key="p" tone="accent">{humanize(organization.plan)}</Badge>],
-            ["Status", <Badge key="s" tone={organization.status === "active" ? "success" : "danger"}>{humanize(organization.status)}</Badge>],
+            [
+              "Plan",
+              <Badge key="p" tone="accent">
+                {humanize(organization.plan)}
+              </Badge>,
+            ],
+            [
+              "Status",
+              <Badge key="s" tone={organization.status === "active" ? "success" : "danger"}>
+                {humanize(organization.status)}
+              </Badge>,
+            ],
             ["Type", organization.is_personal ? "Personal organization" : "Shared organization"],
-            ["Slug", <span key="sl" className="font-mono text-[13px]">{organization.slug}</span>],
-            ["Data region", <span key="r" className="font-mono text-[13px]">{organization.data_region}</span>],
+            [
+              "Slug",
+              <span key="sl" className="font-mono text-[13px]">
+                {organization.slug}
+              </span>,
+            ],
+            [
+              "Data region",
+              <span key="r" className="font-mono text-[13px]">
+                {organization.data_region}
+              </span>,
+            ],
             ["Created", dateOnly(organization.created_at)],
             ["Your role", organization.role ? humanize(organization.role) : "—"],
-            ...(developerMode ? ([["Organization ID", <IdChip key="id" id={organization.id} />]] as Array<[React.ReactNode, React.ReactNode]>) : []),
+            ...(developerMode
+              ? ([["Organization ID", <IdChip key="id" id={organization.id} />]] as Array<
+                  [React.ReactNode, React.ReactNode]
+                >)
+              : []),
           ]}
         />
       </SettingsCard>
@@ -76,7 +112,11 @@ function RenameCard({ organization }: { organization: OrganizationOut }) {
     <form onSubmit={handleSubmit((v) => rename.mutate(v))} noValidate>
       <SettingsCard
         title="Name"
-        description={canManage ? "Shown to members in the organization switcher and in notifications." : "Only owners and admins can rename the organization."}
+        description={
+          canManage
+            ? "Shown to members in the organization switcher and in notifications."
+            : "Only owners and admins can rename the organization."
+        }
         footer={
           canManage ? (
             <Button type="submit" variant="primary" loading={rename.isPending} disabled={!formState.isDirty}>
@@ -88,7 +128,9 @@ function RenameCard({ organization }: { organization: OrganizationOut }) {
         <Field label="Organization name" error={formState.errors.name?.message} className="max-w-md">
           {(ids) => <Input {...ids} {...register("name")} disabled={!canManage} autoComplete="organization" />}
         </Field>
-        {formState.errors.root?.message ? <InlineError className="mt-3" error={new Error(formState.errors.root.message)} /> : null}
+        {formState.errors.root?.message ? (
+          <InlineAlert className="mt-3" message={formState.errors.root.message} error={rename.error} />
+        ) : null}
       </SettingsCard>
     </form>
   );
@@ -125,7 +167,9 @@ function YourOrganizations() {
           const active = org.id === tenantId;
           return (
             <li key={org.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-xs font-bold uppercase text-accent">{org.name.slice(0, 1)}</span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-xs font-bold text-accent uppercase">
+                {org.name.slice(0, 1)}
+              </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-medium text-fg">{org.name}</span>
@@ -141,7 +185,13 @@ function YourOrganizations() {
                 </div>
               </div>
               {!active && (
-                <Button variant="outline" size="sm" loading={switching === org.id} disabled={switching !== null} onClick={() => void switchTo(org)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={switching === org.id}
+                  disabled={switching !== null}
+                  onClick={() => void switchTo(org)}
+                >
                   <ArrowRightLeftIcon /> Switch
                 </Button>
               )}
@@ -154,7 +204,13 @@ function YourOrganizations() {
   );
 }
 
-export function CreateOrganizationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function CreateOrganizationDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const queryClient = useQueryClient();
   const { switchOrganization } = useAuth();
   const [created, setCreated] = React.useState<OrganizationOut | null>(null);
@@ -191,8 +247,8 @@ export function CreateOrganizationDialog({ open, onOpenChange }: { open: boolean
                 <Building2Icon className="size-4 text-success" aria-hidden /> {created.name} is ready
               </DialogTitle>
               <DialogDescription>
-                You are its owner. It starts on the {humanize(created.plan)} plan with the default execution policy. Switch to it now to invite members and
-                set it up.
+                You are its owner. It starts on the {humanize(created.plan)} plan with the default execution policy.
+                Switch to it now to invite members and set it up.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -222,11 +278,21 @@ export function CreateOrganizationDialog({ open, onOpenChange }: { open: boolean
           <form onSubmit={handleSubmit((v) => create.mutate(v))} noValidate>
             <DialogHeader>
               <DialogTitle>New organization</DialogTitle>
-              <DialogDescription>A separate workspace with its own members, policy, agents, data and usage. You become its owner.</DialogDescription>
+              <DialogDescription>
+                A separate workspace with its own members, policy, agents, data and usage. You become its owner.
+              </DialogDescription>
             </DialogHeader>
             <DialogBody>
               <Field label="Name" error={formState.errors.name?.message}>
-                {(ids) => <Input {...ids} autoFocus placeholder="Acme Research" autoComplete="organization" {...register("name")} />}
+                {(ids) => (
+                  <Input
+                    {...ids}
+                    autoFocus
+                    placeholder="Acme Research"
+                    autoComplete="organization"
+                    {...register("name")}
+                  />
+                )}
               </Field>
               {create.error && !formState.errors.name ? <InlineError className="mt-3" error={create.error} /> : null}
             </DialogBody>

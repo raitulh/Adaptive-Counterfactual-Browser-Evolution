@@ -15,7 +15,13 @@ import type { TaskEvent, TaskStatus } from "@/lib/api";
 import { timelineItem } from "@/lib/motion";
 import { toneClasses, type Tone } from "@/lib/status";
 import { cn } from "@/lib/utils";
-import { buildTimeline, type TimelineEntry, type TimelinePhase, type TimelinePhaseGroup, type TimelineStep } from "./normalize";
+import {
+  buildTimeline,
+  type TimelineEntry,
+  type TimelinePhase,
+  type TimelinePhaseGroup,
+  type TimelineStep,
+} from "./normalize";
 import { TimelineRow } from "./timeline-row";
 
 export interface TaskTimelineProps {
@@ -60,13 +66,26 @@ function groupTone(group: TimelinePhaseGroup): Tone {
 export function PhaseHeader({ group }: { group: TimelinePhaseGroup }) {
   const tone = groupTone(group);
   const t = toneClasses[tone];
-  const stateLabel = group.state === "active" ? "in progress" : group.state === "waiting" ? "waiting for you" : group.state === "failed" ? "with problems" : null;
+  const stateLabel =
+    group.state === "active"
+      ? "in progress"
+      : group.state === "waiting"
+        ? "waiting for you"
+        : group.state === "failed"
+          ? "with problems"
+          : null;
   return (
     <div className="mb-2 flex items-center gap-2 pl-[5px]">
       <span className={cn("size-[18px] rounded-full border p-[4px]", t.border)} aria-hidden>
-        <span className={cn("block size-full rounded-full", t.dot, group.state === "active" && "motion-safe:animate-signal")} />
+        <span
+          className={cn(
+            "block size-full rounded-full",
+            t.dot,
+            group.state === "active" && "motion-safe:animate-signal",
+          )}
+        />
       </span>
-      <h3 className={cn("text-2xs font-semibold uppercase tracking-[0.14em]", t.text)}>{group.label}</h3>
+      <h3 className={cn("text-2xs font-semibold tracking-[0.14em] uppercase", t.text)}>{group.label}</h3>
       {stateLabel && <span className="text-2xs text-fg-subtle">· {stateLabel}</span>}
       <span className="h-px flex-1 bg-gradient-to-r from-line-strong to-transparent" aria-hidden />
     </div>
@@ -104,14 +123,25 @@ function GroupList({
   );
 }
 
-type FlatRow = { kind: "header"; group: TimelinePhaseGroup } | { kind: "entry"; entry: TimelineEntry; connector: boolean };
+type FlatRow =
+  { kind: "header"; group: TimelinePhaseGroup } | { kind: "entry"; entry: TimelineEntry; connector: boolean };
 
-function VirtualTimeline({ groups, developerMode, height }: { groups: TimelinePhaseGroup[]; developerMode: boolean; height: string }) {
+function VirtualTimeline({
+  groups,
+  developerMode,
+  height,
+}: {
+  groups: TimelinePhaseGroup[];
+  developerMode: boolean;
+  height: string;
+}) {
   const rows = React.useMemo<FlatRow[]>(() => {
     const out: FlatRow[] = [];
     groups.forEach((g, gi) => {
       out.push({ kind: "header", group: g });
-      g.entries.forEach((entry, i) => out.push({ kind: "entry", entry, connector: !(gi === groups.length - 1 && i === g.entries.length - 1) }));
+      g.entries.forEach((entry, i) =>
+        out.push({ kind: "entry", entry, connector: !(gi === groups.length - 1 && i === g.entries.length - 1) }),
+      );
     });
     return out;
   }, [groups]);
@@ -124,7 +154,13 @@ function VirtualTimeline({ groups, developerMode, height }: { groups: TimelinePh
     overscan: 12,
   });
   return (
-    <div ref={parentRef} className="overflow-y-auto pr-1" style={{ maxHeight: height }} tabIndex={0} aria-label="Execution timeline (scrollable)">
+    <div
+      ref={parentRef}
+      className="overflow-y-auto pr-1"
+      style={{ maxHeight: height }}
+      tabIndex={0}
+      aria-label="Execution timeline (scrollable)"
+    >
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((item) => {
           const row = rows[item.index];
@@ -133,7 +169,7 @@ function VirtualTimeline({ groups, developerMode, height }: { groups: TimelinePh
               key={row.kind === "header" ? row.group.key : row.entry.key}
               data-index={item.index}
               ref={virtualizer.measureElement}
-              className="absolute left-0 top-0 w-full"
+              className="absolute top-0 left-0 w-full"
               style={{ transform: `translateY(${item.start}px)` }}
             >
               {row.kind === "header" ? (
@@ -184,7 +220,12 @@ export function TaskTimeline({
       {groups.map((group, gi) => (
         <li key={group.key} aria-label={`${group.label} phase`}>
           <PhaseHeader group={group} />
-          <GroupList group={group} isLastGroup={gi === groups.length - 1} developerMode={developerMode} animate={animate} />
+          <GroupList
+            group={group}
+            isLastGroup={gi === groups.length - 1}
+            developerMode={developerMode}
+            animate={animate}
+          />
         </li>
       ))}
     </ol>

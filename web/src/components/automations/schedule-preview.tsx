@@ -42,7 +42,9 @@ export function ScheduleSentence({
     {
       icon: ListChecksIcon,
       title: "Creates a task",
-      detail: goal.trim() ? `“${goal.trim().length > 120 ? `${goal.trim().slice(0, 117)}…` : goal.trim()}”` : "Describe the goal below",
+      detail: goal.trim()
+        ? `“${goal.trim().length > 120 ? `${goal.trim().slice(0, 117)}…` : goal.trim()}”`
+        : "Describe the goal below",
       tone: "text-fg-muted",
     },
     {
@@ -64,13 +66,22 @@ export function ScheduleSentence({
         const Icon = s.icon;
         return (
           <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
-            {i < steps.length - 1 && <span aria-hidden className="absolute left-[13px] top-7 bottom-0 w-px bg-line-strong" />}
-            <span className={cn("relative flex size-7 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface-2", s.tone)}>
+            {i < steps.length - 1 && (
+              <span aria-hidden className="absolute top-7 bottom-0 left-[13px] w-px bg-line-strong" />
+            )}
+            <span
+              className={cn(
+                "relative flex size-7 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface-2",
+                s.tone,
+              )}
+            >
               <Icon className="size-3.5" aria-hidden />
             </span>
             <span className="min-w-0 pt-0.5">
-              <span className="block text-[13px] font-medium leading-snug text-fg">{s.title}</span>
-              {s.detail && <span className="mt-0.5 block break-words text-xs leading-relaxed text-fg-subtle">{s.detail}</span>}
+              <span className="block text-[13px] leading-snug font-medium text-fg">{s.title}</span>
+              {s.detail && (
+                <span className="mt-0.5 block text-xs leading-relaxed break-words text-fg-subtle">{s.detail}</span>
+              )}
             </span>
           </li>
         );
@@ -100,7 +111,12 @@ export function RunTimeline({
 
   if (runs.length === 0) {
     return (
-      <p className={cn("rounded-lg border border-dashed border-line-strong px-3 py-6 text-center text-xs text-fg-subtle", className)}>
+      <p
+        className={cn(
+          "rounded-lg border border-dashed border-line-strong px-3 py-6 text-center text-xs text-fg-subtle",
+          className,
+        )}
+      >
         Fix the schedule to preview upcoming runs.
       </p>
     );
@@ -118,8 +134,8 @@ export function RunTimeline({
       )}
       <div aria-hidden className={cn("relative mx-1.5 h-10", paused && "opacity-50")}>
         <div className="absolute inset-x-0 top-4 h-px bg-line-strong" />
-        <div className="absolute left-0 top-4 h-px w-full origin-left bg-gradient-to-r from-accent/70 to-accent/0" />
-        <span className="absolute -left-1.5 top-[11px] size-3 rounded-full border-2 border-bg bg-fg-subtle" />
+        <div className="absolute top-4 left-0 h-px w-full origin-left bg-gradient-to-r from-accent/70 to-accent/0" />
+        <span className="absolute top-[11px] -left-1.5 size-3 rounded-full border-2 border-bg bg-fg-subtle" />
         {runs.map((r, i) => (
           <Tooltip key={r.getTime()} content={`${formatInZone(r, timezone)} · ${relativeTime(r)}`}>
             <span
@@ -131,26 +147,39 @@ export function RunTimeline({
             />
           </Tooltip>
         ))}
-        <span className="absolute left-0 top-7 text-2xs text-fg-subtle">Now</span>
-        <span className="absolute right-0 top-7 text-2xs text-fg-subtle">{formatInZone(runs[runs.length - 1], timezone, "day")}</span>
+        <span className="absolute top-7 left-0 text-2xs text-fg-subtle">Now</span>
+        <span className="absolute top-7 right-0 text-2xs text-fg-subtle">
+          {formatInZone(runs[runs.length - 1], timezone, "day")}
+        </span>
       </div>
-      <ol className="flex flex-col divide-y divide-line rounded-lg border border-line" aria-label={`Next ${runs.length} runs in ${timezone}`}>
+      <ol
+        className="flex flex-col divide-y divide-line rounded-lg border border-line"
+        aria-label={`Next ${runs.length} runs in ${timezone}`}
+      >
         {runs.map((r, i) => (
           <li key={r.getTime()} className="flex items-baseline justify-between gap-3 px-3 py-2 text-xs">
             <span className="flex min-w-0 items-baseline gap-2">
-              <span className={cn("w-4 shrink-0 tabular-nums", i === 0 ? "text-accent" : "text-fg-subtle")}>{i + 1}</span>
+              <span className={cn("w-4 shrink-0 tabular-nums", i === 0 ? "text-accent" : "text-fg-subtle")}>
+                {i + 1}
+              </span>
               <span className="flex min-w-0 flex-col">
-                <span className={cn("tabular-nums", i === 0 ? "font-medium text-fg" : "text-fg-muted")}>{formatInZone(r, timezone)}</span>
-                {showLocal && <span className="tabular-nums text-2xs text-fg-subtle">{formatInZone(r, local, "time")} your time</span>}
+                <span className={cn("tabular-nums", i === 0 ? "font-medium text-fg" : "text-fg-muted")}>
+                  {formatInZone(r, timezone)}
+                </span>
+                {showLocal && (
+                  <span className="text-2xs text-fg-subtle tabular-nums">
+                    {formatInZone(r, local, "time")} your time
+                  </span>
+                )}
               </span>
             </span>
-            <span className="shrink-0 text-right tabular-nums text-fg-subtle">{relativeTime(r)}</span>
+            <span className="shrink-0 text-right text-fg-subtle tabular-nums">{relativeTime(r)}</span>
           </li>
         ))}
       </ol>
       <p className="text-2xs leading-relaxed text-fg-subtle">
-        Evaluated on the wall clock of {timezone.replace(/_/g, " ")}; daylight-saving changes are handled by the scheduler, which is
-        authoritative once saved.
+        Evaluated on the wall clock of {timezone.replace(/_/g, " ")}; daylight-saving changes are handled by the
+        scheduler, which is authoritative once saved.
       </p>
     </div>
   );

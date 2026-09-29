@@ -17,7 +17,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton, Switch } from "@/components/ui/controls";
 import { JsonViewer } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,7 +60,10 @@ const resolver: Resolver<PolicyFormValues> = async (values) => {
 };
 
 export function PolicyEditor() {
-  const policy = useQuery({ queryKey: qk.organization.policy, queryFn: ({ signal }) => organizationsApi.policy({ signal }) });
+  const policy = useQuery({
+    queryKey: qk.organization.policy,
+    queryFn: ({ signal }) => organizationsApi.policy({ signal }),
+  });
   if (policy.error) return <ErrorState error={policy.error} onRetry={() => void policy.refetch()} />;
   if (!policy.data) {
     return (
@@ -119,7 +130,9 @@ function ToggleRow({
       <div className="min-w-0">
         <label htmlFor={id} className="flex items-center gap-2 text-[13px] font-medium text-fg">
           {title}
-          <Badge tone={checked ? (danger ? "warning" : "success") : "neutral"}>{checked ? "Allowed with approval" : "Blocked"}</Badge>
+          <Badge tone={checked ? (danger ? "warning" : "success") : "neutral"}>
+            {checked ? "Allowed with approval" : "Blocked"}
+          </Badge>
         </label>
         <p className="mt-1 text-xs leading-relaxed text-fg-subtle">{description}</p>
       </div>
@@ -133,7 +146,11 @@ function PolicyForm({ data }: { data: PolicyOut }) {
   const { can } = usePermissions();
   const developerMode = useUiStore((s) => s.developerMode);
   const canEdit = can("org:manage");
-  const entitlements = useQuery({ queryKey: qk.billing.entitlements, queryFn: ({ signal }) => billingApi.entitlements({ signal }), staleTime: 5 * 60_000 });
+  const entitlements = useQuery({
+    queryKey: qk.billing.entitlements,
+    queryFn: ({ signal }) => billingApi.entitlements({ signal }),
+    staleTime: 5 * 60_000,
+  });
   const [baseVersion, setBaseVersion] = React.useState(data.policy_version);
   const [review, setReview] = React.useState(false);
   const [pending, setPending] = React.useState<PolicyChange[]>([]);
@@ -184,22 +201,30 @@ function PolicyForm({ data }: { data: PolicyOut }) {
             </Badge>
           </div>
           <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-fg-muted">
-            Guardrails every agent in this organization runs under. They are enforced by the permission engine on every tool call, on top of
-            built-in safety rules — a policy can make agents stricter, never bypass approvals for risky actions.
+            Guardrails every agent in this organization runs under. They are enforced by the permission engine on every
+            tool call, on top of built-in safety rules — a policy can make agents stricter, never bypass approvals for
+            risky actions.
           </p>
         </div>
       </div>
       {readOnly && (
-        <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/8 px-4 py-3 text-[13px] text-info" role="note">
+        <div
+          className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/8 px-4 py-3 text-[13px] text-info"
+          role="note"
+        >
           <LockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          You can view this policy. Changing it requires the <span className="font-mono">org:manage</span> permission (owners and admins).
+          You can view this policy. Changing it requires the <span className="font-mono">org:manage</span> permission
+          (owners and admins).
         </div>
       )}
       {changedElsewhere && (
-        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/8 px-4 py-3 text-[13px] text-warning" role="alert">
+        <div
+          className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/8 px-4 py-3 text-[13px] text-warning"
+          role="alert"
+        >
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Someone saved version {data.policy_version} while you were editing (you started from v{baseVersion}). Saving replaces the whole policy with
-          your version.
+          Someone saved version {data.policy_version} while you were editing (you started from v{baseVersion}). Saving
+          replaces the whole policy with your version.
         </div>
       )}
 
@@ -208,17 +233,33 @@ function PolicyForm({ data }: { data: PolicyOut }) {
         title="Tool access"
         description={
           <>
-            Tool names or glob patterns such as <code className="font-mono text-fg">gmail.send</code>, <code className="font-mono text-fg">browser.*</code> or{" "}
-            <code className="font-mono text-fg">calendar.*_event</code>. Blocked tools are never run; listed approval tools always pause for a person first.
+            Tool names or glob patterns such as <code className="font-mono text-fg">gmail.send</code>,{" "}
+            <code className="font-mono text-fg">browser.*</code> or{" "}
+            <code className="font-mono text-fg">calendar.*_event</code>. Blocked tools are never run; listed approval
+            tools always pause for a person first.
           </>
         }
       >
-        <Field label="Blocked tools" description="Agents can't use these at all, for anyone in the organization." error={formState.errors.blocked_tools?.message}>
+        <Field
+          label="Blocked tools"
+          description="Agents can't use these at all, for anyone in the organization."
+          error={formState.errors.blocked_tools?.message}
+        >
           {(ids) => (
             <Controller
               control={control}
               name="blocked_tools"
-              render={({ field }) => <TagInput {...ids} kind="tool-pattern" tone="danger" value={field.value} onChange={field.onChange} disabled={readOnly} placeholder="e.g. browser.*" />}
+              render={({ field }) => (
+                <TagInput
+                  {...ids}
+                  kind="tool-pattern"
+                  tone="danger"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={readOnly}
+                  placeholder="e.g. browser.*"
+                />
+              )}
             />
           )}
         </Field>
@@ -231,7 +272,17 @@ function PolicyForm({ data }: { data: PolicyOut }) {
             <Controller
               control={control}
               name="always_require_approval"
-              render={({ field }) => <TagInput {...ids} kind="tool-pattern" tone="warning" value={field.value} onChange={field.onChange} disabled={readOnly} placeholder="e.g. gmail.create_draft" />}
+              render={({ field }) => (
+                <TagInput
+                  {...ids}
+                  kind="tool-pattern"
+                  tone="warning"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={readOnly}
+                  placeholder="e.g. gmail.create_draft"
+                />
+              )}
             />
           )}
         </Field>
@@ -279,12 +330,26 @@ function PolicyForm({ data }: { data: PolicyOut }) {
         title="E-mail"
         description="Messages and invitations to recipients outside these domains are treated as high risk and always need approval. Leave empty to treat every recipient as external."
       >
-        <Field label="Internal e-mail domains" error={formState.errors.internal_email_domains?.message} description="Exact domains, e.g. example.com (subdomains must be listed separately).">
+        <Field
+          label="Internal e-mail domains"
+          error={formState.errors.internal_email_domains?.message}
+          description="Exact domains, e.g. example.com (subdomains must be listed separately)."
+        >
           {(ids) => (
             <Controller
               control={control}
               name="internal_email_domains"
-              render={({ field }) => <TagInput {...ids} kind="domain" tone="success" value={field.value} onChange={field.onChange} disabled={readOnly} placeholder="e.g. northwind.com" />}
+              render={({ field }) => (
+                <TagInput
+                  {...ids}
+                  kind="domain"
+                  tone="success"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={readOnly}
+                  placeholder="e.g. northwind.com"
+                />
+              )}
             />
           )}
         </Field>
@@ -295,9 +360,9 @@ function PolicyForm({ data }: { data: PolicyOut }) {
         title="Browser & web access"
         description={
           <>
-            Where the browser agent and web search may go. <code className="font-mono text-fg">example.com</code> covers the domain and its subdomains;{" "}
-            <code className="font-mono text-fg">*.example.com</code> covers subdomains only. These add to the deployment&apos;s own egress rules, and private
-            network addresses stay blocked.
+            Where the browser agent and web search may go. <code className="font-mono text-fg">example.com</code> covers
+            the domain and its subdomains; <code className="font-mono text-fg">*.example.com</code> covers subdomains
+            only. These add to the deployment&apos;s own egress rules, and private network addresses stay blocked.
           </>
         }
       >
@@ -310,22 +375,50 @@ function PolicyForm({ data }: { data: PolicyOut }) {
             <Controller
               control={control}
               name="browser_allowed_domains"
-              render={({ field }) => <TagInput {...ids} kind="domain-pattern" tone="success" value={field.value} onChange={field.onChange} disabled={readOnly} placeholder="e.g. docs.example.com" />}
+              render={({ field }) => (
+                <TagInput
+                  {...ids}
+                  kind="domain-pattern"
+                  tone="success"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={readOnly}
+                  placeholder="e.g. docs.example.com"
+                />
+              )}
             />
           )}
         </Field>
-        <Field label="Denied domains" description="Never visited, regardless of the allowlist." error={formState.errors.browser_denied_domains?.message}>
+        <Field
+          label="Denied domains"
+          description="Never visited, regardless of the allowlist."
+          error={formState.errors.browser_denied_domains?.message}
+        >
           {(ids) => (
             <Controller
               control={control}
               name="browser_denied_domains"
-              render={({ field }) => <TagInput {...ids} kind="domain-pattern" tone="danger" value={field.value} onChange={field.onChange} disabled={readOnly} placeholder="e.g. *.social.example" />}
+              render={({ field }) => (
+                <TagInput
+                  {...ids}
+                  kind="domain-pattern"
+                  tone="danger"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={readOnly}
+                  placeholder="e.g. *.social.example"
+                />
+              )}
             />
           )}
         </Field>
       </PolicySection>
 
-      <PolicySection icon={HourglassIcon} title="Approvals & limits" description="How long approval requests stay open, and how much work each person can run at once.">
+      <PolicySection
+        icon={HourglassIcon}
+        title="Approvals & limits"
+        description="How long approval requests stay open, and how much work each person can run at once."
+      >
         <div className="grid gap-3">
           <Controller
             control={control}
@@ -340,20 +433,42 @@ function PolicyForm({ data }: { data: PolicyOut }) {
                     Pending approvals expire after this long and the action is not taken. Off = the platform default.
                   </p>
                 </div>
-                <Switch id="policy-ttl-custom" checked={field.value} onCheckedChange={field.onChange} disabled={readOnly} />
+                <Switch
+                  id="policy-ttl-custom"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={readOnly}
+                />
               </div>
             )}
           />
           {ttlCustom && (
-            <Field label="Expire approvals after" error={formState.errors.approval_ttl_value?.message} description="Between 1 minute and 7 days.">
+            <Field
+              label="Expire approvals after"
+              error={formState.errors.approval_ttl_value?.message}
+              description="Between 1 minute and 7 days."
+            >
               {(ids) => (
                 <div className="flex max-w-sm gap-2">
-                  <Input {...ids} type="number" inputMode="decimal" min={1} step="any" disabled={readOnly} className="w-28" {...register("approval_ttl_value", { valueAsNumber: true })} />
+                  <Input
+                    {...ids}
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    step="any"
+                    disabled={readOnly}
+                    className="w-28"
+                    {...register("approval_ttl_value", { valueAsNumber: true })}
+                  />
                   <Controller
                     control={control}
                     name="approval_ttl_unit"
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={(v) => field.onChange(v as TtlUnit)} disabled={readOnly}>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(v as TtlUnit)}
+                        disabled={readOnly}
+                      >
                         <SelectTrigger className="w-32" aria-label="Unit">
                           <SelectValue />
                         </SelectTrigger>
@@ -385,20 +500,43 @@ function PolicyForm({ data }: { data: PolicyOut }) {
                     {planConcurrency ? (
                       <>
                         {" "}
-                        (<span className="text-fg-muted">{planConcurrency} on the {entitlements.data?.plan.display_name} plan</span>)
+                        (
+                        <span className="text-fg-muted">
+                          {planConcurrency} on the {entitlements.data?.plan.display_name} plan
+                        </span>
+                        )
                       </>
                     ) : null}
                     .
                   </p>
                 </div>
-                <Switch id="policy-concurrency" checked={field.value} onCheckedChange={field.onChange} disabled={readOnly} />
+                <Switch
+                  id="policy-concurrency"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={readOnly}
+                />
               </div>
             )}
           />
           {concurrencyCustom && (
-            <Field label="Active tasks per person" error={formState.errors.max_concurrent_value?.message} description={`${MAX_CONCURRENT_MIN}–${MAX_CONCURRENT_MAX}`}>
+            <Field
+              label="Active tasks per person"
+              error={formState.errors.max_concurrent_value?.message}
+              description={`${MAX_CONCURRENT_MIN}–${MAX_CONCURRENT_MAX}`}
+            >
               {(ids) => (
-                <Input {...ids} type="number" inputMode="numeric" min={MAX_CONCURRENT_MIN} max={MAX_CONCURRENT_MAX} step={1} disabled={readOnly} className="w-28" {...register("max_concurrent_value", { valueAsNumber: true })} />
+                <Input
+                  {...ids}
+                  type="number"
+                  inputMode="numeric"
+                  min={MAX_CONCURRENT_MIN}
+                  max={MAX_CONCURRENT_MAX}
+                  step={1}
+                  disabled={readOnly}
+                  className="w-28"
+                  {...register("max_concurrent_value", { valueAsNumber: true })}
+                />
               )}
             </Field>
           )}
@@ -407,7 +545,9 @@ function PolicyForm({ data }: { data: PolicyOut }) {
 
       {developerMode && (
         <section className="rounded-xl border border-dashed border-line-strong bg-surface-1 px-5 py-4">
-          <h3 className="text-sm font-semibold tracking-tight text-fg">Additional settings (<span className="font-mono">extra</span>)</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-fg">
+            Additional settings (<span className="font-mono">extra</span>)
+          </h3>
           <p className="mt-0.5 text-[13px] text-fg-muted">Not edited here; preserved unchanged when you save.</p>
           <JsonViewer value={data.policy.extra ?? {}} className="mt-3" />
         </section>
@@ -416,15 +556,23 @@ function PolicyForm({ data }: { data: PolicyOut }) {
       {canEdit && (
         <div
           className={cn(
-            "sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-float backdrop-blur transition-colors sm:flex-row sm:items-center sm:justify-between",
-            dirty ? "border-accent/30 bg-surface-3/95" : "border-line bg-surface-2/90",
+            "z-10 flex flex-col gap-3 rounded-xl border px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between",
+            dirty
+              ? "sticky bottom-3 border-accent/30 bg-surface-3/95 shadow-float backdrop-blur"
+              : "border-line bg-surface-1",
           )}
         >
           <p className="text-[13px] text-fg-muted" aria-live="polite">
             {dirty ? "You have unsaved policy changes." : `Up to date · version ${data.policy_version}`}
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" disabled={!dirty} onClick={() => reset(policyToForm(data.policy))}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!dirty}
+              onClick={() => reset(policyToForm(data.policy))}
+            >
               Discard
             </Button>
             <Button type="submit" variant="primary" size="sm" disabled={!dirty}>
@@ -438,11 +586,15 @@ function PolicyForm({ data }: { data: PolicyOut }) {
         <DialogContent size="lg">
           <DialogHeader>
             <DialogTitle>Save policy version {data.policy_version + 1}?</DialogTitle>
-            <DialogDescription>New tasks in this organization use the updated policy right away. The change is recorded in the audit log.</DialogDescription>
+            <DialogDescription>
+              New tasks in this organization use the updated policy right away. The change is recorded in the audit log.
+            </DialogDescription>
           </DialogHeader>
           <DialogBody>
             {pending.length === 0 ? (
-              <p className="text-sm text-fg-muted">Only formatting changed (entries were normalized). Saving still creates a new version.</p>
+              <p className="text-sm text-fg-muted">
+                Only formatting changed (entries were normalized). Saving still creates a new version.
+              </p>
             ) : (
               <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
                 {pending.map((c) => (

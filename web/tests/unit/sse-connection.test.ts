@@ -39,7 +39,13 @@ describe("SseConnection", () => {
   beforeEach(() => {
     streamTokens = 0;
     vi.stubGlobal("fetch", fetchMock);
-    sessionStore.set({ accessToken: ACCESS_TOKEN, expiresAt: Date.now() + 600_000, sessionId: "s", tenantId: "t", userId: "u" });
+    sessionStore.set({
+      accessToken: ACCESS_TOKEN,
+      expiresAt: Date.now() + 600_000,
+      sessionId: "s",
+      tenantId: "t",
+      userId: "u",
+    });
   });
   afterEach(() => {
     fetchMock.mockReset();
@@ -64,7 +70,9 @@ describe("SseConnection", () => {
         // Server closes the connection after one event (e.g. a deploy): the client must resume.
         return eventStream('id: 3\nevent: STEP_COMPLETED\ndata: {"seq":3}\n\n');
       }
-      return eventStream('id: 4\nevent: TASK_COMPLETED\ndata: {"seq":4}\n\nevent: end\ndata: {"status":"completed"}\n\n');
+      return eventStream(
+        'id: 4\nevent: TASK_COMPLETED\ndata: {"seq":4}\n\nevent: end\ndata: {"status":"completed"}\n\n',
+      );
     });
 
     const events: SseEvent[] = [];

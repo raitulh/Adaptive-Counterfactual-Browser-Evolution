@@ -11,7 +11,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(nav.search),
 }));
 vi.mock("@/lib/analytics", () => ({ track: spies.track }));
-vi.mock("@/lib/auth/hooks", () => ({ usePermissions: () => ({ can: () => true, canAny: () => true, isLoading: false }) }));
+vi.mock("@/lib/auth/hooks", () => ({
+  usePermissions: () => ({ can: () => true, canAny: () => true, isLoading: false }),
+}));
 vi.mock("@/components/ui/toaster", () => ({
   toast: { success: spies.success, error: spies.error, warning: vi.fn(), message: vi.fn() },
   toastError: vi.fn(),

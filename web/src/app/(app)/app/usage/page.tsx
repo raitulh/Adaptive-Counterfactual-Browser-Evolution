@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { UsageOverview } from "@/components/usage/usage-overview";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Usage" };
+
 export default function UsagePage() {
   return (
-    <PageContainer>
-      <PageHeader title="Usage" description="Consumption against your plan." />
-    </PageContainer>
+    <Suspense>
+      <UsageOverview />
+    </Suspense>
   );
 }

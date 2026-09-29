@@ -20,7 +20,15 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/controls";
 import { IdChip, KeyValue, RelativeTime } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 import { ErrorState, InlineError } from "@/components/ui/states";
 import { toast, toastError } from "@/components/ui/toaster";
@@ -39,9 +47,18 @@ import { useCheckConnection, useConnectGoogle, useConnections, useDisconnect } f
 
 function GoogleMark({ className }: { className?: string }) {
   return (
-    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-surface-3", className)} aria-hidden>
+    <span
+      className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-surface-3",
+        className,
+      )}
+      aria-hidden
+    >
       <svg viewBox="0 0 24 24" className="size-4.5">
-        <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.9-5.5 3.9-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.3 14.6 2.3 12 2.3 6.7 2.3 2.4 6.6 2.4 12s4.3 9.7 9.6 9.7c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z" />
+        <path
+          fill="#EA4335"
+          d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.9-5.5 3.9-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.3 14.6 2.3 12 2.3 6.7 2.3 2.4 6.6 2.4 12s4.3 9.7 9.6 9.7c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z"
+        />
       </svg>
     </span>
   );
@@ -118,7 +135,9 @@ function ConnectGoogleCard({ canManage }: { canManage: boolean }) {
             ) : (
               <p className="text-xs text-fg-subtle">Connecting accounts requires the integrations:manage permission.</p>
             )}
-            <p className="text-2xs text-fg-subtle">You&apos;ll continue on Google&apos;s consent screen and return here.</p>
+            <p className="text-2xs text-fg-subtle">
+              You&apos;ll continue on Google&apos;s consent screen and return here.
+            </p>
           </div>
         </div>
       </div>
@@ -126,7 +145,15 @@ function ConnectGoogleCard({ canManage }: { canManage: boolean }) {
   );
 }
 
-function CapabilitiesDialog({ connection, open, onOpenChange }: { connection: ConnectionOut; open: boolean; onOpenChange: (o: boolean) => void }) {
+function CapabilitiesDialog({
+  connection,
+  open,
+  onOpenChange,
+}: {
+  connection: ConnectionOut;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
   const connect = useConnectGoogle();
   const granted = React.useMemo(() => connection.capabilities ?? [], [connection.capabilities]);
   const [caps, setCaps] = React.useState<string[]>(granted);
@@ -162,7 +189,9 @@ function CapabilitiesDialog({ connection, open, onOpenChange }: { connection: Co
             variant="primary"
             disabled={caps.length === 0}
             loading={connect.isPending}
-            onClick={() => connect.mutate({ capabilities: sortCapabilities(caps), loginHint: connection.account_email })}
+            onClick={() =>
+              connect.mutate({ capabilities: sortCapabilities(caps), loginHint: connection.account_email })
+            }
           >
             Continue to Google <ExternalLinkIcon />
           </Button>
@@ -180,7 +209,8 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
   const [disconnectOpen, setDisconnectOpen] = React.useState(false);
   const [scopesOpen, setScopesOpen] = React.useState(false);
   const meta = connectionStatusMeta[connection.status];
-  const needsAction = connection.status === "expired" || connection.status === "revoked" || connection.status === "insufficient_scope";
+  const needsAction =
+    connection.status === "expired" || connection.status === "revoked" || connection.status === "insufficient_scope";
   const isDisconnected = connection.status === "disconnected";
   const errorText = describeConnectionError(connection.last_error_code);
   const caps = connection.capabilities ?? [];
@@ -190,7 +220,10 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
     try {
       const res = await check.mutateAsync(connection.id);
       const m = connectionStatusMeta[res.status];
-      if (res.status === "connected") toast.success("Connection is working", { description: `Tokens refreshed for ${res.account_email ?? "your account"}.` });
+      if (res.status === "connected")
+        toast.success("Connection is working", {
+          description: `Tokens refreshed for ${res.account_email ?? "your account"}.`,
+        });
       else toast.warning(`Google: ${m.label}`, { description: m.description });
     } catch (err) {
       toastError(err, "Couldn't check the connection");
@@ -220,7 +253,11 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
                 <RefreshCwIcon /> Check now
               </Button>
             )}
-            <Button size="sm" variant={needsAction || isDisconnected ? "primary" : "secondary"} onClick={() => setCapsOpen(true)}>
+            <Button
+              size="sm"
+              variant={needsAction || isDisconnected ? "primary" : "secondary"}
+              onClick={() => setCapsOpen(true)}
+            >
               <KeyRoundIcon /> {needsAction || isDisconnected ? "Reconnect" : "Add capabilities"}
             </Button>
             {!isDisconnected && (
@@ -238,7 +275,14 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
       </div>
 
       {(needsAction || connection.status === "temporarily_unavailable") && (
-        <div role="status" className={cn("mx-5 mb-4 flex items-start gap-2 rounded-lg border px-3 py-2 text-[13px] sm:mx-6", toneClasses[meta.tone].border, toneClasses[meta.tone].soft)}>
+        <div
+          role="status"
+          className={cn(
+            "mx-5 mb-4 flex items-start gap-2 rounded-lg border px-3 py-2 text-[13px] sm:mx-6",
+            toneClasses[meta.tone].border,
+            toneClasses[meta.tone].soft,
+          )}
+        >
           <AlertTriangleIcon className={cn("mt-0.5 size-4 shrink-0", toneClasses[meta.tone].text)} aria-hidden />
           <p className="text-fg-muted">
             <span className="font-medium text-fg">{meta.label}.</span> {meta.description}
@@ -250,14 +294,23 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
       <div className="grid gap-5 border-t border-line px-5 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
         <div className="flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-xs text-fg-subtle">{isDisconnected ? "Capabilities before disconnecting (no longer usable)" : "Capabilities"}</p>
+            <p className="mb-1.5 text-xs text-fg-subtle">
+              {isDisconnected ? "Capabilities before disconnecting (no longer usable)" : "Capabilities"}
+            </p>
             {caps.length === 0 ? (
-              <p className="text-[13px] text-fg-muted">{isDisconnected ? "None — disconnected." : "Identity only; no Workspace access granted."}</p>
+              <p className="text-[13px] text-fg-muted">
+                {isDisconnected ? "None — disconnected." : "Identity only; no Workspace access granted."}
+              </p>
             ) : (
               <ul className={cn("flex flex-wrap gap-1.5", isDisconnected && "opacity-60")}>
                 {caps.map((c) => (
                   <li key={c}>
-                    <Badge tone={capability(c)?.access === "write" ? "info" : "neutral"} variant="outline" size="md" title={capability(c)?.description}>
+                    <Badge
+                      tone={capability(c)?.access === "write" ? "info" : "neutral"}
+                      variant="outline"
+                      size="md"
+                      title={capability(c)?.description}
+                    >
                       {capability(c)?.label ?? c}
                       <span className="font-mono text-2xs text-fg-subtle">{c}</span>
                     </Badge>
@@ -272,15 +325,18 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
                 type="button"
                 onClick={() => setScopesOpen((o) => !o)}
                 aria-expanded={scopesOpen}
-                className="inline-flex items-center gap-1 text-xs text-fg-subtle hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex items-center gap-1 text-xs text-fg-subtle hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
               >
                 {isDisconnected ? "Previously granted scopes" : "Granted scopes"} ({scopes.length})
-                <ChevronDownIcon className={cn("size-3.5 transition-transform", scopesOpen && "rotate-180")} aria-hidden />
+                <ChevronDownIcon
+                  className={cn("size-3.5 transition-transform", scopesOpen && "rotate-180")}
+                  aria-hidden
+                />
               </button>
               {scopesOpen && (
                 <ul className="mt-2 flex flex-col gap-1">
                   {scopes.map((s) => (
-                    <li key={s} className="break-all font-mono text-2xs text-fg-muted">
+                    <li key={s} className="font-mono text-2xs break-all text-fg-muted">
                       {s}
                     </li>
                   ))}
@@ -292,11 +348,33 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
         <KeyValue
           className="grid-cols-[minmax(7rem,auto)_1fr] text-xs"
           items={[
-            ["Access token", connection.token_expires_at ? <span key="e" title={dateTime(connection.token_expires_at)}>expires <RelativeTime value={connection.token_expires_at} /></span> : <span key="e" className="text-fg-subtle">—</span>],
+            [
+              "Access token",
+              connection.token_expires_at ? (
+                <span key="e" title={dateTime(connection.token_expires_at)}>
+                  expires <RelativeTime value={connection.token_expires_at} />
+                </span>
+              ) : (
+                <span key="e" className="text-fg-subtle">
+                  —
+                </span>
+              ),
+            ],
             ["Last refreshed", <RelativeTime key="r" value={connection.last_refreshed_at} />],
-            [isDisconnected ? "Disconnected" : "Connected", <RelativeTime key="c" value={isDisconnected ? connection.disconnected_at : connection.connected_at} />],
+            [
+              isDisconnected ? "Disconnected" : "Connected",
+              <RelativeTime key="c" value={isDisconnected ? connection.disconnected_at : connection.connected_at} />,
+            ],
             ...(connection.last_error_code
-              ? ([["Last error", <span key="le"><span className="font-mono text-danger">{connection.last_error_code}</span>{errorText && !needsAction && <span className="block text-fg-muted">{errorText}</span>}</span>]] as Array<[React.ReactNode, React.ReactNode]>)
+              ? ([
+                  [
+                    "Last error",
+                    <span key="le">
+                      <span className="font-mono text-danger">{connection.last_error_code}</span>
+                      {errorText && !needsAction && <span className="block text-fg-muted">{errorText}</span>}
+                    </span>,
+                  ],
+                ] as Array<[React.ReactNode, React.ReactNode]>)
               : []),
           ]}
         />
@@ -314,7 +392,9 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
         onConfirm={async () => {
           try {
             await disconnect.mutateAsync(connection.id);
-            toast.success("Google disconnected", { description: "Tokens were deleted and revocation was requested at Google." });
+            toast.success("Google disconnected", {
+              description: "Tokens were deleted and revocation was requested at Google.",
+            });
             setDisconnectOpen(false);
           } catch (err) {
             toastError(err, "Couldn't disconnect");
@@ -327,7 +407,10 @@ function ConnectionCard({ connection, canManage }: { connection: ConnectionOut; 
 
 function ReturnBanner({ value, onDismiss }: { value: Extract<OAuthReturn, { kind: "error" }>; onDismiss: () => void }) {
   return (
-    <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/[0.07] px-4 py-3">
+    <div
+      role="alert"
+      className="mb-5 flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/[0.07] px-4 py-3"
+    >
       <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
       <div className="min-w-0 flex-1 text-[13px]">
         <p className="font-medium text-fg">{value.title}</p>
@@ -403,7 +486,7 @@ export function IntegrationsPage() {
           ))}
           {past.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-xs font-medium uppercase tracking-wider text-fg-subtle">Previously connected</h2>
+              <h2 className="text-xs font-medium tracking-wider text-fg-subtle uppercase">Previously connected</h2>
               {past.map((c) => (
                 <ConnectionCard key={c.id} connection={c} canManage={canManage} />
               ))}

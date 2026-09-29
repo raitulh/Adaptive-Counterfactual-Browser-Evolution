@@ -53,7 +53,9 @@ export function ApprovalsCenter() {
   const pathname = usePathname();
   const tab = params.get("tab") === "history" ? "history" : "pending";
   const historyParam = params.get("status");
-  const historyStatus = HISTORY_FILTERS.some((f) => f.value === historyParam) ? (historyParam as (typeof HISTORY_FILTERS)[number]["value"]) : "all";
+  const historyStatus = HISTORY_FILTERS.some((f) => f.value === historyParam)
+    ? (historyParam as (typeof HISTORY_FILTERS)[number]["value"])
+    : "all";
   const focus = params.get("focus");
 
   const setParams = (patch: Record<string, string | null>) => {
@@ -110,7 +112,10 @@ export function ApprovalsCenter() {
       />
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Tabs value={tab} onValueChange={(v) => setParams({ tab: v === "history" ? "history" : null, status: null, focus: null })}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setParams({ tab: v === "history" ? "history" : null, status: null, focus: null })}
+        >
           <TabsList aria-label="Approval views">
             <TabsTrigger value="pending">
               <ShieldCheckIcon /> Pending
@@ -143,14 +148,18 @@ export function ApprovalsCenter() {
 
       {extra && (
         <div className="mb-5">
-          <p className="mb-2 text-2xs font-semibold uppercase tracking-[0.12em] text-fg-subtle">Linked approval</p>
+          <p className="mb-2 text-2xs font-semibold tracking-[0.12em] text-fg-subtle uppercase">Linked approval</p>
           <ApprovalCard approval={extra} showTaskLink highlighted={highlight === extra.id} />
         </div>
       )}
-      {focus && !focusedInList && focused.error ? <ErrorState error={focused.error} compact title="That approval isn't available" className="mb-5" /> : null}
+      {focus && !focusedInList && focused.error ? (
+        <ErrorState error={focused.error} compact title="That approval isn't available" className="mb-5" />
+      ) : null}
 
       <div aria-live="polite" className="sr-only">
-        {tab === "pending" && !list.isLoading ? `${items.length} pending approval${items.length === 1 ? "" : "s"}${list.hasNextPage ? " or more" : ""}` : ""}
+        {tab === "pending" && !list.isLoading
+          ? `${items.length} pending approval${items.length === 1 ? "" : "s"}${list.hasNextPage ? " or more" : ""}`
+          : ""}
       </div>
 
       {list.error && items.length === 0 ? (
@@ -174,7 +183,11 @@ export function ApprovalsCenter() {
             }
           />
         ) : (
-          <EmptyState icon={<HistoryIcon />} title="No decisions yet" description="Approved, rejected and expired requests are kept here as a record." />
+          <EmptyState
+            icon={<HistoryIcon />}
+            title="No decisions yet"
+            description="Approved, rejected and expired requests are kept here as a record."
+          />
         )
       ) : (
         <ul className="flex flex-col gap-4">

@@ -45,7 +45,10 @@ export function AutomationDetail({ automationId }: { automationId: string }) {
   const query = useAutomation(automationId);
   return (
     <PageContainer width="wide">
-      <Link href="/app/automations" className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-fg-muted hover:text-fg">
+      <Link
+        href="/app/automations"
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-fg-muted hover:text-fg"
+      >
         <ArrowLeftIcon className="size-4" aria-hidden /> Automations
       </Link>
       {query.isPending ? (
@@ -73,7 +76,9 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
   const policy = readPolicy(a.policy);
   const last = presentLastStatus(a.last_status);
   const agents = useAgentOptions(Boolean(template.agent_id));
-  const agentName = template.agent_id ? (agents.data?.items.find((x) => x.id === template.agent_id)?.name ?? null) : null;
+  const agentName = template.agent_id
+    ? (agents.data?.items.find((x) => x.id === template.agent_id)?.name ?? null)
+    : null;
   const reason = a.disabled_reason ? disabledReasonMeta[a.disabled_reason] : null;
   const canManage = can("automations:manage");
   const cronWords = cronToWords(a.cron_expression);
@@ -82,7 +87,7 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
     <>
       <PageHeader
         eyebrow={
-          <span className="inline-flex items-center gap-2 normal-case tracking-normal">
+          <span className="inline-flex items-center gap-2 tracking-normal normal-case">
             <Badge tone={state.tone} size="md">
               {state.label}
             </Badge>
@@ -92,15 +97,15 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
         description={
           <>
             {describeSchedule(a.cron_expression)} · {a.timezone.replace(/_/g, " ")}{" "}
-            <code className="ml-1 rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-xs text-fg-subtle">{a.cron_expression}</code>
+            <code className="ml-1 rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-xs text-fg-subtle">
+              {a.cron_expression}
+            </code>
           </>
         }
         actions={
           <>
             <span className="flex items-center gap-2 rounded-lg border border-line bg-surface-1 px-3 py-1.5">
-              <span className="text-[13px] text-fg-muted">
-                {a.enabled ? "On" : "Off"}
-              </span>
+              <span className="text-[13px] text-fg-muted">{a.enabled ? "On" : "Off"}</span>
               <EnabledSwitch automation={a} />
             </span>
             <RunNowButton automation={a} variant="primary" size="md" />
@@ -109,7 +114,12 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
                 <Button variant="secondary" onClick={() => setEditOpen(true)}>
                   <PencilIcon aria-hidden /> Edit
                 </Button>
-                <Button variant="danger-outline" size="icon" aria-label="Delete automation" onClick={() => setDeleteOpen(true)}>
+                <Button
+                  variant="danger-outline"
+                  size="icon"
+                  aria-label="Delete automation"
+                  onClick={() => setDeleteOpen(true)}
+                >
                   <Trash2Icon />
                 </Button>
               </>
@@ -119,7 +129,10 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
       />
 
       {reason && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/[0.06] px-4 py-3" role="status">
+        <div
+          className="mb-6 flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/[0.06] px-4 py-3"
+          role="status"
+        >
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <div className="text-[13px] leading-relaxed">
             <p className="font-medium text-fg">{reason.label}</p>
@@ -133,12 +146,30 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <MetricCard
               label="Next run"
-              value={a.enabled && a.next_run_at ? <RelativeTime value={a.next_run_at} className="text-xl" /> : <span className="text-xl text-fg-subtle">—</span>}
-              hint={a.enabled && a.next_run_at ? formatInZone(new Date(a.next_run_at), a.timezone) : a.enabled ? "Calculating…" : "Not scheduled while off"}
+              value={
+                a.enabled && a.next_run_at ? (
+                  <RelativeTime value={a.next_run_at} className="text-xl" />
+                ) : (
+                  <span className="text-xl text-fg-subtle">—</span>
+                )
+              }
+              hint={
+                a.enabled && a.next_run_at
+                  ? formatInZone(new Date(a.next_run_at), a.timezone)
+                  : a.enabled
+                    ? "Calculating…"
+                    : "Not scheduled while off"
+              }
             />
             <MetricCard
               label="Last run"
-              value={a.last_run_at ? <RelativeTime value={a.last_run_at} className="text-xl" /> : <span className="text-xl text-fg-subtle">Never</span>}
+              value={
+                a.last_run_at ? (
+                  <RelativeTime value={a.last_run_at} className="text-xl" />
+                ) : (
+                  <span className="text-xl text-fg-subtle">Never</span>
+                )
+              }
               hint={
                 last ? (
                   <span className={cn("inline-flex items-center gap-1.5", toneClasses[last.tone].text)}>
@@ -161,8 +192,14 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
             />
             <MetricCard
               label="Failures in a row"
-              value={<span className={cn("text-xl", a.consecutive_failures > 0 && "text-danger")}>{a.consecutive_failures}</span>}
-              hint={policy.pause_on_failure ? `Pauses at ${policy.max_consecutive_failures}` : "Never pauses automatically"}
+              value={
+                <span className={cn("text-xl", a.consecutive_failures > 0 && "text-danger")}>
+                  {a.consecutive_failures}
+                </span>
+              }
+              hint={
+                policy.pause_on_failure ? `Pauses at ${policy.max_consecutive_failures}` : "Never pauses automatically"
+              }
             />
           </div>
 
@@ -171,11 +208,16 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
 
         <aside className="flex min-w-0 flex-col gap-4" aria-label="Automation settings">
           <Card className="p-5">
-            <h2 className="mb-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle">What happens</h2>
-            <ScheduleSentence cron={a.cron_expression} timezone={a.timezone} goal={template.goal} agentName={agentName} />
+            <h2 className="mb-4 text-2xs font-medium tracking-wider text-fg-subtle uppercase">What happens</h2>
+            <ScheduleSentence
+              cron={a.cron_expression}
+              timezone={a.timezone}
+              goal={template.goal}
+              agentName={agentName}
+            />
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle">Upcoming</h2>
+            <h2 className="mb-4 text-2xs font-medium tracking-wider text-fg-subtle uppercase">Upcoming</h2>
             <RunTimeline cron={a.cron_expression} timezone={a.timezone} paused={!a.enabled} />
             {a.enabled && a.next_run_at && (
               <p className="mt-3 text-2xs text-fg-subtle">
@@ -184,30 +226,49 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
             )}
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle">Task template</h2>
-            <p className="whitespace-pre-line text-[13px] leading-relaxed text-fg">{template.goal}</p>
+            <h2 className="mb-4 text-2xs font-medium tracking-wider text-fg-subtle uppercase">Task template</h2>
+            <p className="text-[13px] leading-relaxed whitespace-pre-line text-fg">{template.goal}</p>
             {template.context && (
-              <p className="mt-3 whitespace-pre-line border-l-2 border-line-strong pl-3 text-xs leading-relaxed text-fg-muted">{template.context}</p>
+              <p className="mt-3 border-l-2 border-line-strong pl-3 text-xs leading-relaxed whitespace-pre-line text-fg-muted">
+                {template.context}
+              </p>
             )}
             <KeyValue
               className="mt-4"
               items={[
-                ["Agent", agentName ?? (template.agent_id ? <IdChip id={template.agent_id} label="agent" /> : "Default agent")],
+                [
+                  "Agent",
+                  agentName ?? (template.agent_id ? <IdChip id={template.agent_id} label="agent" /> : "Default agent"),
+                ],
                 ["Priority", String(template.priority)],
-                ["Time limit", template.max_duration_seconds ? formatSeconds(template.max_duration_seconds) : "Default"],
+                [
+                  "Time limit",
+                  template.max_duration_seconds ? formatSeconds(template.max_duration_seconds) : "Default",
+                ],
               ]}
             />
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle">Schedule & policies</h2>
+            <h2 className="mb-4 text-2xs font-medium tracking-wider text-fg-subtle uppercase">Schedule & policies</h2>
             <KeyValue
               items={[
-                ["Cron", <code key="c" className="font-mono text-xs">{a.cron_expression}</code>],
+                [
+                  "Cron",
+                  <code key="c" className="font-mono text-xs">
+                    {a.cron_expression}
+                  </code>,
+                ],
                 ...(cronWords ? ([["In words", cronWords]] as [string, React.ReactNode][]) : []),
                 ["Time zone", a.timezone],
                 ["Max runs", a.max_runs ? number(a.max_runs) : "No limit"],
-                ["Retries", `${retry.max_attempts} ${retry.max_attempts === 1 ? "attempt" : "attempts"}, ${formatSeconds(retry.backoff_seconds)} backoff (doubling)`],
-                ["On failure", policy.pause_on_failure ? `Pause after ${policy.max_consecutive_failures} in a row` : "Keep running"],
+                [
+                  "Retries",
+                  `${retry.max_attempts} ${retry.max_attempts === 1 ? "attempt" : "attempts"}, ${formatSeconds(retry.backoff_seconds)} backoff (doubling)`,
+                ],
+                [
+                  "On failure",
+                  policy.pause_on_failure ? `Pause after ${policy.max_consecutive_failures} in a row` : "Keep running",
+                ],
                 ["Created", dateTime(a.created_at)],
                 ["Updated", <RelativeTime key="u" value={a.updated_at} />],
               ]}
@@ -216,7 +277,7 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
           {developerMode && (
             <Card className="flex flex-col gap-3 p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">Developer</h2>
+                <h2 className="text-2xs font-medium tracking-wider text-fg-subtle uppercase">Developer</h2>
                 <IdChip id={a.id} label="automation" />
               </div>
               <JsonViewer value={a} />
@@ -226,7 +287,12 @@ function DetailBody({ automation: a }: { automation: AutomationOut }) {
       </div>
 
       <AutomationBuilderDialog open={editOpen} onOpenChange={setEditOpen} automation={a} />
-      <DeleteAutomationDialog automation={a} open={deleteOpen} onOpenChange={setDeleteOpen} onDeleted={() => router.push("/app/automations")} />
+      <DeleteAutomationDialog
+        automation={a}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => router.push("/app/automations")}
+      />
     </>
   );
 }

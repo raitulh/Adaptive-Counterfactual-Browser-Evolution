@@ -40,13 +40,22 @@ describe("reviewTool", () => {
   });
 
   it("newly discovered tools (no approved hash) need review", () => {
-    const r = reviewTool(tool({ approved_schema_hash: null, schema_approved: false, enabled: false, usable: false }), approved);
+    const r = reviewTool(
+      tool({ approved_schema_hash: null, schema_approved: false, enabled: false, usable: false }),
+      approved,
+    );
     expect(r).toMatchObject({ state: "unreviewed", tone: "warning", attention: true, requiresReview: true });
   });
 
   it("flags tools whose definition changed after approval (backend status)", () => {
     const r = reviewTool(
-      tool({ status: "schema_changed", approved_schema_hash: "h1", schema_approved: false, enabled: false, usable: false }),
+      tool({
+        status: "schema_changed",
+        approved_schema_hash: "h1",
+        schema_approved: false,
+        enabled: false,
+        usable: false,
+      }),
       approved,
     );
     expect(r).toMatchObject({ state: "schema_changed", tone: "danger", attention: true, requiresReview: true });
@@ -75,7 +84,10 @@ describe("reviewTool", () => {
   });
 
   it("unknown statuses demand attention rather than looking healthy", () => {
-    expect(reviewTool(tool({ status: "quarantined", usable: false }), approved)).toMatchObject({ state: "unknown", attention: true });
+    expect(reviewTool(tool({ status: "quarantined", usable: false }), approved)).toMatchObject({
+      state: "unknown",
+      attention: true,
+    });
   });
 });
 
@@ -83,13 +95,27 @@ describe("counts and attention ordering", () => {
   const tools = [
     tool({ id: "a", qualified_name: "mcp.demo.a" }),
     tool({ id: "b", qualified_name: "mcp.demo.b", approved_schema_hash: null, enabled: false, usable: false }),
-    tool({ id: "c", qualified_name: "mcp.demo.c", status: "schema_changed", approved_schema_hash: "h0", enabled: false, usable: false }),
+    tool({
+      id: "c",
+      qualified_name: "mcp.demo.c",
+      status: "schema_changed",
+      approved_schema_hash: "h0",
+      enabled: false,
+      usable: false,
+    }),
     tool({ id: "d", qualified_name: "mcp.demo.d", status: "removed", enabled: false, usable: false }),
     tool({ id: "e", qualified_name: "mcp.demo.e", enabled: false, usable: false }),
   ];
 
   it("counts tools per review state", () => {
-    expect(countTools(tools, approved)).toEqual({ total: 5, usable: 1, unreviewed: 1, schemaChanged: 1, removed: 1, disabled: 1 });
+    expect(countTools(tools, approved)).toEqual({
+      total: 5,
+      usable: 1,
+      unreviewed: 1,
+      schemaChanged: 1,
+      removed: 1,
+      disabled: 1,
+    });
   });
 
   it("lists changed tools before unreviewed ones", () => {
@@ -101,7 +127,13 @@ describe("summarizeSync", () => {
   const server = {} as McpSyncResult["server"];
 
   it("marks schema changes and rejections as suspicious", () => {
-    const s = summarizeSync({ server, added: ["mcp.demo.x"], schema_changed: ["mcp.demo.echo"], unchanged: ["mcp.demo.y"], rejected: [] });
+    const s = summarizeSync({
+      server,
+      added: ["mcp.demo.x"],
+      schema_changed: ["mcp.demo.echo"],
+      unchanged: ["mcp.demo.y"],
+      rejected: [],
+    });
     expect(s.suspicious).toBe(true);
     expect(s.groups.map((g) => g.key)).toEqual(["schema_changed", "added", "unchanged"]);
     expect(s.changed).toBe(2);
@@ -121,17 +153,31 @@ describe("summarizeSync", () => {
 
 describe("register server form", () => {
   const parse = (patch: Partial<typeof registerServerDefaults>) =>
-    registerServerSchema.safeParse({ ...registerServerDefaults, name: "demo", url: "https://mcp.example.com/mcp", ...patch });
+    registerServerSchema.safeParse({
+      ...registerServerDefaults,
+      name: "demo",
+      url: "https://mcp.example.com/mcp",
+      ...patch,
+    });
 
   it("accepts a minimal registration and omits auth when no secret is given", () => {
     const r = parse({});
     expect(r.success).toBe(true);
-    expect(toRegisterPayload(r.data!)).toEqual({ name: "demo", url: "https://mcp.example.com/mcp", transport: "streamable_http", rate_limit_per_minute: 60 });
+    expect(toRegisterPayload(r.data!)).toEqual({
+      name: "demo",
+      url: "https://mcp.example.com/mcp",
+      transport: "streamable_http",
+      rate_limit_per_minute: 60,
+    });
   });
 
   it("sends the auth header only with a value, plus an explicit timeout", () => {
     const r = parse({ authHeaderValue: "Bearer s3cret", authHeaderName: "X-Api-Key", timeoutSeconds: "15" });
-    expect(toRegisterPayload(r.data!)).toMatchObject({ auth_header_name: "X-Api-Key", auth_header_value: "Bearer s3cret", timeout_seconds: 15 });
+    expect(toRegisterPayload(r.data!)).toMatchObject({
+      auth_header_name: "X-Api-Key",
+      auth_header_value: "Bearer s3cret",
+      timeout_seconds: 15,
+    });
   });
 
   it("mirrors backend validation", () => {

@@ -44,10 +44,23 @@ export function CopyButton({
 }
 
 /** Monospace identifier with copy. Shows a short form; the full value is in the tooltip. */
-export function IdChip({ id, label, className }: { id: string | null | undefined; label?: string; className?: string }) {
+export function IdChip({
+  id,
+  label,
+  className,
+}: {
+  id: string | null | undefined;
+  label?: string;
+  className?: string;
+}) {
   if (!id) return <span className="font-mono text-xs text-fg-subtle">—</span>;
   return (
-    <span className={cn("inline-flex items-center gap-0.5 rounded-md border border-line bg-surface-2 pl-1.5 font-mono text-2xs text-fg-muted", className)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-md border border-line bg-surface-2 pl-1.5 font-mono text-2xs text-fg-muted",
+        className,
+      )}
+    >
       <Tooltip content={<span className="font-mono">{id}</span>}>
         <span tabIndex={0} className="outline-none">
           {label ? `${label} ` : ""}
@@ -97,21 +110,33 @@ export function MetricCard({
         <span>{label}</span>
         {icon && <span className="text-fg-subtle [&_svg]:size-4">{icon}</span>}
       </div>
-      <div className="text-2xl font-semibold tracking-tight tabular-nums text-fg">{value}</div>
+      <div className="text-2xl font-semibold tracking-tight text-fg tabular-nums">{value}</div>
       {hint && <div className="text-xs text-fg-subtle">{hint}</div>}
       {footer}
     </div>
   );
 }
 
-export function CodeBlock({ children, className, copy = true }: { children: string; className?: string; copy?: boolean }) {
+export function CodeBlock({
+  children,
+  className,
+  copy = true,
+}: {
+  children: string;
+  className?: string;
+  copy?: boolean;
+}) {
   return (
     <div className={cn("group relative rounded-lg border border-line bg-bg", className)}>
       <pre className="overflow-x-auto p-3 font-mono text-xs leading-relaxed text-fg-muted">
         <code>{children}</code>
       </pre>
       {copy && (
-        <CopyButton value={children} label="Copy code" className="absolute right-1.5 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100" />
+        <CopyButton
+          value={children}
+          label="Copy code"
+          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        />
       )}
     </div>
   );
@@ -124,7 +149,13 @@ function JsonNode({ name, value, depth }: { name?: string; value: unknown; depth
   const keyEl = name !== undefined && <span className="text-info">{JSON.stringify(name)}</span>;
   if (!isObj) {
     const color =
-      typeof value === "string" ? "text-success" : typeof value === "number" ? "text-warning" : typeof value === "boolean" ? "text-verify" : "text-fg-subtle";
+      typeof value === "string"
+        ? "text-success"
+        : typeof value === "number"
+          ? "text-warning"
+          : typeof value === "boolean"
+            ? "text-verify"
+            : "text-fg-subtle";
     return (
       <div className="pl-4">
         {keyEl}
@@ -142,7 +173,10 @@ function JsonNode({ name, value, depth }: { name?: string; value: unknown; depth
         className="-ml-4 inline-flex items-center rounded text-left hover:bg-white/5"
         aria-expanded={open}
       >
-        <ChevronRightIcon className={cn("size-3.5 text-fg-subtle transition-transform", open && "rotate-90")} aria-hidden />
+        <ChevronRightIcon
+          className={cn("size-3.5 text-fg-subtle transition-transform", open && "rotate-90")}
+          aria-hidden
+        />
         {keyEl}
         {keyEl && <span className="text-fg-subtle">: </span>}
         <span className="text-fg-subtle">
@@ -165,8 +199,13 @@ function JsonNode({ name, value, depth }: { name?: string; value: unknown; depth
 /** Collapsible JSON tree for developer/advanced views (never the primary UI for normal users). */
 export function JsonViewer({ value, className }: { value: unknown; className?: string }) {
   return (
-    <div className={cn("relative overflow-x-auto rounded-lg border border-line bg-bg p-3 pr-9 font-mono text-xs leading-relaxed", className)}>
-      <CopyButton value={JSON.stringify(value, null, 2)} label="Copy JSON" className="absolute right-1.5 top-1.5" />
+    <div
+      className={cn(
+        "relative overflow-x-auto rounded-lg border border-line bg-bg p-3 pr-9 font-mono text-xs leading-relaxed",
+        className,
+      )}
+    >
+      <CopyButton value={JSON.stringify(value, null, 2)} label="Copy JSON" className="absolute top-1.5 right-1.5" />
       <div className="-ml-4">
         <JsonNode value={value} depth={0} />
       </div>
@@ -174,7 +213,13 @@ export function JsonViewer({ value, className }: { value: unknown; className?: s
   );
 }
 
-export function KeyValue({ items, className }: { items: Array<[React.ReactNode, React.ReactNode]>; className?: string }) {
+export function KeyValue({
+  items,
+  className,
+}: {
+  items: Array<[React.ReactNode, React.ReactNode]>;
+  className?: string;
+}) {
   return (
     <dl className={cn("grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-4 gap-y-2 text-[13px]", className)}>
       {items.map(([k, v], i) => (

@@ -16,11 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorState, InlineError } from "@/components/ui/states";
 import { toast } from "@/components/ui/toaster";
-import { usersApi, type MeOut, type UserUpdate } from "@/lib/api";
+import { normalizeError, usersApi, type MeOut, type UserUpdate } from "@/lib/api";
 import { useAuth, useCurrentUser } from "@/lib/auth/hooks";
 import { dateOnly, dateTime } from "@/lib/format";
 import { qk } from "@/lib/query/keys";
 import { applyFieldErrors } from "./form-errors";
+import { InlineAlert } from "./inline-alert";
 import { LOCALE_PATTERN, localeLabel, localeOptions } from "./locale";
 import { SettingsCard } from "./settings-layout";
 import { TimezoneSelect } from "./timezone-select";
@@ -105,7 +106,12 @@ function ProfileForm({ me }: { me: MeOut }) {
         description="How you appear to teammates, and the time zone AgentOS uses to interpret dates like “tomorrow at 2 PM” in your goals."
         footer={
           <>
-            <Button type="button" variant="ghost" disabled={!formState.isDirty || save.isPending} onClick={() => reset(toValues(me))}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={!formState.isDirty || save.isPending}
+              onClick={() => reset(toValues(me))}
+            >
               Discard
             </Button>
             <Button type="submit" variant="primary" loading={save.isPending} disabled={!formState.isDirty}>
@@ -115,13 +121,23 @@ function ProfileForm({ me }: { me: MeOut }) {
         }
       >
         <div className="grid max-w-xl gap-5">
-          <Field label="Display name" error={formState.errors.display_name?.message} description="Shown in the app and to members of your organizations.">
+          <Field
+            label="Display name"
+            error={formState.errors.display_name?.message}
+            description="Shown in the app and to members of your organizations."
+          >
             {(ids) => <Input {...ids} {...register("display_name")} autoComplete="name" placeholder="Your name" />}
           </Field>
           <Field label="Email" description="Your sign-in address. It can't be changed here.">
             {(ids) => (
               <div className="flex flex-wrap items-center gap-2">
-                <Input {...ids} value={me.email} readOnly aria-readonly className="max-w-sm cursor-default text-fg-muted" />
+                <Input
+                  {...ids}
+                  value={me.email}
+                  readOnly
+                  aria-readonly
+                  className="max-w-sm cursor-default text-fg-muted"
+                />
                 {me.email_verified ? (
                   <Badge tone="success">
                     <BadgeCheckIcon className="size-3" aria-hidden /> Verified
@@ -134,16 +150,26 @@ function ProfileForm({ me }: { me: MeOut }) {
               </div>
             )}
           </Field>
-          <Field label="Time zone" error={formState.errors.timezone?.message} description="Used for scheduling, automations and how times are interpreted in your goals.">
+          <Field
+            label="Time zone"
+            error={formState.errors.timezone?.message}
+            description="Used for scheduling, automations and how times are interpreted in your goals."
+          >
             {(ids) => (
               <Controller
                 control={control}
                 name="timezone"
-                render={({ field }) => <TimezoneSelect {...ids} value={field.value} onChange={(z) => field.onChange(z)} />}
+                render={({ field }) => (
+                  <TimezoneSelect {...ids} value={field.value} onChange={(z) => field.onChange(z)} />
+                )}
               />
             )}
           </Field>
-          <Field label="Language & region" error={formState.errors.locale?.message} description="Preferred language and regional format for your account.">
+          <Field
+            label="Language & region"
+            error={formState.errors.locale?.message}
+            description="Preferred language and regional format for your account."
+          >
             {(ids) => (
               <Controller
                 control={control}
@@ -177,11 +203,25 @@ function AccountDetails({ me }: { me: MeOut }) {
     <SettingsCard title="Account" description="Read-only details about your account.">
       <KeyValue
         items={[
-          ["Status", <Badge key="s" tone={me.status === "active" ? "success" : "warning"}>{me.status === "active" ? "Active" : me.status}</Badge>],
+          [
+            "Status",
+            <Badge key="s" tone={me.status === "active" ? "success" : "warning"}>
+              {me.status === "active" ? "Active" : me.status}
+            </Badge>,
+          ],
           ["Member since", dateOnly(me.created_at)],
           ["Last sign-in", dateTime(me.last_login_at)],
           ["Two-step verification", me.mfa_enabled ? "On" : "Off"],
-          ...(me.is_platform_admin ? ([["Platform role", <Badge key="p" tone="verify">Platform administrator</Badge>]] as Array<[React.ReactNode, React.ReactNode]>) : []),
+          ...(me.is_platform_admin
+            ? ([
+                [
+                  "Platform role",
+                  <Badge key="p" tone="verify">
+                    Platform administrator
+                  </Badge>,
+                ],
+              ] as Array<[React.ReactNode, React.ReactNode]>)
+            : []),
         ]}
       />
     </SettingsCard>
@@ -217,7 +257,10 @@ function DeleteAccount({ me }: { me: MeOut }) {
     >
       <ul className="grid gap-1.5 text-[13px] leading-relaxed text-fg-muted">
         <li>• You are signed out of every device immediately and can no longer sign in.</li>
-        <li>• Your memories, files, tasks and connected integrations are removed in the background; integrations are revoked at the provider.</li>
+        <li>
+          • Your memories, files, tasks and connected integrations are removed in the background; integrations are
+          revoked at the provider.
+        </li>
         <li>• Personal organizations are deleted. Shared organizations keep working for their other members.</li>
         <li>• Audit records are retained as required by your organization&apos;s retention policy.</li>
       </ul>
@@ -242,16 +285,19 @@ function DeleteAccount({ me }: { me: MeOut }) {
           <label htmlFor={passwordId} className="text-xs text-fg-muted">
             Current password <span className="text-fg-subtle">(required if you sign in with a password)</span>
           </label>
-          <Input id={passwordId} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            id={passwordId}
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           {remove.error ? (
-            <InlineError
-              className="mt-2"
-              error={
-                (remove.error as { code?: string }).code === "invalid_credentials"
-                  ? new Error("The password is incorrect.")
-                  : remove.error
-              }
-            />
+            normalizeError(remove.error).code === "invalid_credentials" ? (
+              <InlineAlert className="mt-2" message="The password is incorrect." error={remove.error} />
+            ) : (
+              <InlineError className="mt-2" error={remove.error} />
+            )
           ) : null}
         </div>
       </ConfirmDialog>

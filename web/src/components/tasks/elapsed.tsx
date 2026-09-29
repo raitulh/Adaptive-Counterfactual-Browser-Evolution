@@ -11,7 +11,13 @@ const STOPPED: ReadonlySet<TaskStatus> = new Set(["completed", "failed", "cancel
  * Wall-clock time since the task started (or was created). It keeps ticking while the task is
  * open — including while it waits for you — and stops once it finished, failed, expired or was cancelled.
  */
-export function Elapsed({ task, className }: { task: Pick<TaskOut, "status" | "created_at" | "started_at" | "completed_at" | "updated_at">; className?: string }) {
+export function Elapsed({
+  task,
+  className,
+}: {
+  task: Pick<TaskOut, "status" | "created_at" | "started_at" | "completed_at" | "updated_at">;
+  className?: string;
+}) {
   const stopped = STOPPED.has(task.status);
   const now = useNow(1000, !stopped);
   const start = new Date(task.started_at ?? task.created_at).getTime();

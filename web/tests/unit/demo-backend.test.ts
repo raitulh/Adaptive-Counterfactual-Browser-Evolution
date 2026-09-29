@@ -92,17 +92,15 @@ describe("auth and session", () => {
     const denied = await apiError(usersApi.me());
     expect(denied?.status).toBe(401);
     expect(await refreshSession()).toBeNull();
-    await authApi
-      .login({ email: "demo@agentos.example.com", password: "x" })
-      .then((t) =>
-        sessionStore.set({
-          accessToken: t.access_token,
-          expiresAt: Date.now() + 900_000,
-          sessionId: t.session_id,
-          tenantId: t.tenant_id,
-          userId: t.user_id,
-        }),
-      );
+    await authApi.login({ email: "demo@agentos.example.com", password: "x" }).then((t) =>
+      sessionStore.set({
+        accessToken: t.access_token,
+        expiresAt: Date.now() + 900_000,
+        sessionId: t.session_id,
+        tenantId: t.tenant_id,
+        userId: t.user_id,
+      }),
+    );
     expect((await usersApi.me()).email).toBe("demo@agentos.example.com");
   });
 

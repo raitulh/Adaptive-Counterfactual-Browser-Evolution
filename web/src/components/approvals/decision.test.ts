@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { approvalConfirmationMode, decisionBlock, rejectReasonError, remainingLabel, typeToConfirmPhrase } from "./decision";
+import {
+  approvalConfirmationMode,
+  decisionBlock,
+  rejectReasonError,
+  remainingLabel,
+  typeToConfirmPhrase,
+} from "./decision";
 
 describe("approvalConfirmationMode", () => {
   it("lets low and medium risk be approved from the card", () => {
@@ -38,7 +44,11 @@ describe("decisionBlock", () => {
   });
 
   it("formats the countdown and flags urgency", () => {
-    expect(remainingLabel("2026-09-29T12:03:05Z", now)).toEqual({ label: "Expires in 3m 05s", expired: false, urgent: true });
+    expect(remainingLabel("2026-09-29T12:03:05Z", now)).toEqual({
+      label: "Expires in 3m 05s",
+      expired: false,
+      urgent: true,
+    });
     expect(remainingLabel("2026-09-30T14:00:00Z", now)).toMatchObject({ label: "Expires in 1d 2h", urgent: false });
     expect(remainingLabel("2026-09-29T11:00:00Z", now)).toMatchObject({ label: "Expired", expired: true });
   });

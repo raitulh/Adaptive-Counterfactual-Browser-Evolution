@@ -36,7 +36,10 @@ function xhrUpload(form: FormData, token: string | null, opts: UploadOptions, ke
     };
     xhr.onload = () => {
       const headers = new Headers();
-      for (const line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)) {
+      for (const line of xhr
+        .getAllResponseHeaders()
+        .trim()
+        .split(/[\r\n]+/)) {
         const idx = line.indexOf(":");
         if (idx > 0) headers.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
       }

@@ -13,9 +13,7 @@ export const integrationsApi = {
   connectGoogle: (body: ConnectGoogleRequest): Promise<ConnectGoogleResponse> =>
     call(api.POST("/api/v1/integrations/google/connect", { body })),
   check: (connectionId: string) =>
-    call(
-      api.POST("/api/v1/integrations/{connection_id}/check", { params: { path: { connection_id: connectionId } } }),
-    ),
+    call(api.POST("/api/v1/integrations/{connection_id}/check", { params: { path: { connection_id: connectionId } } })),
   disconnect: (connectionId: string) =>
     call(
       api.POST("/api/v1/integrations/{connection_id}/disconnect", {

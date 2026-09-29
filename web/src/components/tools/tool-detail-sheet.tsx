@@ -11,7 +11,14 @@ import { capabilityForScope, shortScope } from "@/components/integrations/google
 import { ROLE_OPTIONS, ruleEffectMeta, rulesForTool } from "./policy-schema";
 import { SchemaView } from "./schema-view";
 import { ToolConnectionStatus } from "./tool-connection";
-import { asPermissionLevel, asRiskLevel, categoryLabel, outputTrust, providerLabel, verificationMethodMeta } from "./tool-meta";
+import {
+  asPermissionLevel,
+  asRiskLevel,
+  categoryLabel,
+  outputTrust,
+  providerLabel,
+  verificationMethodMeta,
+} from "./tool-meta";
 
 /** How a side-effecting call is protected from running twice (ToolOut.idempotency_strategy). */
 const IDEMPOTENCY_LABELS: Record<string, { label: string; description: string }> = {
@@ -42,7 +49,7 @@ function idempotencyLabel(tool: { idempotency_strategy: string; permission_level
 function SheetSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h3 className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">{title}</h3>
+      <h3 className="text-2xs font-medium tracking-wider text-fg-subtle uppercase">{title}</h3>
       {children}
     </section>
   );
@@ -67,7 +74,15 @@ export function ApprovalBadge({ tool }: { tool: Pick<ToolOut, "requires_approval
   );
 }
 
-export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut | null; rules?: ToolRuleOut[]; onOpenChange: (open: boolean) => void }) {
+export function ToolDetailSheet({
+  tool,
+  rules,
+  onOpenChange,
+}: {
+  tool: ToolOut | null;
+  rules?: ToolRuleOut[];
+  onOpenChange: (open: boolean) => void;
+}) {
   const level = tool ? asPermissionLevel(tool.permission_level) : null;
   const risk = tool ? asRiskLevel(tool.risk_level) : null;
   const trust = tool ? outputTrust(tool.output_trust) : null;
@@ -77,9 +92,11 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
       <SheetContent className="max-w-xl">
         {tool && (
           <>
-            <div className="border-b border-line px-5 pb-4 pt-5 pr-12">
+            <div className="border-b border-line px-5 pt-5 pr-12 pb-4">
               <SheetTitle className="font-mono text-base font-semibold text-fg">{tool.name}</SheetTitle>
-              <SheetDescription className="mt-1 text-sm leading-relaxed text-fg-muted">{tool.description}</SheetDescription>
+              <SheetDescription className="mt-1 text-sm leading-relaxed text-fg-muted">
+                {tool.description}
+              </SheetDescription>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {level && <PermissionBadge level={level} />}
                 {risk && <RiskBadge level={risk} />}
@@ -99,7 +116,10 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                 {tool.policy_reasons && tool.policy_reasons.length > 0 && (
                   <ul className="flex flex-wrap gap-1.5">
                     {tool.policy_reasons.map((r) => (
-                      <li key={r} className="rounded border border-line-strong bg-surface-2 px-1.5 py-0.5 text-xs text-fg-muted">
+                      <li
+                        key={r}
+                        className="rounded border border-line-strong bg-surface-2 px-1.5 py-0.5 text-xs text-fg-muted"
+                      >
                         {r}
                       </li>
                     ))}
@@ -112,15 +132,30 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                   items={[
                     ["Provider", providerLabel(tool.provider)],
                     ["Category", categoryLabel(tool.category)],
-                    ["Version", <span key="v" className="font-mono text-xs">{tool.version}</span>],
-                    ["Permission level", level ? `${permissionLevelMeta[level].label} — ${permissionLevelMeta[level].description}` : tool.permission_level],
-                    ["Risk", risk ? `${riskLevelMeta[risk].label} — ${riskLevelMeta[risk].description}` : tool.risk_level],
+                    [
+                      "Version",
+                      <span key="v" className="font-mono text-xs">
+                        {tool.version}
+                      </span>,
+                    ],
+                    [
+                      "Permission level",
+                      level
+                        ? `${permissionLevelMeta[level].label} — ${permissionLevelMeta[level].description}`
+                        : tool.permission_level,
+                    ],
+                    [
+                      "Risk",
+                      risk ? `${riskLevelMeta[risk].label} — ${riskLevelMeta[risk].description}` : tool.risk_level,
+                    ],
                     [
                       "Verification",
                       <span key="ver">
                         {verificationMethodMeta[tool.verification_method]?.label ?? tool.verification_method}
                         {verificationMethodMeta[tool.verification_method] && (
-                          <span className="block text-xs text-fg-muted">{verificationMethodMeta[tool.verification_method].description}</span>
+                          <span className="block text-xs text-fg-muted">
+                            {verificationMethodMeta[tool.verification_method].description}
+                          </span>
                         )}
                       </span>,
                     ],
@@ -143,7 +178,9 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                     [
                       "Timeout & retries",
                       `${tool.timeout_seconds}s per attempt · ${
-                        tool.max_attempts > 1 ? `up to ${tool.max_attempts} attempts on transient errors` : "never retried automatically"
+                        tool.max_attempts > 1
+                          ? `up to ${tool.max_attempts} attempts on transient errors`
+                          : "never retried automatically"
                       }${tool.parallel_safe ? "" : " · runs one at a time"}`,
                     ],
                   ]}
@@ -158,7 +195,10 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                       return (
                         <li key={s} className="flex flex-wrap items-center gap-2 text-[13px]">
                           <Tooltip content={<span className="font-mono">{s}</span>}>
-                            <code tabIndex={0} className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-fg outline-none">
+                            <code
+                              tabIndex={0}
+                              className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-fg outline-none"
+                            >
                               {shortScope(s)}
                             </code>
                           </Tooltip>
@@ -177,7 +217,9 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
               {rules && (
                 <SheetSection title="Organization rules that match">
                   {applicable.length === 0 ? (
-                    <p className="text-[13px] text-fg-muted">No organization rule matches this tool; built-in defaults apply.</p>
+                    <p className="text-[13px] text-fg-muted">
+                      No organization rule matches this tool; built-in defaults apply.
+                    </p>
                   ) : (
                     <ul className="flex flex-col gap-1.5">
                       {applicable.map((r) => (
@@ -185,7 +227,9 @@ export function ToolDetailSheet({ tool, rules, onOpenChange }: { tool: ToolOut |
                           <Badge tone={ruleEffectMeta[r.effect].tone}>{ruleEffectMeta[r.effect].label}</Badge>
                           <code className="font-mono text-xs text-fg">{r.tool_pattern}</code>
                           <span className="text-xs text-fg-subtle">
-                            {r.role ? `for ${ROLE_OPTIONS.find((o) => o.value === r.role)?.label.toLowerCase() ?? r.role}` : "for everyone"}
+                            {r.role
+                              ? `for ${ROLE_OPTIONS.find((o) => o.value === r.role)?.label.toLowerCase() ?? r.role}`
+                              : "for everyone"}
                           </span>
                         </li>
                       ))}

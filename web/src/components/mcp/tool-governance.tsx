@@ -4,7 +4,13 @@ import * as React from "react";
 import { Switch } from "@/components/ui/controls";
 import { Field } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { permissionLevelValues, riskLevelValues, type McpToolOut, type PermissionLevel, type RiskLevel } from "@/lib/api";
+import {
+  permissionLevelValues,
+  riskLevelValues,
+  type McpToolOut,
+  type PermissionLevel,
+  type RiskLevel,
+} from "@/lib/api";
 import { permissionLevelMeta, riskLevelMeta } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +21,11 @@ export interface GovernanceValues {
 }
 
 export function governanceOf(tool: McpToolOut): GovernanceValues {
-  return { permission_level: tool.permission_level, risk_level: tool.risk_level, requires_approval: tool.requires_approval };
+  return {
+    permission_level: tool.permission_level,
+    risk_level: tool.risk_level,
+    requires_approval: tool.requires_approval,
+  };
 }
 
 /** Changed fields only (PATCH semantics). */
@@ -58,7 +68,11 @@ export function GovernanceFields({
     <div className={cn("grid gap-4", compact ? "grid-cols-2 [&>*:last-child]:col-span-2" : "sm:grid-cols-3")}>
       <Field label="Permission level" description={permissionLevelMeta[value.permission_level].description}>
         {(ids) => (
-          <Select value={value.permission_level} onValueChange={(v) => onChange({ ...value, permission_level: v as PermissionLevel })} disabled={disabled}>
+          <Select
+            value={value.permission_level}
+            onValueChange={(v) => onChange({ ...value, permission_level: v as PermissionLevel })}
+            disabled={disabled}
+          >
             <SelectTrigger {...ids}>
               <SelectValue />
             </SelectTrigger>
@@ -74,7 +88,11 @@ export function GovernanceFields({
       </Field>
       <Field label="Risk" description={riskLevelMeta[value.risk_level].description}>
         {(ids) => (
-          <Select value={value.risk_level} onValueChange={(v) => onChange({ ...value, risk_level: v as RiskLevel })} disabled={disabled}>
+          <Select
+            value={value.risk_level}
+            onValueChange={(v) => onChange({ ...value, risk_level: v as RiskLevel })}
+            disabled={disabled}
+          >
             <SelectTrigger {...ids}>
               <SelectValue />
             </SelectTrigger>
@@ -102,7 +120,8 @@ export function GovernanceFields({
           />
         </div>
         <p id={`${approvalId}-d`} className="text-xs text-fg-subtle">
-          Every call waits for a person. High-risk writes, and any side effect at high or critical risk, need approval regardless.
+          Every call waits for a person. High-risk writes, and any side effect at high or critical risk, need approval
+          regardless.
         </p>
       </div>
     </div>

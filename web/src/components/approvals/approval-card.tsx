@@ -16,7 +16,15 @@ import { z } from "zod";
 import { Badge, PermissionBadge, RiskBadge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/input";
 import { InlineError } from "@/components/ui/states";
@@ -29,7 +37,14 @@ import { cn } from "@/lib/utils";
 import { useNow } from "@/components/tasks/hooks";
 import { toolIcon } from "@/components/tasks/timeline/tool-meta";
 import { ArgumentsPreview } from "./arguments-preview";
-import { approvalConfirmationMode, decisionBlock, rejectReasonError, REJECT_REASON_MAX, remainingLabel, typeToConfirmPhrase } from "./decision";
+import {
+  approvalConfirmationMode,
+  decisionBlock,
+  rejectReasonError,
+  REJECT_REASON_MAX,
+  remainingLabel,
+  typeToConfirmPhrase,
+} from "./decision";
 import { useApprovalDecision } from "./use-approval-decision";
 import { readable } from "@/components/tasks/timeline/readable";
 
@@ -55,7 +70,10 @@ function ExpiryCountdown({ expiresAt, active }: { expiresAt: string; active: boo
   const r = remainingLabel(expiresAt, now);
   return (
     <span
-      className={cn("inline-flex items-center gap-1 text-xs tabular-nums", r.expired ? "text-fg-subtle" : r.urgent ? "text-warning" : "text-fg-muted")}
+      className={cn(
+        "inline-flex items-center gap-1 text-xs tabular-nums",
+        r.expired ? "text-fg-subtle" : r.urgent ? "text-warning" : "text-fg-muted",
+      )}
       title={dateTime(expiresAt)}
     >
       <ClockIcon className="size-3" aria-hidden />
@@ -87,7 +105,10 @@ function RejectDialog({
   error: unknown;
   onReject: (reason: string) => void;
 }) {
-  const form = useForm<z.infer<typeof rejectSchema>>({ resolver: zodResolver(rejectSchema), defaultValues: { reason: "" } });
+  const form = useForm<z.infer<typeof rejectSchema>>({
+    resolver: zodResolver(rejectSchema),
+    defaultValues: { reason: "" },
+  });
   const reason = useWatch({ control: form.control, name: "reason" }) ?? "";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,15 +122,29 @@ function RejectDialog({
           <DialogHeader>
             <DialogTitle>Reject this action?</DialogTitle>
             <DialogDescription>
-              AgentOS will not run <span className="text-fg">{readable(approval.summary)}</span>. The step fails and the task continues only with steps that
-              don&apos;t depend on it.
+              AgentOS will not run <span className="text-fg">{readable(approval.summary)}</span>. The step fails and the
+              task continues only with steps that don&apos;t depend on it.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <Field label="Reason" required description="Shared with the task history so the outcome is explainable." error={form.formState.errors.reason?.message}>
-              {(ids) => <Textarea {...ids} autoFocus rows={3} maxLength={REJECT_REASON_MAX} placeholder="e.g. Wrong recipient — use the team alias instead" {...form.register("reason")} />}
+            <Field
+              label="Reason"
+              required
+              description="Shared with the task history so the outcome is explainable."
+              error={form.formState.errors.reason?.message}
+            >
+              {(ids) => (
+                <Textarea
+                  {...ids}
+                  autoFocus
+                  rows={3}
+                  maxLength={REJECT_REASON_MAX}
+                  placeholder="e.g. Wrong recipient — use the team alias instead"
+                  {...form.register("reason")}
+                />
+              )}
             </Field>
-            <p className="mt-1 text-right text-2xs tabular-nums text-fg-subtle">
+            <p className="mt-1 text-right text-2xs text-fg-subtle tabular-nums">
               {reason.length}/{REJECT_REASON_MAX}
             </p>
             {error ? <InlineError error={error} className="mt-2" /> : null}
@@ -138,10 +173,12 @@ function LinkedTask({ approval }: { approval: ApprovalOut }) {
   return (
     <Link
       href={`/app/tasks/${approval.task_id}`}
-      className="group flex min-w-0 items-center gap-2 rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-[13px] outline-none transition-colors hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="group flex min-w-0 items-center gap-2 rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-[13px] transition-colors outline-none hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-fg">{task.data?.goal ?? (task.isLoading ? "Loading task…" : "Open task")}</span>
+        <span className="block truncate text-fg">
+          {task.data?.goal ?? (task.isLoading ? "Loading task…" : "Open task")}
+        </span>
         {step && (
           <span className="block truncate text-xs text-fg-muted">
             Step {step.position + 1}: {step.action}
@@ -153,7 +190,13 @@ function LinkedTask({ approval }: { approval: ApprovalOut }) {
   );
 }
 
-export function ApprovalCard({ approval: initial, showTaskLink = false, highlighted = false, compact = false, className }: ApprovalCardProps) {
+export function ApprovalCard({
+  approval: initial,
+  showTaskLink = false,
+  highlighted = false,
+  compact = false,
+  className,
+}: ApprovalCardProps) {
   const { approve, reject, decided } = useApprovalDecision(initial);
   // Only the backend's answer changes what the card shows.
   const approval = decided ?? initial;
@@ -189,7 +232,9 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
           <span
             className={cn(
               "flex size-9 shrink-0 items-center justify-center rounded-lg border",
-              pending && !block ? "border-warning/35 bg-warning/10 text-warning" : "border-line-strong bg-surface-2 text-fg-muted",
+              pending && !block
+                ? "border-warning/35 bg-warning/10 text-warning"
+                : "border-line-strong bg-surface-2 text-fg-muted",
             )}
             aria-hidden
           >
@@ -199,9 +244,16 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge kind="approval" value={approval.status} />
               {pending && <ExpiryCountdown expiresAt={approval.expires_at} active={pending} />}
-              {!pending && <RelativeTime value={approval.approved_at ?? approval.rejected_at ?? approval.created_at} className="text-xs text-fg-subtle" />}
+              {!pending && (
+                <RelativeTime
+                  value={approval.approved_at ?? approval.rejected_at ?? approval.created_at}
+                  className="text-xs text-fg-subtle"
+                />
+              )}
             </div>
-            <h3 className="mt-1.5 text-[15px] font-semibold leading-snug tracking-tight text-fg">{readable(approval.summary)}</h3>
+            <h3 className="mt-1.5 text-[15px] leading-snug font-semibold tracking-tight text-fg">
+              {readable(approval.summary)}
+            </h3>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-fg-muted">
               <span>{humanizeTool(approval.tool_name)}</span>
               <code className="font-mono text-2xs text-fg-subtle">{approval.tool_name}</code>
@@ -221,11 +273,13 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
 
         {approval.reasons.length > 0 && (
           <div>
-            <p className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">{pending ? "Why this needs you" : "Why it needed approval"}</p>
+            <p className="text-2xs font-medium tracking-wider text-fg-subtle uppercase">
+              {pending ? "Why this needs you" : "Why it needed approval"}
+            </p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {approval.reasons.map((r, i) => (
                 <li key={i}>
-                  <Badge tone="warning" variant="outline" className="h-auto whitespace-normal py-0.5">
+                  <Badge tone="warning" variant="outline" className="h-auto py-0.5 whitespace-normal">
                     {r.charAt(0).toUpperCase() + r.slice(1)}
                   </Badge>
                 </li>
@@ -237,7 +291,7 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
         <div>
           <button
             type="button"
-            className="text-2xs font-medium uppercase tracking-wider text-fg-subtle outline-none hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="text-2xs font-medium tracking-wider text-fg-subtle uppercase outline-none hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent/50"
             aria-expanded={showArgs}
             onClick={() => setShowArgs((s) => !s)}
           >
@@ -269,13 +323,28 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
             </p>
           ) : (
             <p className="flex flex-1 items-center gap-1.5 text-xs text-fg-subtle">
-              {mode !== "none" ? <ShieldAlertIcon className="size-3.5 text-warning" aria-hidden /> : <HandIcon className="size-3.5" aria-hidden />}
-              {mode === "type" ? "Critical: you will be asked to type the tool name." : mode === "confirm" ? "You will confirm exactly what runs." : "Runs as shown once approved."}
+              {mode !== "none" ? (
+                <ShieldAlertIcon className="size-3.5 text-warning" aria-hidden />
+              ) : (
+                <HandIcon className="size-3.5" aria-hidden />
+              )}
+              {mode === "type"
+                ? "Critical: you will be asked to type the tool name."
+                : mode === "confirm"
+                  ? "You will confirm exactly what runs."
+                  : "Runs as shown once approved."}
             </p>
           )}
-          {(approve.error || reject.error) && !confirmOpen && !rejectOpen ? <InlineError error={approve.error ?? reject.error} className="sm:max-w-xs" /> : null}
+          {(approve.error || reject.error) && !confirmOpen && !rejectOpen ? (
+            <InlineError error={approve.error ?? reject.error} className="sm:max-w-xs" />
+          ) : null}
           <div className="flex gap-2 sm:ml-auto">
-            <Button variant="danger-outline" size="sm" disabled={Boolean(block) || busy} onClick={() => setRejectOpen(true)}>
+            <Button
+              variant="danger-outline"
+              size="sm"
+              disabled={Boolean(block) || busy}
+              onClick={() => setRejectOpen(true)}
+            >
               <XIcon /> Reject
             </Button>
             <Button
@@ -297,8 +366,8 @@ export function ApprovalCard({ approval: initial, showTaskLink = false, highligh
         title={`Approve: ${readable(approval.summary)}?`}
         description={
           <>
-            AgentOS will run <code className="font-mono text-fg">{approval.tool_name}</code> on your behalf, exactly as shown below.{" "}
-            <span className="text-warning">{risk.label}:</span> {risk.description.toLowerCase()}
+            AgentOS will run <code className="font-mono text-fg">{approval.tool_name}</code> on your behalf, exactly as
+            shown below. <span className="text-warning">{risk.label}:</span> {risk.description.toLowerCase()}
           </>
         }
         confirmLabel="Approve and run"

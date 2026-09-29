@@ -18,12 +18,24 @@ describe("extractStepRefs", () => {
 describe("buildPlanGraph", () => {
   it("lays out the meeting plan with a parallel first level", () => {
     const g = buildPlanGraph({ plan: MEETING_PLAN, steps: MEETING_STEPS, planVersion: 1 });
-    expect(g.levels.map((l) => l.map((n) => n.key))).toEqual([["find_slot", "find_contact"], ["create_meeting"], ["send_confirmation"]]);
+    expect(g.levels.map((l) => l.map((n) => n.key))).toEqual([
+      ["find_slot", "find_contact"],
+      ["create_meeting"],
+      ["send_confirmation"],
+    ]);
     expect(g.parallel).toBe(true);
     expect(g.dependenciesKnown).toBe(true);
-    expect(g.nodes.find((n) => n.key === "send_confirmation")?.dependsOn.sort()).toEqual(["create_meeting", "find_contact"]);
+    expect(g.nodes.find((n) => n.key === "send_confirmation")?.dependsOn.sort()).toEqual([
+      "create_meeting",
+      "find_contact",
+    ]);
     expect(g.edges).toContainEqual({ from: "find_slot", to: "create_meeting" });
-    expect(g.nodes[2]).toMatchObject({ status: "completed", verification: "passed", requiresApproval: true, riskLevel: "high" });
+    expect(g.nodes[2]).toMatchObject({
+      status: "completed",
+      verification: "passed",
+      requiresApproval: true,
+      riskLevel: "high",
+    });
   });
 
   it("derives dependencies from data references even when none are declared", () => {
@@ -65,7 +77,10 @@ describe("buildPlanGraph", () => {
   });
 
   it("recognizes a direct answer plan", () => {
-    const g = buildPlanGraph({ plan: { goal: "Q", summary: "Answer directly.", steps: [], direct_response: "**A**" }, steps: [] });
+    const g = buildPlanGraph({
+      plan: { goal: "Q", summary: "Answer directly.", steps: [], direct_response: "**A**" },
+      steps: [],
+    });
     expect(g.directResponse).toBe(true);
     expect(g.levels).toEqual([]);
   });

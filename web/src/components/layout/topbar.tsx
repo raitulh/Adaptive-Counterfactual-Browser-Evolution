@@ -14,11 +14,28 @@ import { formatCount, useUnreadNotificationsCount } from "./use-badges";
 function RealtimeIndicator() {
   const state = useRealtimeStore((s) => s.userStream);
   const live = state === "open";
-  const label = live ? "Live updates connected" : state === "reconnecting" || state === "connecting" ? "Reconnecting live updates…" : "Live updates offline — data refreshes on navigation";
+  const label = live
+    ? "Live updates connected"
+    : state === "reconnecting" || state === "connecting"
+      ? "Reconnecting live updates…"
+      : "Live updates offline — data refreshes on navigation";
   return (
     <Tooltip content={label}>
-      <span className="hidden items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-2xs text-fg-subtle sm:inline-flex" role="status" aria-label={label}>
-        <span className={cn("size-1.5 rounded-full", live ? "bg-success" : state === "reconnecting" || state === "connecting" ? "bg-warning motion-safe:animate-signal" : "bg-fg-subtle")} />
+      <span
+        className="hidden items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-2xs text-fg-subtle sm:inline-flex"
+        role="status"
+        aria-label={label}
+      >
+        <span
+          className={cn(
+            "size-1.5 rounded-full",
+            live
+              ? "bg-success"
+              : state === "reconnecting" || state === "connecting"
+                ? "bg-warning motion-safe:animate-signal"
+                : "bg-fg-subtle",
+          )}
+        />
         {live ? "Live" : state === "reconnecting" || state === "connecting" ? "Connecting" : "Offline"}
       </span>
     </Tooltip>
@@ -33,7 +50,13 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-bg/80 px-3 backdrop-blur-md sm:px-5">
-      <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="lg:hidden"
+        onClick={() => setMobileNavOpen(true)}
+        aria-label="Open navigation"
+      >
         <MenuIcon />
       </Button>
       <Link href="/app" className="rounded-md lg:hidden" aria-label="AgentOS home">
@@ -43,7 +66,7 @@ export function Topbar() {
       <button
         type="button"
         onClick={() => setCommandOpen(true)}
-        className="ml-1 flex h-8 w-full max-w-md items-center gap-2 rounded-md border border-line bg-surface-1 px-2.5 text-[13px] text-fg-subtle outline-none transition-colors hover:border-line-strong hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="ml-1 flex h-8 w-full max-w-md items-center gap-2 rounded-md border border-line bg-surface-1 px-2.5 text-[13px] text-fg-subtle transition-colors outline-none hover:border-line-strong hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent/50"
         aria-label="Open command palette"
       >
         <SearchIcon className="size-3.5" aria-hidden />
@@ -68,7 +91,7 @@ export function Topbar() {
           >
             <BellIcon />
             {unread && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-fg-on-accent">
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-fg-on-accent">
                 {unread}
               </span>
             )}

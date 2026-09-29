@@ -6,15 +6,16 @@ import { cn } from "@/lib/utils";
 
 export const Tabs = T.Root;
 
-export const TabsList = React.forwardRef<React.ComponentRef<typeof T.List>, React.ComponentPropsWithoutRef<typeof T.List>>(
-  ({ className, ...props }, ref) => (
-    <T.List
-      ref={ref}
-      className={cn("inline-flex h-9 items-center gap-1 rounded-lg border border-line bg-surface-1 p-1", className)}
-      {...props}
-    />
-  ),
-);
+export const TabsList = React.forwardRef<
+  React.ComponentRef<typeof T.List>,
+  React.ComponentPropsWithoutRef<typeof T.List>
+>(({ className, ...props }, ref) => (
+  <T.List
+    ref={ref}
+    className={cn("inline-flex h-9 items-center gap-1 rounded-lg border border-line bg-surface-1 p-1", className)}
+    {...props}
+  />
+));
 TabsList.displayName = "TabsList";
 
 export const TabsTrigger = React.forwardRef<
@@ -24,7 +25,7 @@ export const TabsTrigger = React.forwardRef<
   <T.Trigger
     ref={ref}
     className={cn(
-      "inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium text-fg-muted outline-none transition-colors hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-40 data-[state=active]:bg-surface-3 data-[state=active]:text-fg data-[state=active]:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] [&_svg]:size-3.5",
+      "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium whitespace-nowrap text-fg-muted transition-colors outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-40 data-[state=active]:bg-surface-3 data-[state=active]:text-fg data-[state=active]:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] [&_svg]:size-3.5",
       className,
     )}
     {...props}

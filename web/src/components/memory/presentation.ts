@@ -91,18 +91,27 @@ export const memoryTypeMeta: Record<MemoryType, MemoryTypeMeta> = {
 };
 
 /** The primary sections of Memory OS (each maps 1:1 to a backend MemoryType). */
-export const PRIMARY_SECTIONS: MemoryType[] = ["long_term", "preference", "verified_fact", "contact", "task_history", "semantic"];
+export const PRIMARY_SECTIONS: MemoryType[] = [
+  "long_term",
+  "preference",
+  "verified_fact",
+  "contact",
+  "task_history",
+  "semantic",
+];
 /** Short-lived layers, shown under "More". */
 export const SECONDARY_SECTIONS: MemoryType[] = ["short_term", "conversational"];
 
 export function metaForType(type: string): MemoryTypeMeta {
-  return (memoryTypeMeta as Record<string, MemoryTypeMeta>)[type] ?? {
-    label: type,
-    section: type,
-    description: "",
-    icon: BrainCircuitIcon,
-    maxAgeDays: 365,
-  };
+  return (
+    (memoryTypeMeta as Record<string, MemoryTypeMeta>)[type] ?? {
+      label: type,
+      section: type,
+      description: "",
+      icon: BrainCircuitIcon,
+      maxAgeDays: 365,
+    }
+  );
 }
 
 export interface FreshnessMeta {
@@ -166,12 +175,18 @@ export interface MemoryPresentation {
   canVerify: boolean;
 }
 
-export function presentMemory(m: { freshness: Freshness; confidence: number; status?: string | null }): MemoryPresentation {
+export function presentMemory(m: {
+  freshness: Freshness;
+  confidence: number;
+  status?: string | null;
+}): MemoryPresentation {
   const freshness = freshnessMeta[m.freshness] ?? freshnessMeta.unverified;
   const status = m.status ?? "active";
   const tags: MemoryPresentation["tags"] = [];
-  if (status === "superseded") tags.push({ label: "Superseded", tone: "neutral", description: memoryStatusMeta.superseded.description });
-  if (status === "conflicted") tags.push({ label: "Conflicted", tone: "recover", description: memoryStatusMeta.conflicted.description });
+  if (status === "superseded")
+    tags.push({ label: "Superseded", tone: "neutral", description: memoryStatusMeta.superseded.description });
+  if (status === "conflicted")
+    tags.push({ label: "Conflicted", tone: "recover", description: memoryStatusMeta.conflicted.description });
   if (m.freshness !== "fresh" && !(status === "conflicted" && m.freshness === "unverified")) {
     tags.push({ label: freshness.label, tone: freshness.tone, description: freshness.description });
   }
@@ -193,7 +208,10 @@ export const SOURCE_LABELS: Record<string, string> = {
 };
 
 /** Where a memory came from, with a link when the source is a task. */
-export function describeSource(sourceType: string, sourceReference: string): { label: string; href?: string; taskId?: string } {
+export function describeSource(
+  sourceType: string,
+  sourceReference: string,
+): { label: string; href?: string; taskId?: string } {
   const label = SOURCE_LABELS[sourceType] ?? sourceType.replace(/_/g, " ");
   const task = /^task:([0-9a-f-]{8,})$/i.exec(sourceReference ?? "");
   if (task) return { label, href: `/app/tasks/${task[1]}`, taskId: task[1] };
@@ -204,7 +222,11 @@ export function describeSource(sourceType: string, sourceReference: string): { l
  * How much of the type's freshness window has elapsed since the last verification (0 = just
  * verified, 1 = at/over the limit). Display only; the backend's `freshness` stays authoritative.
  */
-export function freshnessWindow(memoryType: string, lastVerifiedAt: string, now: number): {
+export function freshnessWindow(
+  memoryType: string,
+  lastVerifiedAt: string,
+  now: number,
+): {
   elapsedDays: number;
   maxAgeDays: number;
   used: number;

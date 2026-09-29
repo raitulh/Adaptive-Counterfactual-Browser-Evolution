@@ -47,16 +47,31 @@ export function NotificationsPanel() {
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: qk.notifications.all });
-  const markRead = useMutation({ mutationFn: (id: string) => notificationsApi.markRead(id), onSuccess: invalidate, onError: (e) => toastError(e) });
-  const markAll = useMutation({ mutationFn: () => notificationsApi.markAllRead(), onSuccess: invalidate, onError: (e) => toastError(e) });
+  const markRead = useMutation({
+    mutationFn: (id: string) => notificationsApi.markRead(id),
+    onSuccess: invalidate,
+    onError: (e) => toastError(e),
+  });
+  const markAll = useMutation({
+    mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: invalidate,
+    onError: (e) => toastError(e),
+  });
 
   // Surface important realtime notifications as toasts (the drawer remains the durable record).
   useEffect(
     () =>
       onUserStreamMessage((m) => {
         if (m.type !== "NOTIFICATION_CREATED") return;
-        if (m.event === "approval_required" || m.event === "input_required" || m.event === "task_failed" || m.event === "connection_expired") {
-          toast(m.title, { action: { label: "View", onClick: () => useUiStore.getState().setNotificationsOpen(true) } });
+        if (
+          m.event === "approval_required" ||
+          m.event === "input_required" ||
+          m.event === "task_failed" ||
+          m.event === "connection_expired"
+        ) {
+          toast(m.title, {
+            action: { label: "View", onClick: () => useUiStore.getState().setNotificationsOpen(true) },
+          });
         }
       }),
     [],
@@ -68,7 +83,9 @@ export function NotificationsPanel() {
         <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-4 pr-12">
           <div>
             <SheetTitle className="text-base font-semibold tracking-tight">Notifications</SheetTitle>
-            <SheetDescription className="text-xs text-fg-subtle">Approvals, questions and results from your agents.</SheetDescription>
+            <SheetDescription className="text-xs text-fg-subtle">
+              Approvals, questions and results from your agents.
+            </SheetDescription>
           </div>
           <Button size="xs" variant="ghost" onClick={() => markAll.mutate()} loading={markAll.isPending}>
             <CheckCheckIcon /> Mark all read
@@ -84,7 +101,11 @@ export function NotificationsPanel() {
           )}
           {list.error && <ErrorState error={list.error} onRetry={() => list.refetch()} compact />}
           {!list.isLoading && !list.error && list.items.length === 0 && (
-            <EmptyState icon={<BellIcon />} title="You're all caught up" description="When an agent needs you or finishes something important, it shows up here." />
+            <EmptyState
+              icon={<BellIcon />}
+              title="You're all caught up"
+              description="When an agent needs you or finishes something important, it shows up here."
+            />
           )}
           <ul className="divide-y divide-line">
             {list.items.map((n) => {
@@ -92,9 +113,17 @@ export function NotificationsPanel() {
               const unread = !n.read_at;
               const body = (
                 <div className="flex gap-3 px-5 py-3.5">
-                  <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", unread ? (TONE[n.event_type] ?? "bg-accent") : "bg-transparent")} aria-hidden />
+                  <span
+                    className={cn(
+                      "mt-1.5 size-2 shrink-0 rounded-full",
+                      unread ? (TONE[n.event_type] ?? "bg-accent") : "bg-transparent",
+                    )}
+                    aria-hidden
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className={cn("text-[13px] leading-snug", unread ? "font-medium text-fg" : "text-fg-muted")}>{n.title}</p>
+                    <p className={cn("text-[13px] leading-snug", unread ? "font-medium text-fg" : "text-fg-muted")}>
+                      {n.title}
+                    </p>
                     {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-fg-subtle">{n.body}</p>}
                     <RelativeTime value={n.created_at} className="mt-1 block text-2xs text-fg-subtle" />
                   </div>
@@ -106,7 +135,7 @@ export function NotificationsPanel() {
                   {href ? (
                     <Link
                       href={href}
-                      className="block outline-none transition-colors hover:bg-white/[0.03] focus-visible:bg-white/[0.05]"
+                      className="block transition-colors outline-none hover:bg-white/[0.03] focus-visible:bg-white/[0.05]"
                       onClick={() => {
                         if (unread) markRead.mutate(n.id);
                         setOpen(false);

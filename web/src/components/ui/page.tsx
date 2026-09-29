@@ -18,7 +18,9 @@ export function PageHeader({
   return (
     <header className={cn("flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0">
-        {eyebrow && <div className="mb-2 text-2xs font-medium uppercase tracking-[0.14em] text-fg-subtle">{eyebrow}</div>}
+        {eyebrow && (
+          <div className="mb-2 text-2xs font-medium tracking-[0.14em] text-fg-subtle uppercase">{eyebrow}</div>
+        )}
         <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">{title}</h1>
         {description && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-fg-muted">{description}</p>}
       </div>
@@ -27,7 +29,11 @@ export function PageHeader({
   );
 }
 
-export function PageContainer({ className, width = "default", ...props }: React.HTMLAttributes<HTMLDivElement> & { width?: "default" | "wide" | "narrow" | "full" }) {
+export function PageContainer({
+  className,
+  width = "default",
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { width?: "default" | "wide" | "narrow" | "full" }) {
   return (
     <div
       className={cn(

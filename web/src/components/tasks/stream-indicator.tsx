@@ -14,9 +14,17 @@ const COPY: Record<StreamState, { label: string; hint: string; dot: string; puls
     dot: "bg-warning",
     pulse: true,
   },
-  ended: { label: "Stream ended", hint: "The task reached a resting state; live updates ended. Actions you take restart them.", dot: "bg-fg-subtle" },
+  ended: {
+    label: "Stream ended",
+    hint: "The task reached a resting state; live updates ended. Actions you take restart them.",
+    dot: "bg-fg-subtle",
+  },
   closed: { label: "Not live", hint: "Live updates are closed.", dot: "bg-fg-subtle" },
-  failed: { label: "Offline", hint: "Live updates are unavailable. The page refreshes the task periodically instead.", dot: "bg-danger" },
+  failed: {
+    label: "Offline",
+    hint: "Live updates are unavailable. The page refreshes the task periodically instead.",
+    dot: "bg-danger",
+  },
 };
 
 /** Live / reconnecting / ended — announced politely to screen readers. */
@@ -28,7 +36,10 @@ export function StreamIndicator({ state, className }: { state: StreamState; clas
         role="status"
         aria-live="polite"
         tabIndex={0}
-        className={cn("inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-2xs text-fg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent/50", className)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-2xs text-fg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+          className,
+        )}
       >
         <span className={cn("size-1.5 rounded-full", c.dot, c.pulse && "motion-safe:animate-signal")} aria-hidden />
         {c.label}

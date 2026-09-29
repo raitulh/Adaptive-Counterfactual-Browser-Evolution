@@ -17,7 +17,13 @@ export interface CursorQueryOptions<T> {
   refetchInterval?: number | false | ((items: T[]) => number | false);
 }
 
-export function useCursorQuery<T>({ queryKey, fetchPage, enabled = true, staleTime, refetchInterval }: CursorQueryOptions<T>) {
+export function useCursorQuery<T>({
+  queryKey,
+  fetchPage,
+  enabled = true,
+  staleTime,
+  refetchInterval,
+}: CursorQueryOptions<T>) {
   const query = useInfiniteQuery({
     queryKey,
     enabled,

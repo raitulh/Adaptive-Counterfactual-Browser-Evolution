@@ -2,7 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon, KeyRoundIcon, LogOutIcon, ShieldCheckIcon, ShieldOffIcon, SmartphoneIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  ShieldCheckIcon,
+  ShieldOffIcon,
+  SmartphoneIcon,
+  XIcon,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -12,7 +20,15 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/controls";
 import { CopyButton } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ErrorState, InlineError } from "@/components/ui/states";
@@ -62,8 +78,14 @@ const passwordSchema = z
       .refine((v) => passwordChecks(v).classes >= 3, "Mix at least three of: lowercase, uppercase, digits, symbols"),
     confirm_password: z.string(),
   })
-  .refine((v) => v.new_password === v.confirm_password, { path: ["confirm_password"], message: "Passwords don't match" })
-  .refine((v) => v.new_password !== v.current_password, { path: ["new_password"], message: "Choose a password different from the current one" });
+  .refine((v) => v.new_password === v.confirm_password, {
+    path: ["confirm_password"],
+    message: "Passwords don't match",
+  })
+  .refine((v) => v.new_password !== v.current_password, {
+    path: ["new_password"],
+    message: "Choose a password different from the current one",
+  });
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 function PasswordCard() {
@@ -77,11 +99,14 @@ function PasswordCard() {
   const checks = passwordChecks(newPassword ?? "");
 
   const change = useMutation({
-    mutationFn: (v: PasswordValues) => authApi.changePassword({ current_password: v.current_password, new_password: v.new_password }),
+    mutationFn: (v: PasswordValues) =>
+      authApi.changePassword({ current_password: v.current_password, new_password: v.new_password }),
     onSuccess: () => {
       reset();
       void queryClient.invalidateQueries({ queryKey: qk.sessions });
-      toast.success("Password changed", { description: "Your other sessions were signed out. This session stays signed in." });
+      toast.success("Password changed", {
+        description: "Your other sessions were signed out. This session stays signed in.",
+      });
     },
     onError: (err) => {
       const e = normalizeError(err);
@@ -93,7 +118,10 @@ function PasswordCard() {
     },
   });
   const unmappedError =
-    change.error && normalizeError(change.error).code !== "invalid_credentials" && !formState.errors.new_password && !formState.errors.current_password
+    change.error &&
+    normalizeError(change.error).code !== "invalid_credentials" &&
+    !formState.errors.new_password &&
+    !formState.errors.current_password
       ? change.error
       : null;
 
@@ -111,7 +139,9 @@ function PasswordCard() {
       >
         <div className="grid max-w-md gap-5">
           <Field label="Current password" error={formState.errors.current_password?.message}>
-            {(ids) => <Input {...ids} type="password" autoComplete="current-password" {...register("current_password")} />}
+            {(ids) => (
+              <Input {...ids} type="password" autoComplete="current-password" {...register("current_password")} />
+            )}
           </Field>
           <Field label="New password" error={formState.errors.new_password?.message}>
             {(ids) => (
@@ -137,7 +167,11 @@ function PasswordCard() {
 function Requirement({ met, children }: { met: boolean; children: React.ReactNode }) {
   return (
     <li className={cn("flex items-center gap-1.5", met ? "text-success" : "text-fg-subtle")}>
-      {met ? <CheckIcon className="size-3.5" aria-hidden /> : <span className="inline-block size-1.5 rounded-full bg-current" aria-hidden />}
+      {met ? (
+        <CheckIcon className="size-3.5" aria-hidden />
+      ) : (
+        <span className="inline-block size-1.5 rounded-full bg-current" aria-hidden />
+      )}
       <span>
         {children}
         <span className="sr-only">{met ? " (met)" : " (not met)"}</span>
@@ -183,7 +217,9 @@ function MfaCard({ me }: { me: MeOut }) {
       setCode("");
       queryClient.setQueryData<MeOut>(qk.me, (prev) => (prev ? { ...prev, mfa_enabled: true } : prev));
       void refreshMe();
-      toast.success("Two-step verification is on", { description: "You'll be asked for a code from your authenticator app when you sign in." });
+      toast.success("Two-step verification is on", {
+        description: "You'll be asked for a code from your authenticator app when you sign in.",
+      });
     } catch (error) {
       dispatch({ type: "CODE_REJECTED", error });
       setCode("");
@@ -221,7 +257,9 @@ function MfaCard({ me }: { me: MeOut }) {
       <div aria-live="polite">
         {state.phase === "disabled" && (
           <div className="flex flex-col gap-3">
-            <p className="text-[13px] text-fg-muted">Two-step verification is off. Anyone with your password can sign in.</p>
+            <p className="text-[13px] text-fg-muted">
+              Two-step verification is off. Anyone with your password can sign in.
+            </p>
             {state.error ? <InlineError error={state.error} /> : null}
           </div>
         )}
@@ -255,8 +293,13 @@ function MfaCard({ me }: { me: MeOut }) {
                 <span className="text-xs text-fg-muted" id="mfa-secret-label">
                   Setup key
                 </span>
-                <div className="flex items-center gap-1 rounded-md border border-line bg-bg px-3 py-2" aria-labelledby="mfa-secret-label">
-                  <code className="min-w-0 flex-1 break-all font-mono text-[13px] tracking-wide text-fg">{formatSecret(state.enrollment.secret)}</code>
+                <div
+                  className="flex items-center gap-1 rounded-md border border-line bg-bg px-3 py-2"
+                  aria-labelledby="mfa-secret-label"
+                >
+                  <code className="min-w-0 flex-1 font-mono text-[13px] tracking-wide break-all text-fg">
+                    {formatSecret(state.enrollment.secret)}
+                  </code>
                   <CopyButton value={state.enrollment.secret} label="Copy setup key" />
                 </div>
               </div>
@@ -280,7 +323,12 @@ function MfaCard({ me }: { me: MeOut }) {
                 <Button type="submit" variant="primary" loading={state.submitting} disabled={!isCompleteTotp(code)}>
                   <ShieldCheckIcon /> Verify and turn on
                 </Button>
-                <Button type="button" variant="ghost" disabled={state.submitting} onClick={() => dispatch({ type: "CANCEL" })}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={state.submitting}
+                  onClick={() => dispatch({ type: "CANCEL" })}
+                >
                   <XIcon /> Cancel
                 </Button>
               </div>
@@ -357,7 +405,10 @@ function DisableMfaDialog({
         >
           <DialogHeader>
             <DialogTitle>Turn off two-step verification?</DialogTitle>
-            <DialogDescription>Enter a current code from your authenticator app to confirm. Your account will be protected by your password only.</DialogDescription>
+            <DialogDescription>
+              Enter a current code from your authenticator app to confirm. Your account will be protected by your
+              password only.
+            </DialogDescription>
           </DialogHeader>
           <DialogBody>
             <Field label="Verification code" error={error ? verificationMessage(error) : null}>

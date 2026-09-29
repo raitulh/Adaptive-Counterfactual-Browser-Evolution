@@ -44,7 +44,11 @@ export function useAttachments() {
         })
         .then((result) => {
           if (result.status === "quarantined" || result.status === "failed") {
-            patch(a.localId, { status: "error", result, error: result.status === "quarantined" ? "Blocked by the security scan" : "Processing failed" });
+            patch(a.localId, {
+              status: "error",
+              result,
+              error: result.status === "quarantined" ? "Blocked by the security scan" : "Processing failed",
+            });
             return;
           }
           patch(a.localId, { status: "ready", progress: 1, result });
@@ -54,7 +58,11 @@ export function useAttachments() {
           const e = normalizeError(err);
           if (e.kind === "aborted") return;
           // Unknown outcome → keep the key so a retry can't create a duplicate; otherwise start fresh.
-          patch(a.localId, { status: "error", error: e.userMessage, key: outcomeUnknown(err) ? a.key : newIdempotencyKey() });
+          patch(a.localId, {
+            status: "error",
+            error: e.userMessage,
+            key: outcomeUnknown(err) ? a.key : newIdempotencyKey(),
+          });
         })
         .finally(() => controllers.current.delete(a.localId));
     },
@@ -113,6 +121,8 @@ export function useAttachments() {
   }, []);
 
   const uploading = items.some((a) => a.status === "uploading");
-  const ready = items.filter((a) => a.status === "ready" && a.result).map((a) => ({ id: a.result!.id, filename: a.result!.filename }));
+  const ready = items
+    .filter((a) => a.status === "ready" && a.result)
+    .map((a) => ({ id: a.result!.id, filename: a.result!.filename }));
   return { items, add, retry, remove, clear, uploading, ready, full: items.length >= MAX_ATTACHMENTS };
 }

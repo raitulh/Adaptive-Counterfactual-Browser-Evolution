@@ -45,7 +45,9 @@ export function mfaReducer(state: MfaState, event: MfaEvent): MfaState {
     case "START":
       return state.phase === "disabled" ? { phase: "enrolling" } : state;
     case "ENROLLED":
-      return state.phase === "enrolling" ? { phase: "verifying", enrollment: event.enrollment, submitting: false, error: null } : state;
+      return state.phase === "enrolling"
+        ? { phase: "verifying", enrollment: event.enrollment, submitting: false, error: null }
+        : state;
     case "ENROLL_FAILED":
       return state.phase === "enrolling" ? { phase: "disabled", error: event.error } : state;
     case "SUBMIT":

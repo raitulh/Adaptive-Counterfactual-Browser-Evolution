@@ -33,45 +33,47 @@ export const RESERVED_HEADERS = new Set([
 
 const CONTROL_CHARS = /[\x00-\x1f\x7f]/;
 
-export const registerServerSchema = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .regex(SERVER_NAME_RE, "2–41 characters: lowercase letters, digits and underscores, starting with a letter"),
-    url: z
-      .string()
-      .trim()
-      .min(8, "Enter the server's Streamable HTTP endpoint")
-      .max(2048, "At most 2048 characters")
-      .refine((v) => !/\s/.test(v), "The URL must not contain spaces")
-      .refine((v) => {
-        try {
-          const u = new URL(v);
-          return u.protocol === "https:" || u.protocol === "http:";
-        } catch {
-          return false;
-        }
-      }, "Enter a full http(s) URL, e.g. https://mcp.example.com/mcp")
-      .refine((v) => !v.includes("#"), "URL fragments (#…) are not allowed"),
-    authHeaderName: z
-      .string()
-      .trim()
-      .regex(HEADER_NAME_RE, "Letters, digits and hyphens, starting with a letter")
-      .refine((v) => !RESERVED_HEADERS.has(v.toLowerCase()), "This header is controlled by the gateway"),
-    authHeaderValue: z
-      .string()
-      .max(4096, "At most 4096 characters")
-      .refine((v) => !CONTROL_CHARS.test(v), "Only printable characters are allowed"),
-    timeoutSeconds: z
-      .string()
-      .trim()
-      .refine((v) => v === "" || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0.5 && Number(v) <= 120), "From 0.5 to 120 seconds, or empty for the default"),
-    rateLimitPerMinute: z
-      .string()
-      .trim()
-      .refine((v) => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 600, "Whole number from 1 to 600"),
-  });
+export const registerServerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .regex(SERVER_NAME_RE, "2–41 characters: lowercase letters, digits and underscores, starting with a letter"),
+  url: z
+    .string()
+    .trim()
+    .min(8, "Enter the server's Streamable HTTP endpoint")
+    .max(2048, "At most 2048 characters")
+    .refine((v) => !/\s/.test(v), "The URL must not contain spaces")
+    .refine((v) => {
+      try {
+        const u = new URL(v);
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    }, "Enter a full http(s) URL, e.g. https://mcp.example.com/mcp")
+    .refine((v) => !v.includes("#"), "URL fragments (#…) are not allowed"),
+  authHeaderName: z
+    .string()
+    .trim()
+    .regex(HEADER_NAME_RE, "Letters, digits and hyphens, starting with a letter")
+    .refine((v) => !RESERVED_HEADERS.has(v.toLowerCase()), "This header is controlled by the gateway"),
+  authHeaderValue: z
+    .string()
+    .max(4096, "At most 4096 characters")
+    .refine((v) => !CONTROL_CHARS.test(v), "Only printable characters are allowed"),
+  timeoutSeconds: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0.5 && Number(v) <= 120),
+      "From 0.5 to 120 seconds, or empty for the default",
+    ),
+  rateLimitPerMinute: z
+    .string()
+    .trim()
+    .refine((v) => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 600, "Whole number from 1 to 600"),
+});
 
 export type RegisterServerValues = z.infer<typeof registerServerSchema>;
 

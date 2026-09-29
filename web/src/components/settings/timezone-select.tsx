@@ -16,7 +16,17 @@ export function listTimeZones(current?: string | null): string[] {
     zones = [];
   }
   if (zones.length === 0) {
-    zones = ["UTC", "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Dhaka", "Asia/Tokyo", "Australia/Sydney"];
+    zones = [
+      "UTC",
+      "Europe/London",
+      "Europe/Berlin",
+      "America/New_York",
+      "America/Chicago",
+      "America/Los_Angeles",
+      "Asia/Dhaka",
+      "Asia/Tokyo",
+      "Australia/Sydney",
+    ];
   }
   const set = new Set(zones);
   set.add("UTC");
@@ -76,7 +86,7 @@ export function TimezoneSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         {...aria}
-        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-left text-sm text-fg outline-none transition-colors focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 aria-[invalid=true]:border-danger/60"
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-left text-sm text-fg transition-colors outline-none focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 aria-[invalid=true]:border-danger/60"
       >
         <span className="flex min-w-0 items-center gap-2">
           <GlobeIcon className="size-4 shrink-0 text-fg-subtle" aria-hidden />
@@ -87,7 +97,9 @@ export function TimezoneSelect({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(24rem,calc(100vw-2rem))] p-0">
         <Command
-          filter={(itemValue, search) => (itemValue.toLowerCase().replace(/_/g, " ").includes(search.toLowerCase().replace(/_/g, " ")) ? 1 : 0)}
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().replace(/_/g, " ").includes(search.toLowerCase().replace(/_/g, " ")) ? 1 : 0
+          }
         >
           <CommandInput placeholder="Search time zones…" aria-label="Search time zones" />
           <CommandList className="max-h-72">
@@ -116,7 +128,7 @@ export function TimezoneSelect({
               >
                 <CheckIcon className={cn("text-accent", zone === value ? "opacity-100" : "opacity-0")} aria-hidden />
                 <span className="flex-1 truncate">{zone.replace(/_/g, " ")}</span>
-                <span className="text-2xs tabular-nums text-fg-subtle">{offsets.get(zone)}</span>
+                <span className="text-2xs text-fg-subtle tabular-nums">{offsets.get(zone)}</span>
               </CommandItem>
             ))}
           </CommandList>

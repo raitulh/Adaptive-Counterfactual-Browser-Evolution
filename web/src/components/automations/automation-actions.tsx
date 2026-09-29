@@ -29,7 +29,9 @@ export function useRunNowAction() {
         }
         toast.success(run.status === "succeeded" ? "Run finished" : "Run started", {
           description: `${automation.name} — its task is ${run.status === "succeeded" ? "complete" : "executing now"}.`,
-          action: run.task_id ? { label: "Open task", onClick: () => router.push(`/app/tasks/${run.task_id}`) } : undefined,
+          action: run.task_id
+            ? { label: "Open task", onClick: () => router.push(`/app/tasks/${run.task_id}`) }
+            : undefined,
         });
       },
       onError: (err) => toastError(err, "Couldn't run the automation"),
@@ -50,9 +52,21 @@ export function RunNowButton({
   const { trigger, isPending } = useRunNowAction();
   const allowed = can("automations:manage") && can("tasks:create");
   return (
-    <Tooltip content={allowed ? "Start a run immediately (repeat clicks within the same minute return the same run)." : "You need permission to manage automations and create tasks."}>
+    <Tooltip
+      content={
+        allowed
+          ? "Start a run immediately (repeat clicks within the same minute return the same run)."
+          : "You need permission to manage automations and create tasks."
+      }
+    >
       <span>
-        <Button size={size} variant={variant} disabled={!allowed} loading={isPending} onClick={() => trigger(automation)}>
+        <Button
+          size={size}
+          variant={variant}
+          disabled={!allowed}
+          loading={isPending}
+          onClick={() => trigger(automation)}
+        >
           {!isPending && <PlayIcon aria-hidden />} Run now
         </Button>
       </span>
@@ -66,7 +80,9 @@ export function EnabledSwitch({ automation, className }: { automation: Automatio
   const update = useUpdateAutomation();
   const allowed = can("automations:manage");
   return (
-    <Tooltip content={!allowed ? "You need permission to manage automations." : automation.enabled ? "Turn off" : "Turn on"}>
+    <Tooltip
+      content={!allowed ? "You need permission to manage automations." : automation.enabled ? "Turn off" : "Turn on"}
+    >
       <span className={className}>
         <Switch
           checked={automation.enabled}
@@ -77,7 +93,8 @@ export function EnabledSwitch({ automation, className }: { automation: Automatio
             update.mutate(
               { id: automation.id, body: { enabled } },
               {
-                onSuccess: (a) => toast.success(a.enabled ? "Automation turned on" : "Automation turned off", { description: a.name }),
+                onSuccess: (a) =>
+                  toast.success(a.enabled ? "Automation turned on" : "Automation turned off", { description: a.name }),
                 onError: (err) => toastError(err, enabled ? "Couldn't turn it on" : "Couldn't turn it off"),
               },
             )

@@ -22,7 +22,10 @@ export interface ToolAccess {
   ready: boolean;
 }
 
-export function toolAccess(tool: Pick<ToolOut, "provider" | "required_scopes">, connections: readonly ConnectionOut[] | undefined): ToolAccess | null {
+export function toolAccess(
+  tool: Pick<ToolOut, "provider" | "required_scopes">,
+  connections: readonly ConnectionOut[] | undefined,
+): ToolAccess | null {
   if (tool.provider !== "google" || tool.required_scopes.length === 0) return null;
   const needed = capabilitiesForScopes(tool.required_scopes);
   const connection = activeGoogleConnection(connections);
@@ -51,7 +54,11 @@ export function ToolConnectionStatus({ tool, compact }: { tool: ToolOut; compact
 
   const status = access.connection?.status;
   const problem = status && status !== "connected" ? connectionStatusMeta[status].label : null;
-  const label = problem ? `Google: ${problem}` : access.connection ? `Needs ${access.missing.join(", ")}` : "Google not connected";
+  const label = problem
+    ? `Google: ${problem}`
+    : access.connection
+      ? `Needs ${access.missing.join(", ")}`
+      : "Google not connected";
 
   if (!can("integrations:manage")) {
     return (
@@ -71,7 +78,10 @@ export function ToolConnectionStatus({ tool, compact }: { tool: ToolOut; compact
         e.stopPropagation();
         // Keep what is already granted and add what this tool needs (Google merges incremental grants).
         const capabilities = sortCapabilities([...(access.connection?.capabilities ?? []), ...access.needed]);
-        connect.mutate({ provider: "google", capabilities }, { onError: (err) => toastError(err, "Couldn't start the Google connection") });
+        connect.mutate(
+          { provider: "google", capabilities },
+          { onError: (err) => toastError(err, "Couldn't start the Google connection") },
+        );
       }}
       aria-label={`${problem ? "Reconnect" : "Connect"} Google for ${tool.name} (${access.needed.join(", ")})`}
       title={label}

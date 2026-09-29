@@ -35,7 +35,7 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
         {!collapsed && <span className="truncate text-[13px] text-fg-muted">{name}</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-64">
-        <DropdownMenuLabel className="normal-case tracking-normal">
+        <DropdownMenuLabel className="tracking-normal normal-case">
           <span className="block truncate text-[13px] font-medium text-fg">{me.data?.display_name || "Signed in"}</span>
           <span className="block truncate text-xs font-normal text-fg-subtle">{me.data?.email}</span>
         </DropdownMenuLabel>

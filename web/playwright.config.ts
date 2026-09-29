@@ -37,7 +37,11 @@ export default defineConfig({
     navigationTimeout: 30_000,
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      testIgnore: /responsive\.spec\.ts/,
+    },
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },

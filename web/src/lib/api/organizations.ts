@@ -2,7 +2,13 @@
  * Active organization, policy and members. The backend is authoritative for RBAC.
  */
 import { api, call } from "./client";
-import type { MemberAdd, MemberRoleUpdate, OrganizationCreate, OrganizationPolicy, OrganizationUpdate } from "./schemas";
+import type {
+  MemberAdd,
+  MemberRoleUpdate,
+  OrganizationCreate,
+  OrganizationPolicy,
+  OrganizationUpdate,
+} from "./schemas";
 
 type Opts = { signal?: AbortSignal };
 

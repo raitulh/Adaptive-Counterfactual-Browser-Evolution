@@ -107,7 +107,9 @@ export function buildPlanGraph(input: {
 }): PlanGraphModel {
   const plan = asRecord(input.plan);
   const current = input.steps
-    .filter((s) => input.planVersion === undefined || s.plan_version === undefined || s.plan_version === input.planVersion)
+    .filter(
+      (s) => input.planVersion === undefined || s.plan_version === undefined || s.plan_version === input.planVersion,
+    )
     .slice()
     .sort((a, b) => a.position - b.position);
   const rowByKey = new Map(current.map((s) => [s.step_key, s]));
@@ -131,7 +133,9 @@ export function buildPlanGraph(input: {
       seen.add(row.step_key);
     }
   }
-  const planByKey = new Map(planSteps.filter((p) => typeof p.step_id === "string").map((p) => [p.step_id as string, p]));
+  const planByKey = new Map(
+    planSteps.filter((p) => typeof p.step_id === "string").map((p) => [p.step_id as string, p]),
+  );
 
   const deps = new Map<string, string[]>();
   order.forEach((key, index) => {
@@ -143,7 +147,10 @@ export function buildPlanGraph(input: {
     if (ps?.arguments !== undefined) extractStepRefs(ps.arguments, 0, set);
     if (!dependenciesKnown && index > 0) set.add(order[index - 1]); // no plan stored: show the recorded order
     set.delete(key);
-    deps.set(key, [...set].filter((d) => seen.has(d)));
+    deps.set(
+      key,
+      [...set].filter((d) => seen.has(d)),
+    );
   });
 
   // Longest-path layering, cycle-safe.
@@ -164,7 +171,9 @@ export function buildPlanGraph(input: {
   const nodes: PlanGraphNode[] = order.map((key, index) => {
     const row = rowByKey.get(key);
     const ps = planByKey.get(key);
-    const risk = row?.risk_level ?? (typeof ps?.risk_level === "string" && RISKS.has(ps.risk_level) ? (ps.risk_level as RiskLevel) : null);
+    const risk =
+      row?.risk_level ??
+      (typeof ps?.risk_level === "string" && RISKS.has(ps.risk_level) ? (ps.risk_level as RiskLevel) : null);
     return {
       key,
       stepId: row?.id ?? null,

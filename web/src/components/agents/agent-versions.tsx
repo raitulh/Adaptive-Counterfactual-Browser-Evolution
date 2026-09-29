@@ -93,10 +93,18 @@ export function AgentVersions({
 }) {
   const developerMode = useUiStore((s) => s.developerMode);
   const q = useAgentVersions(agentId, enabled);
-  const versions = React.useMemo(() => [...(q.data ?? [])].sort((a, b) => b.version_number - a.version_number), [q.data]);
+  const versions = React.useMemo(
+    () => [...(q.data ?? [])].sort((a, b) => b.version_number - a.version_number),
+    [q.data],
+  );
   const current = versions.find((v) => v.id === currentVersionId);
   const effective = React.useMemo(() => {
-    if (pair && versions.some((v) => v.version_number === pair.base) && versions.some((v) => v.version_number === pair.target)) return pair;
+    if (
+      pair &&
+      versions.some((v) => v.version_number === pair.base) &&
+      versions.some((v) => v.version_number === pair.target)
+    )
+      return pair;
     return defaultPair(versions, current?.version_number);
   }, [pair, versions, current?.version_number]);
 
@@ -118,7 +126,13 @@ export function AgentVersions({
     );
   }
   if (versions.length === 0) {
-    return <EmptyState icon={<HistoryIcon />} title="No versions yet" description="Versions appear here once the agent configuration is published." />;
+    return (
+      <EmptyState
+        icon={<HistoryIcon />}
+        title="No versions yet"
+        description="Versions appear here once the agent configuration is published."
+      />
+    );
   }
 
   const select = (v: AgentVersionOut) => {
@@ -131,7 +145,9 @@ export function AgentVersions({
   return (
     <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <Card className="self-start p-2">
-        <h3 className="px-2 pb-1 pt-2 text-2xs font-medium uppercase tracking-wider text-fg-subtle">History · {versions.length}</h3>
+        <h3 className="px-2 pt-2 pb-1 text-2xs font-medium tracking-wider text-fg-subtle uppercase">
+          History · {versions.length}
+        </h3>
         <ol aria-label="Version history" className="relative">
           {versions.map((v, i) => {
             const isCurrent = v.id === currentVersionId;
@@ -139,13 +155,15 @@ export function AgentVersions({
             const isTarget = v.version_number === effective?.target;
             return (
               <li key={v.id} className="relative">
-                {i < versions.length - 1 && <span className="absolute bottom-0 left-[1.3rem] top-7 w-px bg-line-strong" aria-hidden />}
+                {i < versions.length - 1 && (
+                  <span className="absolute top-7 bottom-0 left-[1.3rem] w-px bg-line-strong" aria-hidden />
+                )}
                 <button
                   type="button"
                   onClick={() => select(v)}
                   aria-current={isTarget ? "true" : undefined}
                   className={cn(
-                    "relative flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-accent/50",
+                    "relative flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition-colors outline-none hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-accent/50",
                     (isBase || isTarget) && "bg-white/[0.035]",
                   )}
                 >
@@ -180,7 +198,9 @@ export function AgentVersions({
             );
           })}
         </ol>
-        <p className="px-2 pb-2 pt-3 text-2xs leading-relaxed text-fg-subtle">Select a version to compare it with the one before. Versions are immutable.</p>
+        <p className="px-2 pt-3 pb-2 text-2xs leading-relaxed text-fg-subtle">
+          Select a version to compare it with the one before. Versions are immutable.
+        </p>
       </Card>
 
       <div className="flex min-w-0 flex-col gap-4">

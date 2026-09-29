@@ -1,4 +1,4 @@
-import { expect, expectNoTokensInStorage, newUser, signIn, signOut, signUp, test } from "./fixtures";
+import { appShell, expect, expectNoTokensInStorage, newUser, signIn, signOut, signUp, test } from "./fixtures";
 
 test.describe("authentication", () => {
   test("sign up, keep the session across reloads, sign out and sign back in", async ({ page, context }) => {
@@ -14,7 +14,7 @@ test.describe("authentication", () => {
     await expectNoTokensInStorage(page);
 
     await page.reload();
-    await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
+    await expect(appShell(page)).toBeVisible();
 
     await signOut(page);
     expect((await context.cookies()).find((c) => c.name === "agentos_refresh")).toBeUndefined();
@@ -23,7 +23,7 @@ test.describe("authentication", () => {
     await page.waitForURL(/\/login/);
     await signIn(page, user);
     await page.waitForURL(/\/app(\/|$|\?)/);
-    await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
+    await expect(appShell(page)).toBeVisible();
     await expectNoTokensInStorage(page);
   });
 

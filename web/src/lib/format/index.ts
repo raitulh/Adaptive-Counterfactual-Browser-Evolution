@@ -84,8 +84,12 @@ export function bytes(value: number | null | undefined): string {
 
 const numberFmt = safeIntl((l) => new Intl.NumberFormat(l));
 const compactFmt = safeIntl((l) => new Intl.NumberFormat(l, { notation: "compact", maximumFractionDigits: 1 }));
-const usdFmt = safeIntl((l) => new Intl.NumberFormat(l, { style: "currency", currency: "USD", maximumFractionDigits: 2 }));
-const usdPreciseFmt = safeIntl((l) => new Intl.NumberFormat(l, { style: "currency", currency: "USD", maximumFractionDigits: 4 }));
+const usdFmt = safeIntl(
+  (l) => new Intl.NumberFormat(l, { style: "currency", currency: "USD", maximumFractionDigits: 2 }),
+);
+const usdPreciseFmt = safeIntl(
+  (l) => new Intl.NumberFormat(l, { style: "currency", currency: "USD", maximumFractionDigits: 4 }),
+);
 
 export function number(value: number | null | undefined): string {
   return value === null || value === undefined || !Number.isFinite(value) ? "—" : numberFmt.format(value);

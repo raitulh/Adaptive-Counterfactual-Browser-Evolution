@@ -199,13 +199,22 @@ export function errorLabel(errorClass: string | null | undefined, code?: string 
 }
 
 // Status changes whose meaning is already carried by a semantic event (hidden unless showAll).
-const IMPLIED_TARGETS = new Set(["created", "planning", "planned", "validating", "queued", "waiting_approval", "waiting_input"]);
+const IMPLIED_TARGETS = new Set([
+  "created",
+  "planning",
+  "planned",
+  "validating",
+  "queued",
+  "waiting_approval",
+  "waiting_input",
+]);
 
 function phaseForUnknown(type: string): TimelinePhase {
   if (type.includes("PLAN")) return "planning";
   if (type.includes("VERIF")) return "verification";
   if (type.includes("APPROVAL") || type.includes("INPUT")) return "approval";
-  if (type.includes("RECOVER") || type.includes("RETRY") || type.includes("RECONCIL") || type.includes("FAIL")) return "recovery";
+  if (type.includes("RECOVER") || type.includes("RETRY") || type.includes("RECONCIL") || type.includes("FAIL"))
+    return "recovery";
   if (type.startsWith("TASK_")) return "outcome";
   return "execution";
 }
@@ -246,7 +255,10 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
     return s?.action ?? (str(p, "step") ? humanize(str(p, "step")) : null);
   };
 
-  const make = (e: TaskEvent, init: Omit<TimelineEntry, "key" | "seq" | "at" | "events"> & { key?: string }): TimelineEntry => {
+  const make = (
+    e: TaskEvent,
+    init: Omit<TimelineEntry, "key" | "seq" | "at" | "events"> & { key?: string },
+  ): TimelineEntry => {
     const p = e.payload as Payload;
     const step = stepOf(e, p);
     const { key, ...rest } = init;
@@ -352,7 +364,10 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
           tone: "danger",
           state: "failed",
           title: "Plan rejected by safety checks",
-          bullets: issues.map((i) => str(i, "message")).filter((m): m is string => Boolean(m)).slice(0, 8),
+          bullets: issues
+            .map((i) => str(i, "message"))
+            .filter((m): m is string => Boolean(m))
+            .slice(0, 8),
         });
         break;
       }
@@ -374,7 +389,15 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
             seenRunning = true;
             make(e, { kind: "task", phase: "execution", tone: "accent", state: "info", title: "Execution started" });
           } else if (showAll) {
-            make(e, { kind: "task", phase: "execution", tone: "neutral", state: "info", title: "Execution continued", detail: reason, minor: true });
+            make(e, {
+              kind: "task",
+              phase: "execution",
+              tone: "neutral",
+              state: "info",
+              title: "Execution continued",
+              detail: reason,
+              minor: true,
+            });
           }
         } else if (to === "verifying") {
           openFinalVerify = make(e, {
@@ -385,7 +408,14 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
             title: "Final verification of every result",
           });
         } else if (to === "recovering") {
-          make(e, { kind: "recovery", phase: "recovery", tone: "recover", state: "info", title: "Recovering", detail: reason });
+          make(e, {
+            kind: "recovery",
+            phase: "recovery",
+            tone: "recover",
+            state: "info",
+            title: "Recovering",
+            detail: reason,
+          });
         } else if (to === "requires_reconciliation") {
           make(e, {
             kind: "recovery",
@@ -405,12 +435,24 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
             detail: reason && reason !== "Blocked; user action required" ? reason : null,
           });
         } else if (to === "expired") {
-          make(e, { kind: "task", phase: "outcome", tone: "neutral", state: "failed", title: "Expired while waiting", detail: reason });
+          make(e, {
+            kind: "task",
+            phase: "outcome",
+            tone: "neutral",
+            state: "failed",
+            title: "Expired while waiting",
+            detail: reason,
+          });
         } else if (IMPLIED_TARGETS.has(to)) {
           if (showAll)
             make(e, {
               kind: "task",
-              phase: to === "waiting_approval" || to === "waiting_input" ? "approval" : to === "queued" ? "execution" : "planning",
+              phase:
+                to === "waiting_approval" || to === "waiting_input"
+                  ? "approval"
+                  : to === "queued"
+                    ? "execution"
+                    : "planning",
               tone: "neutral",
               state: "info",
               title: `Status: ${humanize(from ?? "?")} → ${humanize(to)}`,
@@ -418,12 +460,25 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
               minor: true,
             });
         } else {
-          make(e, { kind: "task", phase: phaseForUnknown(to.toUpperCase()), tone: "neutral", state: "info", title: `Status changed to ${humanize(to).toLowerCase()}`, detail: reason });
+          make(e, {
+            kind: "task",
+            phase: phaseForUnknown(to.toUpperCase()),
+            tone: "neutral",
+            state: "info",
+            title: `Status changed to ${humanize(to).toLowerCase()}`,
+            detail: reason,
+          });
         }
         break;
       }
       case "STEP_STARTED": {
-        make(e, { kind: "step", phase: "execution", tone: "accent", state: "info", title: `Started: ${labelOf(e, p) ?? "a step"}` });
+        make(e, {
+          kind: "step",
+          phase: "execution",
+          tone: "accent",
+          state: "info",
+          title: `Started: ${labelOf(e, p) ?? "a step"}`,
+        });
         break;
       }
       case "TOOL_CALL_STARTED": {
@@ -507,7 +562,14 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
           attach(entry, e);
           openVerify.delete(ref);
         } else {
-          entry = make(e, { key: `verify-${e.seq}`, kind: "verification", phase: "verification", tone: "verify", state: "done", title: "" });
+          entry = make(e, {
+            key: `verify-${e.seq}`,
+            kind: "verification",
+            phase: "verification",
+            tone: "verify",
+            state: "done",
+            title: "",
+          });
         }
         if (method) {
           entry.method = method;
@@ -548,7 +610,9 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
             phase: "execution",
             tone: fromUser ? "success" : "accent",
             state: "done",
-            title: fromUser ? `Completed with your answer: ${labelOf(e, p) ?? "step"}` : `Completed: ${labelOf(e, p) ?? "step"}`,
+            title: fromUser
+              ? `Completed with your answer: ${labelOf(e, p) ?? "step"}`
+              : `Completed: ${labelOf(e, p) ?? "step"}`,
             detail: sentence(str(p, "summary")),
           });
         }
@@ -607,12 +671,36 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         // The request row right above already restates the action.
         const adjacent = request !== undefined && entries[entries.length - 1] === request;
         if (type === "APPROVAL_GRANTED") {
-          make(e, { kind: "approval", phase: "approval", tone: "success", state: "done", title: e.actor_type === "user" ? "Approved" : "Approval granted", detail: adjacent ? null : summary, approvalId });
+          make(e, {
+            kind: "approval",
+            phase: "approval",
+            tone: "success",
+            state: "done",
+            title: e.actor_type === "user" ? "Approved" : "Approval granted",
+            detail: adjacent ? null : summary,
+            approvalId,
+          });
         } else if (type === "APPROVAL_REJECTED") {
           const reason = str(p, "reason");
-          make(e, { kind: "approval", phase: "approval", tone: "danger", state: "failed", title: "Rejected — the action will not run", detail: reason ? `Reason: ${reason}` : summary, approvalId });
+          make(e, {
+            kind: "approval",
+            phase: "approval",
+            tone: "danger",
+            state: "failed",
+            title: "Rejected — the action will not run",
+            detail: reason ? `Reason: ${reason}` : summary,
+            approvalId,
+          });
         } else {
-          make(e, { kind: "approval", phase: "approval", tone: "neutral", state: "failed", title: "Approval expired without a decision", detail: adjacent ? null : summary, approvalId });
+          make(e, {
+            kind: "approval",
+            phase: "approval",
+            tone: "neutral",
+            state: "failed",
+            title: "Approval expired without a decision",
+            detail: adjacent ? null : summary,
+            approvalId,
+          });
         }
         break;
       }
@@ -637,7 +725,14 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         }
         openInput = null;
         const question = str(p, "question");
-        make(e, { kind: "input", phase: "approval", tone: "success", state: "done", title: "You answered", detail: question ? `In reply to: “${question}”` : null });
+        make(e, {
+          kind: "input",
+          phase: "approval",
+          tone: "success",
+          state: "done",
+          title: "You answered",
+          detail: question ? `In reply to: “${question}”` : null,
+        });
         break;
       }
       case "RETRY_SCHEDULED": {
@@ -647,9 +742,17 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         if (decision) {
           attach(decision, e);
           retryDecision.delete(ref);
-          if (delay !== null) decision.detail = [decision.detail, `next attempt in ${seconds(delay)}`].filter(Boolean).join(" · ");
+          if (delay !== null)
+            decision.detail = [decision.detail, `next attempt in ${seconds(delay)}`].filter(Boolean).join(" · ");
         } else {
-          make(e, { kind: "recovery", phase: "recovery", tone: "recover", state: "info", title: `Retry scheduled: ${labelOf(e, p) ?? "step"}`, detail: delay !== null ? `Next attempt in ${seconds(delay)}` : null });
+          make(e, {
+            kind: "recovery",
+            phase: "recovery",
+            tone: "recover",
+            state: "info",
+            title: `Retry scheduled: ${labelOf(e, p) ?? "step"}`,
+            detail: delay !== null ? `Next attempt in ${seconds(delay)}` : null,
+          });
         }
         break;
       }
@@ -675,20 +778,56 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
         const label = labelOf(e, p) ?? "a step";
         const base = { kind: "recovery" as const, phase: "recovery" as const };
         if (decision === "retry") {
-          const entry = make(e, { ...base, tone: "recover", state: "info", title: `Retrying: ${label}`, detail: errorLabel(errorClass) });
+          const entry = make(e, {
+            ...base,
+            tone: "recover",
+            state: "info",
+            title: `Retrying: ${label}`,
+            detail: errorLabel(errorClass),
+          });
           retryDecision.set(stepRef(e, p), entry);
         } else if (decision === "reconcile") {
-          make(e, { ...base, tone: "recover", state: "info", title: `Checking whether “${label}” already happened`, detail: "Before any retry, so nothing is done twice." });
+          make(e, {
+            ...base,
+            tone: "recover",
+            state: "info",
+            title: `Checking whether “${label}” already happened`,
+            detail: "Before any retry, so nothing is done twice.",
+          });
         } else if (decision === "repair") {
-          make(e, { ...base, tone: "recover", state: "info", title: `Re-planning around a failed step: ${label}`, detail: reason });
+          make(e, {
+            ...base,
+            tone: "recover",
+            state: "info",
+            title: `Re-planning around a failed step: ${label}`,
+            detail: reason,
+          });
         } else if (decision === "request_user") {
           make(e, { ...base, tone: "warning", state: "info", title: `Needs your help: ${label}`, detail: reason });
         } else if (decision === "block") {
-          make(e, { ...base, tone: "danger", state: "failed", title: `Blocked: ${label}`, detail: reason ?? errorLabel(errorClass) });
+          make(e, {
+            ...base,
+            tone: "danger",
+            state: "failed",
+            title: `Blocked: ${label}`,
+            detail: reason ?? errorLabel(errorClass),
+          });
         } else if (decision === "fail") {
-          make(e, { ...base, tone: "danger", state: "failed", title: `Stopped trying: ${label}`, detail: reason ?? errorLabel(errorClass) });
+          make(e, {
+            ...base,
+            tone: "danger",
+            state: "failed",
+            title: `Stopped trying: ${label}`,
+            detail: reason ?? errorLabel(errorClass),
+          });
         } else {
-          make(e, { ...base, tone: "recover", state: "info", title: `Recovery decision for ${label}: ${humanize(decision).toLowerCase()}`, detail: reason });
+          make(e, {
+            ...base,
+            tone: "recover",
+            state: "info",
+            title: `Recovery decision for ${label}: ${humanize(decision).toLowerCase()}`,
+            detail: reason,
+          });
         }
         break;
       }
@@ -708,7 +847,14 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
           title = `Interrupted mid-action: ${label}`;
           detail = "Checking the external system before any retry.";
         }
-        const entry = make(e, { kind: "recovery", phase: "recovery", tone: "recover", state: "waiting", title, detail });
+        const entry = make(e, {
+          kind: "recovery",
+          phase: "recovery",
+          tone: "recover",
+          state: "waiting",
+          title,
+          detail,
+        });
         const ref = stepRef(e, p);
         const previous = openReconcile.get(ref);
         if (previous?.state === "waiting") previous.state = "info";
@@ -730,7 +876,14 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
           did_not_happen: { title: `You confirmed “${label}” did not happen — AgentOS will retry it`, tone: "recover" },
         };
         const v = (outcome && variants[outcome]) || { title: `Outcome resolved: ${label}`, tone: "recover" as Tone };
-        make(e, { kind: "recovery", phase: "recovery", tone: v.tone, state: "done", title: v.title, actor: byUser ? "user" : e.actor_type });
+        make(e, {
+          kind: "recovery",
+          phase: "recovery",
+          tone: v.tone,
+          state: "done",
+          title: v.title,
+          actor: byUser ? "user" : e.actor_type,
+        });
         break;
       }
       case "BUDGET_EXCEEDED": {
@@ -748,17 +901,36 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
       }
       case "CANCEL_REQUESTED": {
         resolvePlanning();
-        openCancel = make(e, { kind: "control", phase: "execution", tone: "neutral", state: "active", title: "Cancellation requested — stopping at the next safe point" });
+        openCancel = make(e, {
+          kind: "control",
+          phase: "execution",
+          tone: "neutral",
+          state: "active",
+          title: "Cancellation requested — stopping at the next safe point",
+        });
         break;
       }
       case "TASK_PAUSED": {
         resolveLifecycle();
-        make(e, { kind: "control", phase: "execution", tone: "neutral", state: "info", title: e.actor_type === "user" ? "Paused by you" : "Paused", detail: sentence(str(p, "reason")) });
+        make(e, {
+          kind: "control",
+          phase: "execution",
+          tone: "neutral",
+          state: "info",
+          title: e.actor_type === "user" ? "Paused by you" : "Paused",
+          detail: sentence(str(p, "reason")),
+        });
         break;
       }
       case "TASK_RESUMED": {
         resolveLifecycle();
-        make(e, { kind: "control", phase: "execution", tone: "accent", state: "info", title: e.actor_type === "user" ? "Resumed by you" : "Resumed" });
+        make(e, {
+          kind: "control",
+          phase: "execution",
+          tone: "accent",
+          state: "info",
+          title: e.actor_type === "user" ? "Resumed by you" : "Resumed",
+        });
         break;
       }
       case "TASK_COMPLETED":
@@ -776,18 +948,46 @@ export function normalizeTimeline(events: readonly TaskEvent[], options: Normali
             phase: "outcome",
             tone: "success",
             state: "done",
-            title: direct ? "Completed — answered directly, no actions taken" : reason === "all steps verified" ? "Completed — every action verified" : "Completed",
-            detail: direct ? "The answer was not externally verified." : reason && reason !== "all steps verified" ? sentence(reason) : null,
+            title: direct
+              ? "Completed — answered directly, no actions taken"
+              : reason === "all steps verified"
+                ? "Completed — every action verified"
+                : "Completed",
+            detail: direct
+              ? "The answer was not externally verified."
+              : reason && reason !== "all steps verified"
+                ? sentence(reason)
+                : null,
           });
         } else if (type === "TASK_FAILED") {
-          make(e, { kind: "task", phase: "outcome", tone: "danger", state: "failed", title: "The task did not complete", detail: reason ? errorLabel(null, reason) : null });
+          make(e, {
+            kind: "task",
+            phase: "outcome",
+            tone: "danger",
+            state: "failed",
+            title: "The task did not complete",
+            detail: reason ? errorLabel(null, reason) : null,
+          });
         } else {
-          make(e, { kind: "task", phase: "outcome", tone: "neutral", state: "info", title: e.actor_type === "user" ? "Cancelled by you" : "Cancelled", detail: reason && reason !== "cancelled by user" ? sentence(reason) : null });
+          make(e, {
+            kind: "task",
+            phase: "outcome",
+            tone: "neutral",
+            state: "info",
+            title: e.actor_type === "user" ? "Cancelled by you" : "Cancelled",
+            detail: reason && reason !== "cancelled by user" ? sentence(reason) : null,
+          });
         }
         break;
       }
       default: {
-        make(e, { kind: "generic", phase: phaseForUnknown(type), tone: "neutral", state: "info", title: humanize(type) });
+        make(e, {
+          kind: "generic",
+          phase: phaseForUnknown(type),
+          tone: "neutral",
+          state: "info",
+          title: humanize(type),
+        });
       }
     }
   }

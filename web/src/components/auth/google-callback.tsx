@@ -35,7 +35,10 @@ export function GoogleCallback() {
       <div className="flex flex-col gap-4">
         <h1 className="text-xl font-semibold tracking-tight">Google sign-in was not completed</h1>
         <p className="text-sm text-fg-muted">
-          {providerError === "access_denied" ? "You declined access at Google." : "The sign-in response was incomplete."} No account changes were made.
+          {providerError === "access_denied"
+            ? "You declined access at Google."
+            : "The sign-in response was incomplete."}{" "}
+          No account changes were made.
         </p>
         <Button asChild variant="primary">
           <Link href="/login">Back to sign in</Link>

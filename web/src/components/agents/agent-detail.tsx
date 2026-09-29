@@ -21,8 +21,21 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { RadioGroup, RadioGroupItem, Skeleton } from "@/components/ui/controls";
 import { IdChip, RelativeTime } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Field, Label } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { PageContainer } from "@/components/ui/page";
@@ -45,7 +58,15 @@ import { useAgent, useAgentVersions, useDeleteAgent, useUpdateAgent } from "./qu
 type TabValue = "overview" | "versions" | "new-version";
 const TABS: TabValue[] = ["overview", "versions", "new-version"];
 
-function EditDetailsDialog({ agent, open, onOpenChange }: { agent: AgentOut; open: boolean; onOpenChange: (o: boolean) => void }) {
+function EditDetailsDialog({
+  agent,
+  open,
+  onOpenChange,
+}: {
+  agent: AgentOut;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
   const update = useUpdateAgent(agent.id);
   const [error, setError] = React.useState<unknown>(null);
   const form = useForm<AgentMetadataValues>({
@@ -55,7 +76,10 @@ function EditDetailsDialog({ agent, open, onOpenChange }: { agent: AgentOut; ope
   const onSubmit = form.handleSubmit(async (v) => {
     setError(null);
     try {
-      await update.mutateAsync({ description: v.description.trim() === "" ? null : v.description.trim(), status: v.status });
+      await update.mutateAsync({
+        description: v.description.trim() === "" ? null : v.description.trim(),
+        status: v.status,
+      });
       toast.success("Agent details saved");
       onOpenChange(false);
     } catch (err) {
@@ -73,7 +97,10 @@ function EditDetailsDialog({ agent, open, onOpenChange }: { agent: AgentOut; ope
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-col">
           <DialogHeader>
             <DialogTitle>Edit details</DialogTitle>
-            <DialogDescription>Metadata changes apply immediately and do not create a version. Configuration changes go through “New version”.</DialogDescription>
+            <DialogDescription>
+              Metadata changes apply immediately and do not create a version. Configuration changes go through “New
+              version”.
+            </DialogDescription>
           </DialogHeader>
           <DialogBody className="flex flex-col gap-5">
             <Field label="Name" description="Agent names are permanent.">
@@ -152,7 +179,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [pair, setPair] = React.useState<ComparePair | null>(null);
 
   const requested = searchParams.get("tab") as TabValue | null;
-  const tab: TabValue = requested && TABS.includes(requested) && (requested !== "new-version" || canManage) ? requested : "overview";
+  const tab: TabValue =
+    requested && TABS.includes(requested) && (requested !== "new-version" || canManage) ? requested : "overview";
   const setTab = (next: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "overview") params.delete("tab");
@@ -206,11 +234,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-fg-muted">
                 <BotIcon className="size-4.5" aria-hidden />
               </div>
-              <h1 className="min-w-0 break-words text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">{agent.name}</h1>
+              <h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words text-fg sm:text-[28px]">
+                {agent.name}
+              </h1>
               <AgentStatusBadge status={agent.status} />
               <VersionBadge number={current?.version_number} current />
             </div>
-            {agent.description && <p className="max-w-2xl text-sm leading-relaxed text-fg-muted">{agent.description}</p>}
+            {agent.description && (
+              <p className="max-w-2xl text-sm leading-relaxed text-fg-muted">{agent.description}</p>
+            )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-fg-subtle">
               {current && <Checksum value={current.checksum} />}
               <span title={dateTime(agent.created_at)}>
@@ -248,14 +280,22 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       )}
 
       {agent?.status === "disabled" && (
-        <div role="status" className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-fg-muted">
+        <div
+          role="status"
+          className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-fg-muted"
+        >
           <PowerOffIcon className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
           <p>
-            <span className="font-medium text-fg">This agent is disabled.</span> New tasks can&apos;t use it until it is re-enabled; its versions are kept.
+            <span className="font-medium text-fg">This agent is disabled.</span> New tasks can&apos;t use it until it is
+            re-enabled; its versions are kept.
             {canManage && (
               <>
                 {" "}
-                <button type="button" onClick={() => setEditOpen(true)} className="text-accent underline-offset-2 hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="text-accent underline-offset-2 hover:underline"
+                >
                   Change status
                 </button>
               </>
@@ -291,13 +331,22 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             <AgentOverview agent={agent} version={current} tools={tools.data} />
           ) : (
             <Card>
-              <EmptyState title="No current version" description="This agent has no published configuration. Publish a version to use it." />
+              <EmptyState
+                title="No current version"
+                description="This agent has no published configuration. Publish a version to use it."
+              />
             </Card>
           )}
         </TabsContent>
 
         <TabsContent value="versions" className="mt-5">
-          <AgentVersions agentId={agentId} enabled={!removing} currentVersionId={agent?.current_version_id ?? null} pair={pair} onPairChange={setPair} />
+          <AgentVersions
+            agentId={agentId}
+            enabled={!removing}
+            currentVersionId={agent?.current_version_id ?? null}
+            pair={pair}
+            onPairChange={setPair}
+          />
         </TabsContent>
 
         {canManage && (

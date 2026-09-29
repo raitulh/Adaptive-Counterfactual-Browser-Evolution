@@ -31,7 +31,10 @@ export function typeToConfirmPhrase(approval: Pick<ApprovalOut, "tool_name">): s
 export type DecisionBlock = "expired" | "not_pending" | null;
 
 /** Whether a decision can still be made (UI hint only; the backend decides). */
-export function decisionBlock(approval: Pick<ApprovalOut, "status" | "expires_at">, now: number = Date.now()): DecisionBlock {
+export function decisionBlock(
+  approval: Pick<ApprovalOut, "status" | "expires_at">,
+  now: number = Date.now(),
+): DecisionBlock {
   if (approval.status !== "pending") return "not_pending";
   const expires = new Date(approval.expires_at).getTime();
   if (Number.isFinite(expires) && expires <= now) return "expired";
@@ -49,7 +52,10 @@ export function rejectReasonError(reason: string): string | null {
 }
 
 /** "in 4 min" style remaining time; "expired" when past. */
-export function remainingLabel(expiresAt: string, now: number = Date.now()): { label: string; expired: boolean; urgent: boolean } {
+export function remainingLabel(
+  expiresAt: string,
+  now: number = Date.now(),
+): { label: string; expired: boolean; urgent: boolean } {
   const ms = new Date(expiresAt).getTime() - now;
   if (!Number.isFinite(ms)) return { label: "—", expired: false, urgent: false };
   if (ms <= 0) return { label: "Expired", expired: true, urgent: false };
@@ -58,6 +64,13 @@ export function remainingLabel(expiresAt: string, now: number = Date.now()): { l
   const h = Math.floor((s % 86_400) / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  const label = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : m > 0 ? `${m}m ${String(sec).padStart(2, "0")}s` : `${sec}s`;
+  const label =
+    d > 0
+      ? `${d}d ${h}h`
+      : h > 0
+        ? `${h}h ${String(m).padStart(2, "0")}m`
+        : m > 0
+          ? `${m}m ${String(sec).padStart(2, "0")}s`
+          : `${sec}s`;
   return { label: `Expires in ${label}`, expired: false, urgent: ms < 5 * 60_000 };
 }

@@ -86,7 +86,10 @@ function NumberField({
             autoComplete="off"
           />
           {unit && (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-fg-subtle" aria-hidden>
+            <span
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-fg-subtle"
+              aria-hidden
+            >
               {unit}
             </span>
           )}
@@ -97,7 +100,15 @@ function NumberField({
 }
 
 /** Live preview of which catalogue tools an allow/deny policy permits (same matching as the backend). */
-function ToolAccessPreview({ allowed, denied, tools }: { allowed: string[]; denied: string[]; tools: ToolOut[] | undefined }) {
+function ToolAccessPreview({
+  allowed,
+  denied,
+  tools,
+}: {
+  allowed: string[];
+  denied: string[];
+  tools: ToolOut[] | undefined;
+}) {
   const [open, setOpen] = React.useState(false);
   const names = React.useMemo(() => (tools ?? []).map((t) => t.name), [tools]);
   const { permitted, blocked } = React.useMemo(() => agentToolAccess(names, allowed, denied), [names, allowed, denied]);
@@ -113,15 +124,19 @@ function ToolAccessPreview({ allowed, denied, tools }: { allowed: string[]; deni
         className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         <span className="text-fg-muted">
-          <span className="font-medium text-fg tabular-nums">{permitted.length}</span> of {names.length} catalogue tools permitted
+          <span className="font-medium text-fg tabular-nums">{permitted.length}</span> of {names.length} catalogue tools
+          permitted
           {blocked.length > 0 && <span className="text-fg-subtle"> · {blocked.length} excluded</span>}
         </span>
-        <ChevronDownIcon className={cn("size-4 text-fg-subtle transition-transform", open && "rotate-180")} aria-hidden />
+        <ChevronDownIcon
+          className={cn("size-4 text-fg-subtle transition-transform", open && "rotate-180")}
+          aria-hidden
+        />
       </button>
       {open && (
         <div id={listId} className="grid gap-4 border-t border-line px-3 py-3 sm:grid-cols-2">
           <div>
-            <p className="mb-1.5 text-2xs font-medium uppercase tracking-wider text-success">Permitted</p>
+            <p className="mb-1.5 text-2xs font-medium tracking-wider text-success uppercase">Permitted</p>
             <ul className="flex flex-wrap gap-1">
               {permitted.length === 0 && <li className="text-xs text-fg-subtle">None</li>}
               {permitted.map((n) => (
@@ -132,7 +147,7 @@ function ToolAccessPreview({ allowed, denied, tools }: { allowed: string[]; deni
             </ul>
           </div>
           <div>
-            <p className="mb-1.5 text-2xs font-medium uppercase tracking-wider text-fg-subtle">Excluded</p>
+            <p className="mb-1.5 text-2xs font-medium tracking-wider text-fg-subtle uppercase">Excluded</p>
             <ul className="flex flex-wrap gap-1">
               {blocked.length === 0 && <li className="text-xs text-fg-subtle">None</li>}
               {blocked.map((n) => (
@@ -182,7 +197,8 @@ export function AgentConfigFields({
     },
     [names],
   );
-  const unmatched = (p: string) => (names.length > 0 && matchingNames(p, names).length === 0 ? "border-warning/40 text-warning" : undefined);
+  const unmatched = (p: string) =>
+    names.length > 0 && matchingNames(p, names).length === 0 ? "border-warning/40 text-warning" : undefined;
 
   return (
     <div className="flex flex-col gap-5">
@@ -199,10 +215,17 @@ export function AgentConfigFields({
                 {...form.register("instructions")}
                 rows={14}
                 spellCheck
-                placeholder={"e.g. You schedule meetings for the sales team.\nAlways propose times within 09:00–17:00 in the attendee's timezone.\nNever send an invitation without confirming the attendee list."}
+                placeholder={
+                  "e.g. You schedule meetings for the sales team.\nAlways propose times within 09:00–17:00 in the attendee's timezone.\nNever send an invitation without confirming the attendee list."
+                }
                 className="min-h-72 text-[13.5px] leading-relaxed"
               />
-              <p className={cn("self-end text-2xs tabular-nums", instructions.length > LIMITS.instructions ? "text-danger" : "text-fg-subtle")}>
+              <p
+                className={cn(
+                  "self-end text-2xs tabular-nums",
+                  instructions.length > LIMITS.instructions ? "text-danger" : "text-fg-subtle",
+                )}
+              >
                 {instructions.length.toLocaleString("en-US")} / {LIMITS.instructions.toLocaleString("en-US")}
               </p>
             </div>
@@ -216,9 +239,7 @@ export function AgentConfigFields({
         description="Which model tier plans this agent's tasks, and optional model overrides. Empty overrides use the platform model for each tier."
       >
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1.5 text-[13px] font-medium text-fg">
-            Planning tier
-          </legend>
+          <legend className="mb-1.5 text-[13px] font-medium text-fg">Planning tier</legend>
           <Controller
             control={form.control}
             name="planningTier"
@@ -264,7 +285,14 @@ export function AgentConfigFields({
           ).map(([name, label, description]) => (
             <Field key={name} label={label} description={description} error={errors[name]?.message}>
               {(ids) => (
-                <Input {...ids} {...form.register(name)} placeholder="Platform default" className="font-mono text-[13px] placeholder:font-sans" autoComplete="off" spellCheck={false} />
+                <Input
+                  {...ids}
+                  {...form.register(name)}
+                  placeholder="Platform default"
+                  className="font-mono text-[13px] placeholder:font-sans"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
               )}
             </Field>
           ))}
@@ -272,7 +300,10 @@ export function AgentConfigFields({
         <Field
           label="Fallback models"
           description={`Tried in order when the preferred model is unavailable (up to ${LIMITS.fallbacks}).`}
-          error={errors.fallbacks?.message ?? (Array.isArray(errors.fallbacks) ? errors.fallbacks.find(Boolean)?.message : undefined)}
+          error={
+            errors.fallbacks?.message ??
+            (Array.isArray(errors.fallbacks) ? errors.fallbacks.find(Boolean)?.message : undefined)
+          }
         >
           {(ids) => (
             <Controller
@@ -285,14 +316,22 @@ export function AgentConfigFields({
                   onChange={field.onChange}
                   max={LIMITS.fallbacks}
                   placeholder="Type a model id and press Enter"
-                  validate={(v) => (v.length > LIMITS.modelName ? `At most ${LIMITS.modelName} characters` : /\s/.test(v) ? "Model ids cannot contain spaces" : null)}
+                  validate={(v) =>
+                    v.length > LIMITS.modelName
+                      ? `At most ${LIMITS.modelName} characters`
+                      : /\s/.test(v)
+                        ? "Model ids cannot contain spaces"
+                        : null
+                  }
                 />
               )}
             />
           )}
         </Field>
         <p className="text-xs text-fg-subtle">
-          Planning uses the <span className="font-medium text-fg-muted">{TIER_COPY[tier ?? "default"].label.toLowerCase()}</span> tier: its override (or the default model) first, then the fallbacks, then the platform models.
+          Planning uses the{" "}
+          <span className="font-medium text-fg-muted">{TIER_COPY[tier ?? "default"].label.toLowerCase()}</span> tier:
+          its override (or the default model) first, then the fallbacks, then the platform models.
         </p>
       </ConfigSection>
 
@@ -301,17 +340,24 @@ export function AgentConfigFields({
         title="Tool policy"
         description={
           <>
-            Which tools this agent may request. A tool is permitted when it matches an allowed pattern and no denied pattern
-            (<code className="font-mono text-fg">*</code> matches any characters). Organization rules, connections and approvals still
-            apply on top.
+            Which tools this agent may request. A tool is permitted when it matches an allowed pattern and no denied
+            pattern (<code className="font-mono text-fg">*</code> matches any characters). Organization rules,
+            connections and approvals still apply on top.
           </>
         }
       >
-        {toolsError && <p className="text-xs text-warning">The tool catalogue could not be loaded, so suggestions are unavailable. You can still type patterns.</p>}
+        {toolsError && (
+          <p className="text-xs text-warning">
+            The tool catalogue could not be loaded, so suggestions are unavailable. You can still type patterns.
+          </p>
+        )}
         <Field
           label="Allowed tools"
           description="Tool names or patterns, e.g. calendar.* or gmail.search."
-          error={errors.allowedTools?.message ?? (Array.isArray(errors.allowedTools) ? errors.allowedTools.find(Boolean)?.message : undefined)}
+          error={
+            errors.allowedTools?.message ??
+            (Array.isArray(errors.allowedTools) ? errors.allowedTools.find(Boolean)?.message : undefined)
+          }
         >
           {(ids) => (
             <Controller
@@ -335,13 +381,17 @@ export function AgentConfigFields({
         </Field>
         {allowed.length === 0 && (
           <p role="status" className="-mt-2 flex items-center gap-1.5 text-xs text-warning">
-            <AlertTriangleIcon className="size-3.5" aria-hidden /> No tools allowed — this agent can only answer directly.
+            <AlertTriangleIcon className="size-3.5" aria-hidden /> No tools allowed — this agent can only answer
+            directly.
           </p>
         )}
         <Field
           label="Denied tools"
           description="Always excluded, even when an allowed pattern matches."
-          error={errors.deniedTools?.message ?? (Array.isArray(errors.deniedTools) ? errors.deniedTools.find(Boolean)?.message : undefined)}
+          error={
+            errors.deniedTools?.message ??
+            (Array.isArray(errors.deniedTools) ? errors.deniedTools.find(Boolean)?.message : undefined)
+          }
         >
           {(ids) => (
             <Controller
@@ -366,7 +416,11 @@ export function AgentConfigFields({
         <ToolAccessPreview allowed={allowed} denied={denied} tools={tools} />
       </ConfigSection>
 
-      <ConfigSection id="memory" title="Memory" description="Whether the agent recalls saved memories when planning and learns new ones from finished tasks.">
+      <ConfigSection
+        id="memory"
+        title="Memory"
+        description="Whether the agent recalls saved memories when planning and learns new ones from finished tasks."
+      >
         <Controller
           control={form.control}
           name="memoryEnabled"
@@ -411,9 +465,27 @@ export function AgentConfigFields({
           <NumberField form={form} name="maxSteps" label="Max steps" description="1–100 plan steps." />
           <NumberField form={form} name="maxToolCalls" label="Max tool calls" description="1–1,000." />
           <NumberField form={form} name="maxModelCalls" label="Max model calls" description="1–500." />
-          <NumberField form={form} name="maxDurationSeconds" label="Max duration" description="10 s – 7 days." unit="sec" />
-          <NumberField form={form} name="maxCostUsd" label="Max cost" description="0–1,000 USD." unit="USD" step="0.01" />
-          <NumberField form={form} name="maxBrowserActions" label="Max browser actions" description="0–1,000. 0 disables browser actions." />
+          <NumberField
+            form={form}
+            name="maxDurationSeconds"
+            label="Max duration"
+            description="10 s – 7 days."
+            unit="sec"
+          />
+          <NumberField
+            form={form}
+            name="maxCostUsd"
+            label="Max cost"
+            description="0–1,000 USD."
+            unit="USD"
+            step="0.01"
+          />
+          <NumberField
+            form={form}
+            name="maxBrowserActions"
+            label="Max browser actions"
+            description="0–1,000. 0 disables browser actions."
+          />
         </div>
       </ConfigSection>
 
@@ -423,8 +495,21 @@ export function AgentConfigFields({
         description="Writes are always verified against the external system; these settings tune how AgentOS reads results back before deciding."
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <NumberField form={form} name="readbackAttempts" label="Read-back attempts" description="1–10 reads before the result is inconclusive." placeholder="3" />
-          <NumberField form={form} name="readbackDelayMs" label="Delay between reads" description="0–30,000 ms." unit="ms" placeholder="500" />
+          <NumberField
+            form={form}
+            name="readbackAttempts"
+            label="Read-back attempts"
+            description="1–10 reads before the result is inconclusive."
+            placeholder="3"
+          />
+          <NumberField
+            form={form}
+            name="readbackDelayMs"
+            label="Delay between reads"
+            description="0–30,000 ms."
+            unit="ms"
+            placeholder="500"
+          />
         </div>
       </ConfigSection>
     </div>
@@ -474,7 +559,7 @@ export function ConfigSectionNav({ extra = [] }: { extra?: Array<{ id: string; l
             const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
           }}
-          className="rounded-md px-2.5 py-1.5 text-[13px] text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          className="rounded-md px-2.5 py-1.5 text-[13px] text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
         >
           {s.label}
         </a>

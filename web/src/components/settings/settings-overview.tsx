@@ -31,10 +31,12 @@ function OverviewCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col gap-3 rounded-xl border border-line bg-surface-1 p-5 outline-none transition-colors hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="group flex flex-col gap-3 rounded-xl border border-line bg-surface-1 p-5 transition-colors outline-none hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
     >
       <div className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-fg-muted [&_svg]:size-4">{icon}</span>
+        <span className="flex size-8 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-fg-muted [&_svg]:size-4">
+          {icon}
+        </span>
         <h2 className="text-sm font-semibold tracking-tight text-fg">{title}</h2>
       </div>
       <div className="min-h-12 text-[13px] text-fg-muted">{children}</div>
@@ -82,24 +84,36 @@ export function SettingsOverview() {
                 <Badge tone={user.mfa_enabled ? "success" : "warning"}>{user.mfa_enabled ? "On" : "Off"}</Badge>
               </div>
               <div className="text-xs text-fg-subtle">
-                {user.mfa_enabled ? "Sign-ins require an authenticator code." : "Turn it on to protect your account beyond a password."}
+                {user.mfa_enabled
+                  ? "Sign-ins require an authenticator code."
+                  : "Turn it on to protect your account beyond a password."}
               </div>
             </div>
           ) : (
             <Skeleton className="h-9 w-56" />
           )}
         </OverviewCard>
-        <OverviewCard href="/app/settings/sessions" icon={<MonitorSmartphoneIcon />} title="Sessions" cta="Review devices">
+        <OverviewCard
+          href="/app/settings/sessions"
+          icon={<MonitorSmartphoneIcon />}
+          title="Sessions"
+          cta="Review devices"
+        >
           {activeSessions === undefined ? (
             <Skeleton className="h-4 w-40" />
           ) : (
             <>
-              <span className="text-lg font-semibold tabular-nums text-fg">{activeSessions}</span> active{" "}
+              <span className="text-lg font-semibold text-fg tabular-nums">{activeSessions}</span> active{" "}
               {activeSessions === 1 ? "session" : "sessions"} across your devices.
             </>
           )}
         </OverviewCard>
-        <OverviewCard href="/app/settings/organization" icon={<Building2Icon />} title="Organization" cta="Organization settings">
+        <OverviewCard
+          href="/app/settings/organization"
+          icon={<Building2Icon />}
+          title="Organization"
+          cta="Organization settings"
+        >
           {organization ? (
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -117,7 +131,10 @@ export function SettingsOverview() {
         </OverviewCard>
       </div>
 
-      <section className="flex flex-col gap-4 rounded-xl border border-line bg-surface-1 p-5 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="pref-dev">
+      <section
+        className="flex flex-col gap-4 rounded-xl border border-line bg-surface-1 p-5 sm:flex-row sm:items-center sm:justify-between"
+        aria-labelledby="pref-dev"
+      >
         <div className="flex items-start gap-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-fg-muted">
             <CodeIcon className="size-4" aria-hidden />

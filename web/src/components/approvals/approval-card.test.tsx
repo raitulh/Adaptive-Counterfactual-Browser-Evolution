@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApprovalOut } from "@/lib/api";
 
-vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => <a href={href} {...rest}>{children}</a> }));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 const approve = vi.fn();
 const reject = vi.fn();
@@ -13,7 +19,11 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    approvalsApi: { ...actual.approvalsApi, approve: (...a: unknown[]) => approve(...a), reject: (...a: unknown[]) => reject(...a) },
+    approvalsApi: {
+      ...actual.approvalsApi,
+      approve: (...a: unknown[]) => approve(...a),
+      reject: (...a: unknown[]) => reject(...a),
+    },
   };
 });
 

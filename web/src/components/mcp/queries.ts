@@ -54,7 +54,8 @@ function useServerWrite<TVars>(fn: (vars: TVars) => Promise<McpServerOut>) {
 export function useRegisterMcpServer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { body: McpServerCreate; idempotencyKey: string }) => mcpApi.register(vars.body, vars.idempotencyKey),
+    mutationFn: (vars: { body: McpServerCreate; idempotencyKey: string }) =>
+      mcpApi.register(vars.body, vars.idempotencyKey),
     onSuccess: (server) => {
       qc.setQueryData(qk.mcp.server(server.id), server);
       void qc.invalidateQueries({ queryKey: qk.mcp.servers });

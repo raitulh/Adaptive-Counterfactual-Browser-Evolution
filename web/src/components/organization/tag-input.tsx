@@ -64,7 +64,14 @@ export function TagInput({
         )}
       >
         {value.map((entry) => (
-          <span key={entry} className={cn("inline-flex h-6 max-w-full items-center gap-1 rounded border pl-2 font-mono text-xs", chipTone, disabled && "pr-2")}>
+          <span
+            key={entry}
+            className={cn(
+              "inline-flex h-6 max-w-full items-center gap-1 rounded border pl-2 font-mono text-xs",
+              chipTone,
+              disabled && "pr-2",
+            )}
+          >
             <span className="truncate">{entry}</span>
             {!disabled && (
               <button

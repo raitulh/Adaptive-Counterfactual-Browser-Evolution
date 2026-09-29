@@ -76,8 +76,15 @@ function Marker({ state }: { state: NodeState }) {
   if (state === "waiting") return <HandIcon className={cn("size-3.5", t.text)} aria-hidden />;
   return (
     <span className="relative inline-flex size-2" aria-hidden>
-      {(state === "active" || state === "verify") && <span className={cn("absolute inset-0 rounded-full motion-safe:animate-pulse-ring", t.dot)} />}
-      <span className={cn("relative inline-flex size-2 rounded-full", state === "pending" || state === "skipped" ? "border border-fg-subtle" : t.dot)} />
+      {(state === "active" || state === "verify") && (
+        <span className={cn("absolute inset-0 rounded-full motion-safe:animate-pulse-ring", t.dot)} />
+      )}
+      <span
+        className={cn(
+          "relative inline-flex size-2 rounded-full",
+          state === "pending" || state === "skipped" ? "border border-fg-subtle" : t.dot,
+        )}
+      />
     </span>
   );
 }
@@ -104,12 +111,17 @@ function FrameNode({
         state === "verify" && "ring-1 ring-verify/40",
       )}
     >
-      <span className={cn("mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md", state === "pending" ? "bg-white/5 text-fg-subtle" : [t.soft, t.text])}>
+      <span
+        className={cn(
+          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md",
+          state === "pending" ? "bg-white/5 text-fg-subtle" : [t.soft, t.text],
+        )}
+      >
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-2xs font-semibold uppercase tracking-[0.12em] text-fg-subtle">{label}</span>
+          <span className="text-2xs font-semibold tracking-[0.12em] text-fg-subtle uppercase">{label}</span>
           <span className="ml-auto">
             <Marker state={state} />
           </span>
@@ -128,7 +140,12 @@ function StepNode({ node, onSelect }: { node: PlanGraphNode; onSelect?: (id: str
   const content = (
     <>
       <div className="flex items-center gap-1.5">
-        <span className={cn("flex size-5 shrink-0 items-center justify-center rounded", state === "pending" ? "bg-white/5 text-fg-subtle" : [t.soft, t.text])}>
+        <span
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center rounded",
+            state === "pending" ? "bg-white/5 text-fg-subtle" : [t.soft, t.text],
+          )}
+        >
           {React.createElement(toolIcon(node.tool), { className: "size-3", "aria-hidden": true })}
         </span>
         <span className="font-mono text-2xs text-fg-subtle">{node.position + 1}</span>
@@ -154,7 +171,12 @@ function StepNode({ node, onSelect }: { node: PlanGraphNode; onSelect?: (id: str
   );
   if (onSelect && node.stepId) {
     return (
-      <button type="button" className={cls} onClick={() => onSelect(node.stepId!)} aria-label={`Step ${node.position + 1}: ${node.label} — ${statusLabel}`}>
+      <button
+        type="button"
+        className={cls}
+        onClick={() => onSelect(node.stepId!)}
+        aria-label={`Step ${node.position + 1}: ${node.label} — ${statusLabel}`}
+      >
         {content}
       </button>
     );
@@ -181,14 +203,43 @@ function Connector({ from, to, done }: { from: number; to: number; done: boolean
   return (
     <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="h-5 w-full" aria-hidden>
       {a.map((x) => (
-        <line key={`a${x}`} x1={x} y1={0} x2={x} y2={busNeeded ? 10 : 20} className={stroke} strokeWidth={1.25} strokeDasharray={dash} vectorEffect="non-scaling-stroke" />
+        <line
+          key={`a${x}`}
+          x1={x}
+          y1={0}
+          x2={x}
+          y2={busNeeded ? 10 : 20}
+          className={stroke}
+          strokeWidth={1.25}
+          strokeDasharray={dash}
+          vectorEffect="non-scaling-stroke"
+        />
       ))}
       {busNeeded && (
-        <line x1={Math.min(...a, ...b)} y1={10} x2={Math.max(...a, ...b)} y2={10} className={stroke} strokeWidth={1.25} strokeDasharray={dash} vectorEffect="non-scaling-stroke" />
+        <line
+          x1={Math.min(...a, ...b)}
+          y1={10}
+          x2={Math.max(...a, ...b)}
+          y2={10}
+          className={stroke}
+          strokeWidth={1.25}
+          strokeDasharray={dash}
+          vectorEffect="non-scaling-stroke"
+        />
       )}
       {busNeeded &&
         b.map((x) => (
-          <line key={`b${x}`} x1={x} y1={10} x2={x} y2={20} className={stroke} strokeWidth={1.25} strokeDasharray={dash} vectorEffect="non-scaling-stroke" />
+          <line
+            key={`b${x}`}
+            x1={x}
+            y1={10}
+            x2={x}
+            y2={20}
+            className={stroke}
+            strokeWidth={1.25}
+            strokeDasharray={dash}
+            vectorEffect="non-scaling-stroke"
+          />
         ))}
     </svg>
   );
@@ -212,16 +263,43 @@ function Level({ nodes, onSelect }: { nodes: PlanGraphNode[]; onSelect?: (id: st
 }
 
 export function PlanGraph({ plan, steps, planVersion, taskStatus, goal, onSelectStep, className }: PlanGraphProps) {
-  const model: PlanGraphModel = React.useMemo(() => buildPlanGraph({ plan, steps, planVersion }), [plan, steps, planVersion]);
+  const model: PlanGraphModel = React.useMemo(
+    () => buildPlanGraph({ plan, steps, planVersion }),
+    [plan, steps, planVersion],
+  );
   const status = taskStatusMeta[taskStatus];
   const planning = ["created", "planning"].includes(taskStatus) && planVersion === 0;
   const planFailed = planVersion === 0 && (taskStatus === "failed" || taskStatus === "blocked");
-  const planState: NodeState = planning ? "active" : planFailed ? "failed" : planVersion === 0 && taskStatus === "waiting_input" ? "waiting" : planVersion > 0 ? "done" : "pending";
+  const planState: NodeState = planning
+    ? "active"
+    : planFailed
+      ? "failed"
+      : planVersion === 0 && taskStatus === "waiting_input"
+        ? "waiting"
+        : planVersion > 0
+          ? "done"
+          : "pending";
   const verified = model.nodes.filter((n) => n.verification === "passed").length;
   const verifyState: NodeState =
-    taskStatus === "verifying" ? "verify" : taskStatus === "completed" ? "verified" : model.nodes.some((n) => n.status === "requires_reconciliation") ? "recover" : verified > 0 ? "verify" : "pending";
+    taskStatus === "verifying"
+      ? "verify"
+      : taskStatus === "completed"
+        ? "verified"
+        : model.nodes.some((n) => n.status === "requires_reconciliation")
+          ? "recover"
+          : verified > 0
+            ? "verify"
+            : "pending";
   const resultState: NodeState =
-    taskStatus === "completed" ? "done" : status.tone === "danger" ? "failed" : status.attention ? "waiting" : taskStatus === "cancelled" || taskStatus === "expired" ? "skipped" : "pending";
+    taskStatus === "completed"
+      ? "done"
+      : status.tone === "danger"
+        ? "failed"
+        : status.attention
+          ? "waiting"
+          : taskStatus === "cancelled" || taskStatus === "expired"
+            ? "skipped"
+            : "pending";
   const levelDone = (l: PlanGraphNode[]) => l.length > 0 && l.every((n) => n.status === "completed");
 
   return (
@@ -231,17 +309,40 @@ export function PlanGraph({ plan, steps, planVersion, taskStatus, goal, onSelect
       <FrameNode
         icon={ListTreeIcon}
         label="Plan"
-        title={planning ? "Drafting a plan…" : model.summary ?? (model.directResponse ? "Answer directly — no actions needed" : planVersion > 0 ? `${model.nodes.length} steps` : "Not planned yet")}
-        sub={planVersion > 0 ? `Version ${planVersion} · ${model.nodes.length} step${model.nodes.length === 1 ? "" : "s"}${model.parallel ? " · parallel branches" : ""}` : null}
+        title={
+          planning
+            ? "Drafting a plan…"
+            : (model.summary ??
+              (model.directResponse
+                ? "Answer directly — no actions needed"
+                : planVersion > 0
+                  ? `${model.nodes.length} steps`
+                  : "Not planned yet"))
+        }
+        sub={
+          planVersion > 0
+            ? `Version ${planVersion} · ${model.nodes.length} step${model.nodes.length === 1 ? "" : "s"}${model.parallel ? " · parallel branches" : ""}`
+            : null
+        }
         state={planState}
       />
       {model.levels.map((level, i) => (
         <React.Fragment key={i}>
-          <Connector from={i === 0 ? 1 : model.levels[i - 1].length} to={level.length} done={i === 0 ? level.some((n) => n.status && n.status !== "pending") : levelDone(model.levels[i - 1])} />
+          <Connector
+            from={i === 0 ? 1 : model.levels[i - 1].length}
+            to={level.length}
+            done={i === 0 ? level.some((n) => n.status && n.status !== "pending") : levelDone(model.levels[i - 1])}
+          />
           <Level nodes={level} onSelect={onSelectStep} />
         </React.Fragment>
       ))}
-      <Connector from={model.levels.at(-1)?.length ?? 1} to={1} done={model.levels.length === 0 ? planVersion > 0 && taskStatus !== "planning" : levelDone(model.levels.at(-1)!)} />
+      <Connector
+        from={model.levels.at(-1)?.length ?? 1}
+        to={1}
+        done={
+          model.levels.length === 0 ? planVersion > 0 && taskStatus !== "planning" : levelDone(model.levels.at(-1)!)
+        }
+      />
       <FrameNode
         icon={ShieldCheckIcon}
         label="Verification"

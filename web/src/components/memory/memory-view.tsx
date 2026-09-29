@@ -115,10 +115,13 @@ export function MemoryView() {
             <Card className="hidden flex-col gap-2 p-5 lg:flex">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold tracking-tight text-fg">Memory field</h2>
-                <span className="text-2xs text-fg-subtle">{section === "all" ? "All types" : metaForType(section).section}</span>
+                <span className="text-2xs text-fg-subtle">
+                  {section === "all" ? "All types" : metaForType(section).section}
+                </span>
               </div>
               <p className="text-xs leading-relaxed text-fg-subtle">
-                Fresh memories sit near the core and drift outward as they age. Larger dots matter more; fainter ones are less certain.
+                Fresh memories sit near the core and drift outward as they age. Larger dots matter more; fainter ones
+                are less certain.
               </p>
               {list.isPending ? (
                 <Skeleton className="mx-auto mt-2 size-[200px] rounded-full" />
@@ -137,7 +140,9 @@ export function MemoryView() {
                     {section === "all" ? "All memories" : metaForType(section).section}
                   </h2>
                   <p className="mt-0.5 text-[13px] text-fg-muted">
-                    {section === "all" ? "Everything AgentOS remembers, newest first." : metaForType(section).description}
+                    {section === "all"
+                      ? "Everything AgentOS remembers, newest first."
+                      : metaForType(section).description}
                   </p>
                 </div>
                 <div className="w-full sm:w-44">
@@ -164,7 +169,11 @@ export function MemoryView() {
                 </Card>
               ) : list.items.length === 0 ? (
                 <Card>
-                  <SectionEmpty section={section} status={status} onCreate={can("memory:write") ? () => setCreateOpen(true) : undefined} />
+                  <SectionEmpty
+                    section={section}
+                    status={status}
+                    onCreate={can("memory:write") ? () => setCreateOpen(true) : undefined}
+                  />
                 </Card>
               ) : (
                 <>
@@ -177,7 +186,12 @@ export function MemoryView() {
                   </ul>
                   {list.hasNextPage && (
                     <div className="flex justify-center">
-                      <Button variant="ghost" size="sm" onClick={() => void list.fetchNextPage()} loading={list.isFetchingNextPage}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void list.fetchNextPage()}
+                        loading={list.isFetchingNextPage}
+                      >
                         Load more memories
                       </Button>
                     </div>
@@ -189,12 +203,21 @@ export function MemoryView() {
         </>
       )}
 
-      <CreateMemoryDialog open={createOpen} onOpenChange={setCreateOpen} defaultType={section === "all" ? "long_term" : section} />
+      <CreateMemoryDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultType={section === "all" ? "long_term" : section}
+      />
     </PageContainer>
   );
 }
 
-const RECALL_SUGGESTIONS = ["my meeting preferences", "people I work with", "upcoming deadlines", "how I like emails written"];
+const RECALL_SUGGESTIONS = [
+  "my meeting preferences",
+  "people I work with",
+  "upcoming deadlines",
+  "how I like emails written",
+];
 
 function RecallPanel({ section, onClearScope }: { section: Section; onClearScope: () => void }) {
   const [draft, setDraft] = React.useState("");
@@ -205,7 +228,10 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
 
   return (
     <Card className="relative overflow-hidden p-5 sm:p-6">
-      <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-accent/[0.06] blur-3xl" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-accent/[0.06] blur-3xl"
+      />
       <form
         role="search"
         onSubmit={(e) => {
@@ -220,7 +246,10 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
+            <SearchIcon
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
+              aria-hidden
+            />
             <input
               ref={inputRef}
               id="memory-recall"
@@ -228,7 +257,7 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
               onChange={(e) => setDraft(e.target.value)}
               maxLength={500}
               placeholder="Meeting preferences, Rahim's email, what happened with the Q3 report…"
-              className="h-11 w-full rounded-lg border border-line-strong bg-bg/60 pl-9 pr-9 text-[15px] text-fg outline-none transition-[border-color,box-shadow] placeholder:text-fg-subtle focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25"
+              className="h-11 w-full rounded-lg border border-line-strong bg-bg/60 pr-9 pl-9 text-[15px] text-fg transition-[border-color,box-shadow] outline-none placeholder:text-fg-subtle focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25"
               autoComplete="off"
             />
             {draft && (
@@ -239,7 +268,7 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
                   setQuery("");
                   inputRef.current?.focus();
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-fg-subtle hover:bg-white/5 hover:text-fg"
+                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-fg-subtle hover:bg-white/5 hover:text-fg"
                 aria-label="Clear"
               >
                 <XIcon className="size-4" />
@@ -252,9 +281,14 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
           {section !== "all" ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-line-strong bg-surface-2 py-0.5 pl-2.5 pr-1 text-fg-muted">
+            <span className="inline-flex items-center gap-1 rounded-full border border-line-strong bg-surface-2 py-0.5 pr-1 pl-2.5 text-fg-muted">
               In {metaForType(section).section.toLowerCase()}
-              <button type="button" onClick={onClearScope} className="rounded-full p-0.5 hover:bg-white/10 hover:text-fg" aria-label="Search all memory types">
+              <button
+                type="button"
+                onClick={onClearScope}
+                className="rounded-full p-0.5 hover:bg-white/10 hover:text-fg"
+                aria-label="Search all memory types"
+              >
                 <XIcon className="size-3" />
               </button>
             </span>
@@ -282,7 +316,7 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
                 setCount(null);
                 setQuery(s);
               }}
-              className="rounded-full border border-line bg-surface-2/60 px-3 py-1 text-xs text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="rounded-full border border-line bg-surface-2/60 px-3 py-1 text-xs text-fg-muted transition-colors outline-none hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {s}
             </button>
@@ -295,7 +329,14 @@ function RecallPanel({ section, onClearScope }: { section: Section; onClearScope
             <p className="text-xs text-fg-subtle">
               {count === null ? "Recalling…" : `${count} ${count === 1 ? "memory" : "memories"}, best match first`}
             </p>
-            <Button variant="ghost" size="xs" onClick={() => { setQuery(""); setDraft(""); }}>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setQuery("");
+                setDraft("");
+              }}
+            >
               Clear results
             </Button>
           </div>
@@ -318,8 +359,10 @@ function SectionNav({ value, onChange }: { value: Section; onChange: (s: Section
         onClick={() => onChange(s)}
         aria-pressed={active}
         className={cn(
-          "inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 lg:w-full",
-          active ? "bg-surface-3 text-fg shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]" : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
+          "inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:w-full",
+          active
+            ? "bg-surface-3 text-fg shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
+            : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
         )}
       >
         <Icon className={cn("size-4", active ? "text-accent" : "text-fg-subtle")} aria-hidden />
@@ -332,14 +375,24 @@ function SectionNav({ value, onChange }: { value: Section; onChange: (s: Section
       <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {item("all")}
         {PRIMARY_SECTIONS.map(item)}
-        <span className="hidden px-3 pb-1 pt-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle lg:block">Short-lived</span>
+        <span className="hidden px-3 pt-4 pb-1 text-2xs font-medium tracking-wider text-fg-subtle uppercase lg:block">
+          Short-lived
+        </span>
         {SECONDARY_SECTIONS.map(item)}
       </div>
     </nav>
   );
 }
 
-function SectionEmpty({ section, status, onCreate }: { section: Section; status: MemoryStatusFilter | null; onCreate?: () => void }) {
+function SectionEmpty({
+  section,
+  status,
+  onCreate,
+}: {
+  section: Section;
+  status: MemoryStatusFilter | null;
+  onCreate?: () => void;
+}) {
   if (status && status !== "active") {
     return (
       <EmptyState
@@ -357,7 +410,9 @@ function SectionEmpty({ section, status, onCreate }: { section: Section; status:
       size="sm"
       icon={<Icon />}
       title={meta ? `No ${meta.section.toLowerCase()} yet` : "No memories match these filters"}
-      description={meta ? `${meta.description} AgentOS adds these as it works, or you can add one yourself.` : undefined}
+      description={
+        meta ? `${meta.description} AgentOS adds these as it works, or you can add one yourself.` : undefined
+      }
       action={
         onCreate ? (
           <Button size="sm" variant="secondary" onClick={onCreate}>
@@ -380,7 +435,15 @@ function EmptyField() {
         </radialGradient>
       </defs>
       {[24, 44, 64].map((r, i) => (
-        <circle key={r} cx={80} cy={80} r={r} fill="none" className="stroke-white/[0.08]" strokeDasharray={i === 2 ? "2 5" : undefined} />
+        <circle
+          key={r}
+          cx={80}
+          cy={80}
+          r={r}
+          fill="none"
+          className="stroke-white/[0.08]"
+          strokeDasharray={i === 2 ? "2 5" : undefined}
+        />
       ))}
       <circle cx={80} cy={80} r={26} fill="url(#empty-core)" />
       <circle cx={80} cy={80} r={3} className="fill-accent motion-safe:animate-pulse" />

@@ -33,7 +33,7 @@ export function Badge({ tone = "neutral", variant = "soft", size = "sm", classNa
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border font-medium",
+        "inline-flex items-center gap-1.5 rounded-full border font-medium whitespace-nowrap",
         size === "sm" ? "h-5 px-2 text-2xs" : "h-6 px-2.5 text-xs",
         variant === "soft" && [t.soft, t.text, t.border],
         variant === "outline" && ["bg-transparent", t.text, t.border],
@@ -46,7 +46,15 @@ export function Badge({ tone = "neutral", variant = "soft", size = "sm", classNa
 }
 
 /** Pulsing dot for live states (paired with text — never the only signal). */
-export function LiveDot({ tone = "accent", live = true, className }: { tone?: Tone; live?: boolean; className?: string }) {
+export function LiveDot({
+  tone = "accent",
+  live = true,
+  className,
+}: {
+  tone?: Tone;
+  live?: boolean;
+  className?: string;
+}) {
   const t = toneClasses[tone];
   return (
     <span className={cn("relative inline-flex size-1.5 shrink-0", className)} aria-hidden>

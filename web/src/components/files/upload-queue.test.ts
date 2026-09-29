@@ -72,11 +72,18 @@ describe("uploadReducer", () => {
   });
 
   it("retries keep the idempotency key and only apply to retryable failures or cancellations", () => {
-    const failed = item({ phase: "failed", attempts: 1, error: { message: "x", code: "network_error", retryable: true } });
+    const failed = item({
+      phase: "failed",
+      attempts: 1,
+      error: { message: "x", code: "network_error", retryable: true },
+    });
     const retried = uploadReducer([failed], { type: "retry", id: "a" });
     expect(retried[0]).toMatchObject({ phase: "queued", idempotencyKey: "key-1", error: null, attempts: 1 });
 
-    const permanent = item({ phase: "failed", error: { message: "x", code: "unsupported_file_type", retryable: false } });
+    const permanent = item({
+      phase: "failed",
+      error: { message: "x", code: "unsupported_file_type", retryable: false },
+    });
     expect(uploadReducer([permanent], { type: "retry", id: "a" })[0].phase).toBe("failed");
 
     const rejected = item({ phase: "rejected" });
@@ -91,7 +98,9 @@ describe("uploadReducer", () => {
   it("ignores events for items that are no longer active", () => {
     const done = [item({ phase: "done" })];
     expect(uploadReducer(done, { type: "progress", id: "a", fraction: 0.2 })).toBe(done);
-    expect(uploadReducer(done, { type: "failed", id: "a", error: { message: "", code: "", retryable: true } })).toBe(done);
+    expect(uploadReducer(done, { type: "failed", id: "a", error: { message: "", code: "", retryable: true } })).toBe(
+      done,
+    );
     expect(uploadReducer(done, { type: "cancelled", id: "a" })).toBe(done);
   });
 
@@ -172,7 +181,9 @@ describe("createUploadQueue", () => {
     const { upload, calls } = fakeUploader();
     const q = createUploadQueue({ upload });
     const [a] = q.add([txt("a.txt")]);
-    calls[0].reject(new AgentOSApiError({ status: 422, code: "unsupported_file_type", message: "Executable files are not allowed." }));
+    calls[0].reject(
+      new AgentOSApiError({ status: 422, code: "unsupported_file_type", message: "Executable files are not allowed." }),
+    );
     await flush();
     expect(q.getSnapshot()[0].error).toMatchObject({ retryable: false, message: "Executable files are not allowed." });
     q.retry(a.id);
@@ -211,8 +222,18 @@ describe("validateUpload", () => {
 
 describe("file stages", () => {
   it("maps server status to the upload → scan → extract → ready pipeline", () => {
-    expect(stagesForFile({ status: "uploaded" })).toEqual({ upload: "done", scan: "done", extract: "active", ready: "pending" });
-    expect(stagesForFile({ status: "ready" })).toEqual({ upload: "done", scan: "done", extract: "done", ready: "done" });
+    expect(stagesForFile({ status: "uploaded" })).toEqual({
+      upload: "done",
+      scan: "done",
+      extract: "active",
+      ready: "pending",
+    });
+    expect(stagesForFile({ status: "ready" })).toEqual({
+      upload: "done",
+      scan: "done",
+      extract: "done",
+      ready: "done",
+    });
     expect(stagesForFile({ status: "quarantined" })).toMatchObject({ scan: "failed", extract: "pending" });
     expect(stagesForFile({ status: "failed" })).toMatchObject({ scan: "done", extract: "failed" });
   });

@@ -13,12 +13,21 @@ import { RelevanceMeter } from "./relevance-meter";
 import { ResultItem, ResultList } from "./result-list";
 
 function hrefFor(hit: DocumentSearchHit): { href: string; external: boolean } | null {
-  if (hit.source_type === "file") return { href: `/app/files?file=${encodeURIComponent(hit.source_id)}`, external: false };
+  if (hit.source_type === "file")
+    return { href: `/app/files?file=${encodeURIComponent(hit.source_id)}`, external: false };
   if (hit.url && isSafeHttpUrl(hit.url)) return { href: hit.url, external: true };
   return null;
 }
 
-export function DocumentResults({ data, terms, onEscape }: { data: DocumentSearchResponse; terms: string[]; onEscape: () => void }) {
+export function DocumentResults({
+  data,
+  terms,
+  onEscape,
+}: {
+  data: DocumentSearchResponse;
+  terms: string[];
+  onEscape: () => void;
+}) {
   const maxScore = Math.max(...data.results.map((r) => r.score), 0);
   if (data.results.length === 0) {
     return (
@@ -75,13 +84,18 @@ function DocumentResult({ hit, terms, maxScore }: { hit: DocumentSearchHit; term
   return (
     <ResultItem onOpen={open} label={`${hit.title}, passage ${hit.chunk_index + 1}`}>
       <div className="flex items-start gap-3">
-        <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 text-fg-subtle">
+        <span
+          aria-hidden
+          className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 text-fg-subtle"
+        >
           <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h3 className="min-w-0 truncate text-[15px] font-medium text-fg">{hit.title}</h3>
-            <Badge variant="outline">{hit.source_type === "file" ? "File" : hit.source_type === "web" ? "Web page" : hit.source_type}</Badge>
+            <Badge variant="outline">
+              {hit.source_type === "file" ? "File" : hit.source_type === "web" ? "Web page" : hit.source_type}
+            </Badge>
             <span className="text-xs text-fg-subtle">Passage {hit.chunk_index + 1}</span>
             {terms.length > 0 && (
               <span className="text-xs text-fg-subtle">
@@ -92,7 +106,8 @@ function DocumentResult({ hit, terms, maxScore }: { hit: DocumentSearchHit; term
           <blockquote className="relative mt-2 border-l-2 border-accent/30 pl-3">
             <p
               className={
-                "whitespace-pre-line text-[13px] leading-relaxed text-fg-muted " + (long && !expanded ? "line-clamp-5" : "")
+                "text-[13px] leading-relaxed whitespace-pre-line text-fg-muted " +
+                (long && !expanded ? "line-clamp-5" : "")
               }
             >
               <HighlightText text={hit.content} terms={terms} />
@@ -111,7 +126,12 @@ function DocumentResult({ hit, terms, maxScore }: { hit: DocumentSearchHit; term
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
             <Tooltip content="Combined rank score (relative bar: compared with the best passage in these results).">
               <span tabIndex={0} className="outline-none">
-                <RelevanceMeter value={hit.score} fraction={maxScore > 0 ? hit.score / maxScore : 0} label="Score" digits={3} />
+                <RelevanceMeter
+                  value={hit.score}
+                  fraction={maxScore > 0 ? hit.score / maxScore : 0}
+                  label="Score"
+                  digits={3}
+                />
               </span>
             </Tooltip>
             {hit.keyword_score !== null && hit.keyword_score !== undefined && (
@@ -133,7 +153,10 @@ function DocumentResult({ hit, terms, maxScore }: { hit: DocumentSearchHit; term
                     Open page <ArrowUpRightIcon className="size-3.5" aria-hidden />
                   </a>
                 ) : (
-                  <Link href={target.href} className="inline-flex items-center gap-1 font-medium text-fg-muted hover:text-fg">
+                  <Link
+                    href={target.href}
+                    className="inline-flex items-center gap-1 font-medium text-fg-muted hover:text-fg"
+                  >
                     Open file <ArrowUpRightIcon className="size-3.5" aria-hidden />
                   </Link>
                 )}

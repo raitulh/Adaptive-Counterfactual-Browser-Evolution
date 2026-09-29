@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 import type { ToolRuleOut } from "@/lib/api";
 import { allowRuleCanWaive, rulesForTool, toolRuleDefaults, toolRuleSchema, toToolRulePayload } from "./policy-schema";
 
-const parse = (patch: Partial<typeof toolRuleDefaults>) => toolRuleSchema.safeParse({ ...toolRuleDefaults, toolPattern: "gmail.send", ...patch });
+const parse = (patch: Partial<typeof toolRuleDefaults>) =>
+  toolRuleSchema.safeParse({ ...toolRuleDefaults, toolPattern: "gmail.send", ...patch });
 
 describe("tool rule form", () => {
   it("maps to the backend payload (any role → null, empty reason → null)", () => {
     const r = parse({ effect: "deny" });
-    expect(toToolRulePayload(r.data!)).toEqual({ tool_pattern: "gmail.send", effect: "deny", role: null, reason: null });
+    expect(toToolRulePayload(r.data!)).toEqual({
+      tool_pattern: "gmail.send",
+      effect: "deny",
+      role: null,
+      reason: null,
+    });
     const scoped = parse({ role: "member", reason: "  Members may not e-mail externally  " });
     expect(toToolRulePayload(scoped.data!)).toEqual({
       tool_pattern: "gmail.send",

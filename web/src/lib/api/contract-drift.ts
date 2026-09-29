@@ -25,7 +25,8 @@ async function sha256Hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export type DriftResult = { status: "match" } | { status: "drift"; live: string; expected: string } | { status: "unavailable" };
+export type DriftResult =
+  { status: "match" } | { status: "drift"; live: string; expected: string } | { status: "unavailable" };
 
 export async function checkContractDrift(): Promise<DriftResult> {
   if (!env.isDevelopment || env.demoMode) return { status: "match" };

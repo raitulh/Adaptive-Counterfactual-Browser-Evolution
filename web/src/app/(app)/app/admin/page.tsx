@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { SystemOverview } from "@/components/admin/system-overview";
 
-// Scaffold: replaced by the feature implementation.
-export default function AdminPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Admin" description="Platform administration." />
-    </PageContainer>
-  );
+export const metadata: Metadata = { title: "System" };
+
+export default function AdminSystemPage() {
+  return <SystemOverview />;
 }

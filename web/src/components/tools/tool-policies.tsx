@@ -10,7 +10,15 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/controls";
 import { IdChip } from "@/components/ui/data-display";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,13 +70,15 @@ export function PrecedenceExplainer() {
         <h2 className="text-sm font-semibold tracking-tight text-fg">How rules are evaluated</h2>
       </div>
       <p className="mt-1 text-[13px] text-fg-muted">
-        Patterns match tool names exactly or with <code className="font-mono text-fg">*</code> wildcards. Rules scoped to a role apply only to
-        members with that role; rules without a role apply to everyone.
+        Patterns match tool names exactly or with <code className="font-mono text-fg">*</code> wildcards. Rules scoped
+        to a role apply only to members with that role; rules without a role apply to everyone.
       </p>
       <ol className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {steps.map((s, i) => (
           <li key={s.title} className="flex gap-3 rounded-lg border border-line bg-surface-2/50 p-3">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong font-mono text-2xs text-fg-muted">{i + 1}</span>
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong font-mono text-2xs text-fg-muted">
+              {i + 1}
+            </span>
             <div>
               <p className="text-[13px] font-medium text-fg">{s.title}</p>
               <p className="mt-1 text-xs leading-relaxed text-fg-muted">{s.body}</p>
@@ -89,12 +99,16 @@ function RuleImpact({ values, tools }: { values: ToolRuleValues; tools: ToolOut[
   if (matched.length === 0) {
     return (
       <p className="rounded-lg border border-warning/25 bg-warning/[0.06] px-3 py-2 text-xs text-warning">
-        No tool in the current catalogue matches <code className="font-mono">{pattern}</code>. The rule will still apply to matching tools added later (e.g. MCP tools).
+        No tool in the current catalogue matches <code className="font-mono">{pattern}</code>. The rule will still apply
+        to matching tools added later (e.g. MCP tools).
       </p>
     );
   }
   // Bounded writes that currently need approval are the only tools an allow rule can change.
-  const waivable = values.effect === "allow" ? matched.filter((n) => byName.get(n)!.requires_approval && allowRuleCanWaive(byName.get(n)!)) : [];
+  const waivable =
+    values.effect === "allow"
+      ? matched.filter((n) => byName.get(n)!.requires_approval && allowRuleCanWaive(byName.get(n)!))
+      : [];
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface-1 p-3">
       <p className="text-xs text-fg-muted">
@@ -102,7 +116,8 @@ function RuleImpact({ values, tools }: { values: ToolRuleValues; tools: ToolOut[
         {values.effect === "allow" && (
           <>
             {" "}
-            · removes the approval step from <span className="font-medium text-fg">{waivable.length}</span> (bounded writes that need approval today)
+            · removes the approval step from <span className="font-medium text-fg">{waivable.length}</span> (bounded
+            writes that need approval today)
           </>
         )}
       </p>
@@ -112,9 +127,15 @@ function RuleImpact({ values, tools }: { values: ToolRuleValues; tools: ToolOut[
             key={n}
             className={cn(
               "rounded border px-1.5 font-mono text-2xs",
-              values.effect === "allow" && !waivable.includes(n) ? "border-line text-fg-subtle" : "border-line-strong bg-surface-2 text-fg",
+              values.effect === "allow" && !waivable.includes(n)
+                ? "border-line text-fg-subtle"
+                : "border-line-strong bg-surface-2 text-fg",
             )}
-            title={values.effect === "allow" && !waivable.includes(n) ? "No effect: this tool runs without approval already, or its approval cannot be waived" : undefined}
+            title={
+              values.effect === "allow" && !waivable.includes(n)
+                ? "No effect: this tool runs without approval already, or its approval cannot be waived"
+                : undefined
+            }
           >
             {n}
           </li>
@@ -124,7 +145,15 @@ function RuleImpact({ values, tools }: { values: ToolRuleValues; tools: ToolOut[
   );
 }
 
-function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenChange: (o: boolean) => void; tools: ToolOut[] }) {
+function AddRuleDialog({
+  open,
+  onOpenChange,
+  tools,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  tools: ToolOut[];
+}) {
   const create = useCreateToolRule();
   const [error, setError] = React.useState<unknown>(null);
   const form = useForm<ToolRuleValues>({ resolver: zodResolver(toolRuleSchema), defaultValues: toolRuleDefaults });
@@ -164,7 +193,9 @@ function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenCha
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-col">
           <DialogHeader>
             <DialogTitle>Add tool rule</DialogTitle>
-            <DialogDescription>Rules apply to every agent in this organization and take effect for the next action that is evaluated.</DialogDescription>
+            <DialogDescription>
+              Rules apply to every agent in this organization and take effect for the next action that is evaluated.
+            </DialogDescription>
           </DialogHeader>
           <DialogBody className="flex flex-col gap-5">
             <Field
@@ -173,13 +204,23 @@ function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenCha
               error={form.formState.errors.toolPattern?.message}
               description={
                 <>
-                  A tool name like <code className="font-mono">gmail.send</code> or a pattern like <code className="font-mono">calendar.*</code>.
+                  A tool name like <code className="font-mono">gmail.send</code> or a pattern like{" "}
+                  <code className="font-mono">calendar.*</code>.
                 </>
               }
             >
               {(ids) => (
                 <>
-                  <Input {...ids} {...form.register("toolPattern")} list={listId} autoComplete="off" spellCheck={false} placeholder="gmail.send" className="font-mono" autoFocus />
+                  <Input
+                    {...ids}
+                    {...form.register("toolPattern")}
+                    list={listId}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="gmail.send"
+                    className="font-mono"
+                    autoFocus
+                  />
                   <datalist id={listId}>
                     {suggestions.map((s) => (
                       <option key={s} value={s} />
@@ -204,7 +245,9 @@ function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenCha
                           key={e}
                           className={cn(
                             "flex cursor-pointer flex-col gap-1 rounded-lg border px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-accent/40",
-                            checked ? "border-accent/50 bg-accent/8" : "border-line-strong bg-surface-1 hover:bg-surface-2",
+                            checked
+                              ? "border-accent/50 bg-accent/8"
+                              : "border-line-strong bg-surface-1 hover:bg-surface-2",
                           )}
                         >
                           <span className="flex items-center gap-2 text-[13px] font-medium text-fg">
@@ -228,7 +271,11 @@ function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenCha
             </fieldset>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Applies to" error={form.formState.errors.role?.message} description="Scope the rule to one role, or everyone.">
+              <Field
+                label="Applies to"
+                error={form.formState.errors.role?.message}
+                description="Scope the rule to one role, or everyone."
+              >
                 {(ids) => (
                   <Controller
                     control={form.control}
@@ -251,8 +298,14 @@ function AddRuleDialog({ open, onOpenChange, tools }: { open: boolean; onOpenCha
                   />
                 )}
               </Field>
-              <Field label="Reason" error={form.formState.errors.reason?.message} description="Shown in decisions and the audit log.">
-                {(ids) => <Textarea {...ids} {...form.register("reason")} rows={1} className="min-h-9" placeholder="Optional" />}
+              <Field
+                label="Reason"
+                error={form.formState.errors.reason?.message}
+                description="Shown in decisions and the audit log."
+              >
+                {(ids) => (
+                  <Textarea {...ids} {...form.register("reason")} rows={1} className="min-h-9" placeholder="Optional" />
+                )}
               </Field>
             </div>
 
@@ -308,7 +361,9 @@ export function ToolPolicies({
         <div>
           <h2 className="text-sm font-semibold tracking-tight text-fg">Organization rules</h2>
           <p className="mt-0.5 text-[13px] text-fg-muted">
-            {canManage ? "Deny, require approval for, or allow tools across all agents." : "Managed by members with the tools:manage permission."}
+            {canManage
+              ? "Deny, require approval for, or allow tools across all agents."
+              : "Managed by members with the tools:manage permission."}
           </p>
         </div>
         {addButton}
@@ -353,13 +408,19 @@ export function ToolPolicies({
                       <Tooltip
                         content={
                           matched.length ? (
-                            <span className="font-mono text-2xs">{matched.slice(0, 12).join(", ")}{matched.length > 12 ? ` +${matched.length - 12}` : ""}</span>
+                            <span className="font-mono text-2xs">
+                              {matched.slice(0, 12).join(", ")}
+                              {matched.length > 12 ? ` +${matched.length - 12}` : ""}
+                            </span>
                           ) : (
                             "No current catalogue tool matches"
                           )
                         }
                       >
-                        <span tabIndex={0} className={cn("text-xs outline-none", matched.length ? "text-fg-subtle" : "text-warning")}>
+                        <span
+                          tabIndex={0}
+                          className={cn("text-xs outline-none", matched.length ? "text-fg-subtle" : "text-warning")}
+                        >
                           {matched.length} {matched.length === 1 ? "tool" : "tools"}
                         </span>
                       </Tooltip>
@@ -367,9 +428,17 @@ export function ToolPolicies({
                     </div>
                     {r.reason && <p className="mt-0.5 text-xs text-fg-muted">{r.reason}</p>}
                   </div>
-                  <span className="shrink-0 text-xs text-fg-muted">{r.role ? `${ROLE_OPTIONS.find((o) => o.value === r.role)?.label ?? r.role} only` : "Everyone"}</span>
+                  <span className="shrink-0 text-xs text-fg-muted">
+                    {r.role ? `${ROLE_OPTIONS.find((o) => o.value === r.role)?.label ?? r.role} only` : "Everyone"}
+                  </span>
                   {canManage && (
-                    <Button variant="ghost" size="icon-sm" aria-label={`Delete rule ${r.tool_pattern}`} onClick={() => setDeleting(r)} className="self-end sm:self-auto">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Delete rule ${r.tool_pattern}`}
+                      onClick={() => setDeleting(r)}
+                      className="self-end sm:self-auto"
+                    >
                       <Trash2Icon />
                     </Button>
                   )}

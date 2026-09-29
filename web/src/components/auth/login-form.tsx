@@ -19,7 +19,11 @@ import { GoogleButton } from "./google-button";
 const schema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(1, "Enter your password"),
-  mfaCode: z.string().regex(/^\d{6}$/, "Enter the 6-digit code").optional().or(z.literal("")),
+  mfaCode: z
+    .string()
+    .regex(/^\d{6}$/, "Enter the 6-digit code")
+    .optional()
+    .or(z.literal("")),
 });
 type Values = z.infer<typeof schema>;
 
@@ -40,7 +44,10 @@ export function LoginForm() {
   const [error, setError] = useState<unknown>(null);
   const mfaRef = useRef<HTMLInputElement | null>(null);
 
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "", mfaCode: "" } });
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", password: "", mfaCode: "" },
+  });
 
   useEffect(() => {
     if (status === "authenticated") router.replace(next);
@@ -80,14 +87,17 @@ export function LoginForm() {
       </div>
 
       {reason && REASONS[reason] && (
-        <p role="status" className="rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-[13px] text-fg-muted">
+        <p
+          role="status"
+          className="rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-[13px] text-fg-muted"
+        >
           {REASONS[reason]}
         </p>
       )}
 
       <GoogleButton next={next} />
 
-      <div className="flex items-center gap-3 text-2xs uppercase tracking-widest text-fg-subtle">
+      <div className="flex items-center gap-3 text-2xs tracking-widest text-fg-subtle uppercase">
         <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
       </div>
 
@@ -136,7 +146,10 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-fg-muted">
         New to AgentOS?{" "}
-        <Link href={`/signup${next !== "/app" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-accent hover:underline">
+        <Link
+          href={`/signup${next !== "/app" ? `?next=${encodeURIComponent(next)}` : ""}`}
+          className="text-accent hover:underline"
+        >
           Create an account
         </Link>
       </p>

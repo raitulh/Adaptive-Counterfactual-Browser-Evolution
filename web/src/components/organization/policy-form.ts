@@ -94,7 +94,8 @@ export function normalizeEntry(kind: EntryKind, input: string): string {
 /** Returns an error message, or null when the (normalized) entry is valid. */
 export function validateEntry(kind: EntryKind, value: string): string | null {
   if (!value) return "Enter a value";
-  if (kind === "tool-pattern") return TOOL_PATTERN_RE.test(value) ? null : "Use a tool name or glob like gmail.send or browser.*";
+  if (kind === "tool-pattern")
+    return TOOL_PATTERN_RE.test(value) ? null : "Use a tool name or glob like gmail.send or browser.*";
   if (kind === "domain") return PLAIN_DOMAIN_RE.test(value) ? null : "Use a domain like example.com";
   return DOMAIN_RE.test(value) ? null : "Use a domain like example.com or *.example.com";
 }
@@ -147,7 +148,9 @@ export function validatePolicyForm(values: PolicyFormValues): PolicyFormErrors {
     ["browser_denied_domains", "domain-pattern"],
   ];
   for (const [field, kind] of lists) {
-    const bad = (values[field] as string[]).map((v) => normalizeEntry(kind, v)).find((v) => validateEntry(kind, v) !== null);
+    const bad = (values[field] as string[])
+      .map((v) => normalizeEntry(kind, v))
+      .find((v) => validateEntry(kind, v) !== null);
     if (bad !== undefined) errors[field] = `“${bad}” is not valid. ${validateEntry(kind, bad)}`;
   }
   return errors;
@@ -163,7 +166,9 @@ export function formToPolicy(values: PolicyFormValues, base: OrganizationPolicy)
     internal_email_domains: cleanList("domain", values.internal_email_domains),
     browser_allowed_domains: cleanList("domain-pattern", values.browser_allowed_domains),
     browser_denied_domains: cleanList("domain-pattern", values.browser_denied_domains),
-    approval_ttl_seconds: values.approval_ttl_custom ? ttlToSeconds(values.approval_ttl_value, values.approval_ttl_unit) : null,
+    approval_ttl_seconds: values.approval_ttl_custom
+      ? ttlToSeconds(values.approval_ttl_value, values.approval_ttl_unit)
+      : null,
     max_concurrent_tasks: values.max_concurrent_custom ? Math.trunc(values.max_concurrent_value) : null,
     extra: { ...(base.extra ?? {}) },
   };
@@ -197,8 +202,10 @@ export function describeTtl(seconds: number | null | undefined): string {
 
 function show(field: keyof OrganizationPolicy, value: unknown): string {
   if (field === "approval_ttl_seconds") return describeTtl(value as number | null);
-  if (field === "max_concurrent_tasks") return value === null || value === undefined ? "No organization limit" : String(value);
-  if (field === "allow_destructive_actions" || field === "allow_financial_actions") return value ? "Allowed (with approval)" : "Blocked";
+  if (field === "max_concurrent_tasks")
+    return value === null || value === undefined ? "No organization limit" : String(value);
+  if (field === "allow_destructive_actions" || field === "allow_financial_actions")
+    return value ? "Allowed (with approval)" : "Blocked";
   if (Array.isArray(value)) return value.length ? value.join(", ") : "None";
   return JSON.stringify(value);
 }

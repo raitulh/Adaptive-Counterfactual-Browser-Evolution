@@ -1,6 +1,15 @@
 "use client";
 
-import { AlertTriangleIcon, ArrowRightIcon, CalendarClockIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon, WorkflowIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowRightIcon,
+  CalendarClockIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  WorkflowIcon,
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import {
@@ -26,7 +35,13 @@ import { usePermissions } from "@/lib/auth/hooks";
 import { cn } from "@/lib/utils";
 import { DeleteAutomationDialog, EnabledSwitch, useRunNowAction } from "./automation-actions";
 import { AutomationBuilderDialog, type BuilderDraft } from "./automation-builder";
-import { disabledReasonMeta, presentAutomationState, presentLastStatus, readPolicy, readTemplate } from "./automation-status";
+import {
+  disabledReasonMeta,
+  presentAutomationState,
+  presentLastStatus,
+  readPolicy,
+  readTemplate,
+} from "./automation-status";
 import { useAutomations } from "./hooks";
 import { describeSchedule, formatInZone } from "./schedule";
 
@@ -55,7 +70,11 @@ export function AutomationsView() {
   const list = useAutomations();
   const { can } = usePermissions();
   const canManage = can("automations:manage");
-  const [builder, setBuilder] = React.useState<{ open: boolean; automation?: AutomationOut | null; draft?: BuilderDraft }>({ open: false });
+  const [builder, setBuilder] = React.useState<{
+    open: boolean;
+    automation?: AutomationOut | null;
+    draft?: BuilderDraft;
+  }>({ open: false });
   const openCreate = (draft?: BuilderDraft) => setBuilder({ open: true, automation: null, draft });
 
   return (
@@ -102,13 +121,22 @@ export function AutomationsView() {
           <ul className="flex flex-col gap-3" aria-label="Automations">
             {list.items.map((a) => (
               <li key={a.id}>
-                <AutomationCard automation={a} onEdit={() => setBuilder({ open: true, automation: a })} canManage={canManage} />
+                <AutomationCard
+                  automation={a}
+                  onEdit={() => setBuilder({ open: true, automation: a })}
+                  canManage={canManage}
+                />
               </li>
             ))}
           </ul>
           {list.hasNextPage && (
             <div className="mt-4 flex justify-center">
-              <Button variant="ghost" size="sm" onClick={() => void list.fetchNextPage()} loading={list.isFetchingNextPage}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void list.fetchNextPage()}
+                loading={list.isFetchingNextPage}
+              >
                 Load more
               </Button>
             </div>
@@ -126,7 +154,15 @@ export function AutomationsView() {
   );
 }
 
-function AutomationCard({ automation: a, onEdit, canManage }: { automation: AutomationOut; onEdit: () => void; canManage: boolean }) {
+function AutomationCard({
+  automation: a,
+  onEdit,
+  canManage,
+}: {
+  automation: AutomationOut;
+  onEdit: () => void;
+  canManage: boolean;
+}) {
   const state = presentAutomationState(a);
   const template = readTemplate(a.task_template);
   const policy = readPolicy(a.policy);
@@ -136,7 +172,12 @@ function AutomationCard({ automation: a, onEdit, canManage }: { automation: Auto
   const reason = a.disabled_reason ? disabledReasonMeta[a.disabled_reason] : null;
 
   return (
-    <Card className={cn("relative flex flex-col gap-4 p-4 transition-colors hover:border-line-strong sm:p-5", !a.enabled && "bg-surface-1/60")}>
+    <Card
+      className={cn(
+        "relative flex flex-col gap-4 p-4 transition-colors hover:border-line-strong sm:p-5",
+        !a.enabled && "bg-surface-1/60",
+      )}
+    >
       <div className="flex items-start gap-3">
         <span
           aria-hidden
@@ -162,7 +203,9 @@ function AutomationCard({ automation: a, onEdit, canManage }: { automation: Auto
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-fg-muted">
             <CalendarClockIcon className="size-3.5 text-fg-subtle" aria-hidden />
             <span>{describeSchedule(a.cron_expression)}</span>
-            <code className="rounded border border-line bg-bg px-1.5 font-mono text-2xs text-fg-subtle">{a.cron_expression}</code>
+            <code className="rounded border border-line bg-bg px-1.5 font-mono text-2xs text-fg-subtle">
+              {a.cron_expression}
+            </code>
             <span className="text-xs text-fg-subtle">{a.timezone.replace(/_/g, " ")}</span>
           </p>
           {template.goal && <p className="mt-1.5 line-clamp-1 text-[13px] text-fg-subtle">→ {template.goal}</p>}
@@ -190,7 +233,10 @@ function AutomationCard({ automation: a, onEdit, canManage }: { automation: Auto
                     <PencilIcon /> Edit
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => setDeleteOpen(true)} className="text-danger data-[highlighted]:text-danger">
+                  <DropdownMenuItem
+                    onSelect={() => setDeleteOpen(true)}
+                    className="text-danger data-[highlighted]:text-danger"
+                  >
                     <Trash2Icon /> Delete
                   </DropdownMenuItem>
                 </>
@@ -258,7 +304,7 @@ function AutomationCard({ automation: a, onEdit, canManage }: { automation: Auto
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{label}</dt>
+      <dt className="text-2xs tracking-wider text-fg-subtle uppercase">{label}</dt>
       <dd className="min-w-0 text-fg">{children}</dd>
     </div>
   );
@@ -295,7 +341,7 @@ function EmptyAutomations({ canManage, onCreate }: { canManage: boolean; onCreat
                 key={t.name}
                 type="button"
                 onClick={() => onCreate(t)}
-                className="group flex flex-col gap-2 rounded-xl border border-line bg-surface-1 p-4 text-left outline-none transition-colors hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="group flex flex-col gap-2 rounded-xl border border-line bg-surface-1 p-4 text-left transition-colors outline-none hover:border-line-strong hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <span className="flex items-center gap-2 text-xs text-fg-subtle">
                   <CalendarClockIcon className="size-3.5" aria-hidden /> {t.description}
@@ -320,7 +366,10 @@ function EmptyOrbit() {
     <svg viewBox="0 0 160 160" className="size-36" aria-hidden>
       <circle cx="80" cy="80" r="56" fill="none" className="stroke-white/[0.08]" strokeDasharray="3 5" />
       <circle cx="80" cy="80" r="34" fill="none" className="stroke-white/[0.06]" />
-      <g className="origin-center motion-safe:animate-[spin_24s_linear_infinite]" style={{ transformOrigin: "80px 80px" }}>
+      <g
+        className="origin-center motion-safe:animate-[spin_24s_linear_infinite]"
+        style={{ transformOrigin: "80px 80px" }}
+      >
         {Array.from({ length: 7 }).map((_, i) => {
           const a = (i / 7) * Math.PI * 2 - Math.PI / 2;
           return (
@@ -339,4 +388,3 @@ function EmptyOrbit() {
     </svg>
   );
 }
-

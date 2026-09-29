@@ -19,7 +19,16 @@ import { capabilityForScope, shortScope } from "@/components/integrations/google
 import { activeGoogleConnection, useConnections } from "@/components/integrations/queries";
 import { ApprovalBadge, ToolDetailSheet } from "./tool-detail-sheet";
 import { ToolConnectionStatus, toolAccess } from "./tool-connection";
-import { asPermissionLevel, asRiskLevel, categoryLabel, filterTools, groupByCategory, providerLabel, verificationLabel, type ToolFilters } from "./tool-meta";
+import {
+  asPermissionLevel,
+  asRiskLevel,
+  categoryLabel,
+  filterTools,
+  groupByCategory,
+  providerLabel,
+  verificationLabel,
+  type ToolFilters,
+} from "./tool-meta";
 
 function ToolRow({ tool, onOpen }: { tool: ToolOut; onOpen: () => void }) {
   const level = asPermissionLevel(tool.permission_level);
@@ -31,7 +40,7 @@ function ToolRow({ tool, onOpen }: { tool: ToolOut; onOpen: () => void }) {
           <button
             type="button"
             onClick={onOpen}
-            className="font-mono text-[13px] font-medium text-fg outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-accent/50"
+            className="font-mono text-[13px] font-medium text-fg outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-accent/50 focus-visible:after:ring-inset"
           >
             {tool.name}
           </button>
@@ -43,7 +52,10 @@ function ToolRow({ tool, onOpen }: { tool: ToolOut; onOpen: () => void }) {
             <span className="text-2xs text-fg-subtle">Needs</span>
             {tool.required_scopes.map((s) => (
               <Tooltip key={s} content={<span className="font-mono">{s}</span>}>
-                <span tabIndex={0} className="rounded border border-line px-1.5 font-mono text-2xs text-fg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
+                <span
+                  tabIndex={0}
+                  className="rounded border border-line px-1.5 font-mono text-2xs text-fg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                >
                   {capabilityForScope(s)?.id ?? shortScope(s)}
                 </span>
               </Tooltip>
@@ -80,7 +92,10 @@ function ConnectionSummary({ tools }: { tools: ToolOut[] }) {
       )}
     >
       <div className="flex items-start gap-2.5">
-        <PlugIcon className={cn("mt-0.5 size-4 shrink-0", notReady.length === 0 ? "text-success" : "text-warning")} aria-hidden />
+        <PlugIcon
+          className={cn("mt-0.5 size-4 shrink-0", notReady.length === 0 ? "text-success" : "text-warning")}
+          aria-hidden
+        />
         <p className="text-fg-muted">
           <span className="font-medium text-fg">Google Workspace</span>{" "}
           {conn ? (
@@ -106,16 +121,37 @@ function ConnectionSummary({ tools }: { tools: ToolOut[] }) {
 
 const ALL = "all";
 
-export function ToolCatalog({ tools, isLoading, error, onRetry, rules }: { tools?: ToolOut[]; isLoading: boolean; error: unknown; onRetry: () => void; rules?: ToolRuleOut[] }) {
-  const [filters, setFilters] = React.useState<ToolFilters>({ query: "", category: ALL, permission: ALL, approvalOnly: false });
+export function ToolCatalog({
+  tools,
+  isLoading,
+  error,
+  onRetry,
+  rules,
+}: {
+  tools?: ToolOut[];
+  isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
+  rules?: ToolRuleOut[];
+}) {
+  const [filters, setFilters] = React.useState<ToolFilters>({
+    query: "",
+    category: ALL,
+    permission: ALL,
+    approvalOnly: false,
+  });
   const [openName, setOpenName] = React.useState<string | null>(null);
   const approvalId = React.useId();
   const all = React.useMemo(() => tools ?? [], [tools]);
-  const categories = React.useMemo(() => [...new Set(all.map((t) => t.category))].sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))), [all]);
+  const categories = React.useMemo(
+    () => [...new Set(all.map((t) => t.category))].sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))),
+    [all],
+  );
   const visible = React.useMemo(() => filterTools(all, filters), [all, filters]);
   const groups = React.useMemo(() => groupByCategory(visible), [visible]);
   const open = all.find((t) => t.name === openName) ?? null;
-  const filtered = filters.query !== "" || filters.category !== ALL || filters.permission !== ALL || filters.approvalOnly;
+  const filtered =
+    filters.query !== "" || filters.category !== ALL || filters.permission !== ALL || filters.approvalOnly;
 
   if (error && all.length === 0) return <ErrorState error={error} onRetry={onRetry} />;
 
@@ -124,7 +160,10 @@ export function ToolCatalog({ tools, isLoading, error, onRetry, rules }: { tools
       <ConnectionSummary tools={all} />
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
+          <SearchIcon
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
+            aria-hidden
+          />
           <Input
             type="search"
             aria-label="Search tools"
@@ -161,12 +200,23 @@ export function ToolCatalog({ tools, isLoading, error, onRetry, rules }: { tools
               ))}
             </SelectContent>
           </Select>
-          <label htmlFor={approvalId} className="flex h-9 items-center gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-[13px] text-fg-muted">
-            <Checkbox id={approvalId} checked={filters.approvalOnly} onCheckedChange={(v) => setFilters((f) => ({ ...f, approvalOnly: v === true }))} />
+          <label
+            htmlFor={approvalId}
+            className="flex h-9 items-center gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-[13px] text-fg-muted"
+          >
+            <Checkbox
+              id={approvalId}
+              checked={filters.approvalOnly}
+              onCheckedChange={(v) => setFilters((f) => ({ ...f, approvalOnly: v === true }))}
+            />
             Needs approval
           </label>
           {filtered && (
-            <Button variant="ghost" size="sm" onClick={() => setFilters({ query: "", category: ALL, permission: ALL, approvalOnly: false })}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters({ query: "", category: ALL, permission: ALL, approvalOnly: false })}
+            >
               <XIcon /> Clear
             </Button>
           )}
@@ -174,7 +224,11 @@ export function ToolCatalog({ tools, isLoading, error, onRetry, rules }: { tools
       </div>
 
       <p className="text-xs text-fg-subtle" aria-live="polite">
-        {isLoading ? "Loading tools…" : filtered ? `Showing ${visible.length} of ${all.length} tools` : `${all.length} tools`}
+        {isLoading
+          ? "Loading tools…"
+          : filtered
+            ? `Showing ${visible.length} of ${all.length} tools`
+            : `${all.length} tools`}
       </p>
 
       {isLoading ? (
@@ -195,7 +249,11 @@ export function ToolCatalog({ tools, isLoading, error, onRetry, rules }: { tools
             size="sm"
             icon={<WrenchIcon />}
             title={all.length === 0 ? "No tools are available" : "No tools match these filters"}
-            description={all.length === 0 ? "The tool catalogue is empty for your organization." : "Try a different search or clear the filters."}
+            description={
+              all.length === 0
+                ? "The tool catalogue is empty for your organization."
+                : "Try a different search or clear the filters."
+            }
           />
         </Card>
       ) : (

@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { BillingOverview } from "@/components/billing/billing-overview";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Billing" };
+
 export default function BillingPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Billing" description="Plans and entitlements." />
-    </PageContainer>
-  );
+  return <BillingOverview />;
 }

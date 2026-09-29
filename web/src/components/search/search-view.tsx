@@ -4,7 +4,17 @@ import { BrainCircuitIcon, FileTextIcon, GlobeIcon, LockIcon, SearchIcon, XIcon 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import { Button, Kbd, PageContainer, PageHeader, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
+import {
+  Button,
+  Kbd,
+  PageContainer,
+  PageHeader,
+  Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui";
 import { track } from "@/lib/analytics";
 import { usePermissions } from "@/lib/auth/hooks";
 import { cn } from "@/lib/utils";
@@ -16,7 +26,12 @@ import { ResultList, focusFirstResult } from "./result-list";
 import { SearchErrorPanel, type SearchTab } from "./search-error";
 import { WebResults } from "./web-results";
 
-const TABS: { id: SearchTab; label: string; icon: typeof GlobeIcon; permission: "search:use" | "files:read" | "memory:read" }[] = [
+const TABS: {
+  id: SearchTab;
+  label: string;
+  icon: typeof GlobeIcon;
+  permission: "search:use" | "files:read" | "memory:read";
+}[] = [
   { id: "web", label: "Web", icon: GlobeIcon, permission: "search:use" },
   { id: "documents", label: "Documents", icon: FileTextIcon, permission: "files:read" },
   { id: "memory", label: "Memory", icon: BrainCircuitIcon, permission: "memory:read" },
@@ -127,7 +142,9 @@ export function SearchView() {
                   {locked ? (
                     <LockIcon className="text-fg-subtle" aria-label="No access" />
                   ) : counts[t.id] !== undefined && q ? (
-                    <span className="rounded-full bg-white/[0.07] px-1.5 text-2xs tabular-nums text-fg-muted">{counts[t.id]}</span>
+                    <span className="rounded-full bg-white/[0.07] px-1.5 text-2xs text-fg-muted tabular-nums">
+                      {counts[t.id]}
+                    </span>
                   ) : null}
                 </TabsTrigger>
               );
@@ -201,7 +218,15 @@ export function SearchView() {
   );
 }
 
-function MemoryTabResults({ query, onResults, onEscape }: { query: string; onResults: (n: number) => void; onEscape: () => void }) {
+function MemoryTabResults({
+  query,
+  onResults,
+  onEscape,
+}: {
+  query: string;
+  onResults: (n: number) => void;
+  onEscape: () => void;
+}) {
   return (
     <ResultList as="div" label={`Memories recalled for ${query}`} onEscape={onEscape}>
       <MemoryRecallResults
@@ -209,7 +234,12 @@ function MemoryTabResults({ query, onResults, onEscape }: { query: string; onRes
         limit={20}
         onResults={onResults}
         renderItem={(node, i) => (
-          <div data-result tabIndex={0} aria-label={`Memory ${i + 1}`} className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
+          <div
+            data-result
+            tabIndex={0}
+            aria-label={`Memory ${i + 1}`}
+            className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
             {node}
           </div>
         )}
@@ -244,7 +274,10 @@ function SearchBox({
         Search
       </label>
       <div className="group relative flex items-center rounded-2xl border border-line-strong bg-surface-1 shadow-panel transition-[border-color,box-shadow] focus-within:border-accent/50 focus-within:ring-4 focus-within:ring-accent/10">
-        <SearchIcon className="pointer-events-none absolute left-4 size-5 text-fg-subtle group-focus-within:text-accent" aria-hidden />
+        <SearchIcon
+          className="pointer-events-none absolute left-4 size-5 text-fg-subtle group-focus-within:text-accent"
+          aria-hidden
+        />
         <input
           ref={inputRef}
           id="search-query"
@@ -262,7 +295,7 @@ function SearchBox({
           autoComplete="off"
           enterKeyHint="search"
           placeholder="Search the web, your documents and memory…"
-          className="h-14 w-full min-w-0 bg-transparent pl-12 pr-28 text-base text-fg outline-none placeholder:text-fg-subtle [&::-webkit-search-cancel-button]:hidden"
+          className="h-14 w-full min-w-0 bg-transparent pr-28 pl-12 text-base text-fg outline-none placeholder:text-fg-subtle [&::-webkit-search-cancel-button]:hidden"
         />
         <div className="absolute right-2 flex items-center gap-1.5">
           {draft && (
@@ -346,7 +379,7 @@ function TabIntro({ tab, onPick }: { tab: SearchTab; onPick: (q: string) => void
             key={ex}
             type="button"
             onClick={() => onPick(ex)}
-            className="rounded-full border border-line bg-surface-1 px-3 py-1 text-xs text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="rounded-full border border-line bg-surface-1 px-3 py-1 text-xs text-fg-muted transition-colors outline-none hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             {ex}
           </button>
@@ -378,4 +411,3 @@ function ResultsSkeleton() {
     </div>
   );
 }
-

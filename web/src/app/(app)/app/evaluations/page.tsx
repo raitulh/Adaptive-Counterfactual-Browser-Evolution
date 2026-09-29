@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { EvaluationsLab } from "@/components/evaluations/evaluations-lab";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Evaluations" };
+
 export default function EvaluationsPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Evaluations" description="Evaluation runs and suites." />
-    </PageContainer>
+    <Suspense>
+      <EvaluationsLab />
+    </Suspense>
   );
 }

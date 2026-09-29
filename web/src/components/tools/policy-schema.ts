@@ -51,13 +51,22 @@ export const toolRuleSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.effect === "allow" && (v.toolPattern === "*" || v.toolPattern === "*.*")) {
-      ctx.addIssue({ code: "custom", path: ["toolPattern"], message: "A blanket allow rule is not permitted; name the tools explicitly" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["toolPattern"],
+        message: "A blanket allow rule is not permitted; name the tools explicitly",
+      });
     }
   });
 
 export type ToolRuleValues = z.infer<typeof toolRuleSchema>;
 
-export const toolRuleDefaults: ToolRuleValues = { toolPattern: "", effect: "require_approval", role: "any", reason: "" };
+export const toolRuleDefaults: ToolRuleValues = {
+  toolPattern: "",
+  effect: "require_approval",
+  role: "any",
+  reason: "",
+};
 
 export function toToolRulePayload(v: ToolRuleValues): ToolRuleIn {
   return {
@@ -82,5 +91,8 @@ export function allowRuleCanWaive(tool: Pick<ToolOut, "permission_level" | "risk
 export function rulesForTool(name: string, rules: readonly ToolRuleOut[]): ToolRuleOut[] {
   return rules
     .filter((r) => matchesPattern(name, r.tool_pattern))
-    .sort((a, b) => Number(a.role == null) - Number(b.role == null) || Number(a.effect !== "deny") - Number(b.effect !== "deny"));
+    .sort(
+      (a, b) =>
+        Number(a.role == null) - Number(b.role == null) || Number(a.effect !== "deny") - Number(b.effect !== "deny"),
+    );
 }

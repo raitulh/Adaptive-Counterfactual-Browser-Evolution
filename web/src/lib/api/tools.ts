@@ -9,7 +9,8 @@ type Opts = { signal?: AbortSignal };
 export const toolsApi = {
   list: (o: Opts = {}) => call(api.GET("/api/v1/tools", { signal: o.signal })),
   /** Starts an OAuth connect for the provider a tool needs; returns the backend authorization URL. */
-  connect: (body: ToolConnectRequest): Promise<ConnectGoogleResponse> => call(api.POST("/api/v1/tools/connect", { body })),
+  connect: (body: ToolConnectRequest): Promise<ConnectGoogleResponse> =>
+    call(api.POST("/api/v1/tools/connect", { body })),
   policies: (o: Opts = {}) => call(api.GET("/api/v1/tools/policies", { signal: o.signal })),
   createPolicy: (body: ToolRuleIn) => call(api.POST("/api/v1/tools/policies", { body })),
   deletePolicy: (ruleId: string) =>

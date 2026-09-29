@@ -7,15 +7,33 @@ import { permissionLevelValues, riskLevelValues } from "@/lib/api";
 import type { Tone } from "@/lib/status";
 
 export const verificationMethodMeta: Record<string, { label: string; description: string }> = {
-  read_back: { label: "Read-back", description: "AgentOS re-reads the external system after the call to confirm the change happened." },
-  state_comparison: { label: "State comparison", description: "The external state before and after the call is compared." },
-  expected_fields: { label: "Expected fields", description: "Specific fields of the result must match what was requested." },
+  read_back: {
+    label: "Read-back",
+    description: "AgentOS re-reads the external system after the call to confirm the change happened.",
+  },
+  state_comparison: {
+    label: "State comparison",
+    description: "The external state before and after the call is compared.",
+  },
+  expected_fields: {
+    label: "Expected fields",
+    description: "Specific fields of the result must match what was requested.",
+  },
   resource_exists: { label: "Resource exists", description: "The created resource is looked up to confirm it exists." },
-  provider_confirmation: { label: "Provider confirmation", description: "The provider's response (e.g. a message id) confirms the effect." },
+  provider_confirmation: {
+    label: "Provider confirmation",
+    description: "The provider's response (e.g. a message id) confirms the effect.",
+  },
   browser_state: { label: "Browser state", description: "The page state is inspected after the browser action." },
-  output_schema: { label: "Output schema", description: "The result must validate against the tool's declared output schema." },
+  output_schema: {
+    label: "Output schema",
+    description: "The result must validate against the tool's declared output schema.",
+  },
   checksum: { label: "Checksum", description: "Written content is verified by checksum." },
-  response_consistency: { label: "Response consistency", description: "The response is checked for internal consistency." },
+  response_consistency: {
+    label: "Response consistency",
+    description: "The response is checked for internal consistency.",
+  },
 };
 
 export function verificationLabel(method: string): string {
@@ -38,7 +56,13 @@ export const outputTrustMeta: Record<TrustLevel, { label: string; tone: Tone; de
 };
 
 export function outputTrust(value: string) {
-  return (outputTrustMeta as Record<string, (typeof outputTrustMeta)[TrustLevel]>)[value] ?? { label: value, tone: "neutral" as Tone, description: "" };
+  return (
+    (outputTrustMeta as Record<string, (typeof outputTrustMeta)[TrustLevel]>)[value] ?? {
+      label: value,
+      tone: "neutral" as Tone,
+      description: "",
+    }
+  );
 }
 
 const CATEGORY_LABELS: Record<string, string> = {

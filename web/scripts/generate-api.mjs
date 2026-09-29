@@ -95,7 +95,9 @@ export const CONTRACT_PATH_COUNT = ${Object.keys(doc.paths ?? {}).length};
 
   await mkdir(outDir, { recursive: true });
   for (const [file, content] of outputs) await writeFile(file, content);
-  console.log(`✓ Generated API contract from ${source} (${fingerprint.slice(0, 12)}…, ${Object.keys(doc.paths).length} paths)`);
+  console.log(
+    `✓ Generated API contract from ${source} (${fingerprint.slice(0, 12)}…, ${Object.keys(doc.paths).length} paths)`,
+  );
 }
 
 main().catch((err) => {

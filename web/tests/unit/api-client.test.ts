@@ -14,14 +14,22 @@ const envelope = (code: string, message = "m", details: Record<string, unknown> 
 
 describe("AgentOSApiError", () => {
   it("normalizes the backend envelope", () => {
-    const err = errorFromResponse(json(422, {}), envelope("request_validation", "Invalid", { errors: [{ loc: ["body", "goal"], msg: "Field required", type: "missing" }] }));
+    const err = errorFromResponse(
+      json(422, {}),
+      envelope("request_validation", "Invalid", {
+        errors: [{ loc: ["body", "goal"], msg: "Field required", type: "missing" }],
+      }),
+    );
     expect(err.kind).toBe("validation");
     expect(err.requestId).toBe("req-123");
     expect(err.fieldErrors).toEqual({ goal: "Field required" });
   });
 
   it("never reveals whether hidden resources exist and reports missing permissions", () => {
-    const forbidden = errorFromResponse(json(403, {}), envelope("forbidden", "x", { missing_permissions: ["audit:read"] }));
+    const forbidden = errorFromResponse(
+      json(403, {}),
+      envelope("forbidden", "x", { missing_permissions: ["audit:read"] }),
+    );
     expect(forbidden.userMessage).toMatch(/permission/i);
     expect(forbidden.missingPermissions).toEqual(["audit:read"]);
     const notFound = errorFromResponse(json(404, {}), envelope("not_found", "Task 123 belongs to org X"));
@@ -29,7 +37,9 @@ describe("AgentOSApiError", () => {
   });
 
   it("explains wrong-credential 401s instead of reporting an ended session", () => {
-    expect(errorFromResponse(json(401, {}), envelope("invalid_credentials")).userMessage).toBe("Incorrect email or password.");
+    expect(errorFromResponse(json(401, {}), envelope("invalid_credentials")).userMessage).toBe(
+      "Incorrect email or password.",
+    );
     expect(errorFromResponse(json(401, {}), envelope("token_expired")).userMessage).toMatch(/sign in again/);
   });
 
@@ -38,13 +48,23 @@ describe("AgentOSApiError", () => {
     expect(limited.retryAfterSeconds).toBe(7);
     expect(limited.isRetryable).toBe(true);
     // Plan limits are also 429s, but they explain themselves and are not worth retrying.
-    const quota = errorFromResponse(json(429, {}), envelope("automation_limit_reached", "Your plan allows 3 automations."));
+    const quota = errorFromResponse(
+      json(429, {}),
+      envelope("automation_limit_reached", "Your plan allows 3 automations."),
+    );
     expect(quota.kind).toBe("quota_exceeded");
     expect(quota.userMessage).toBe("Your plan allows 3 automations.");
     expect(quota.isRetryable).toBe(false);
-    const html = errorFromResponse(new Response("<html>stack trace</html>", { status: 500, statusText: "Internal Server Error" }), null);
+    const html = errorFromResponse(
+      new Response("<html>stack trace</html>", { status: 500, statusText: "Internal Server Error" }),
+      null,
+    );
     expect(html.userMessage).not.toContain("stack");
     expect(normalizeError(new TypeError("fetch failed")).kind).toBe("network");
+    // App-side exceptions are not network failures, and their raw text is never shown.
+    const bug = normalizeError(new Error("Cannot read properties of undefined (reading 'id')"));
+    expect(bug.kind).toBe("unknown");
+    expect(bug.userMessage).not.toContain("undefined");
   });
 });
 
@@ -73,7 +93,13 @@ describe("authFetch / session", () => {
   });
 
   it("refreshes once on 401, then retries the original request with the new token", async () => {
-    sessionStore.set({ accessToken: "old", expiresAt: Date.now() + 600_000, sessionId: "s", tenantId: "t", userId: "u" });
+    sessionStore.set({
+      accessToken: "old",
+      expiresAt: Date.now() + 600_000,
+      sessionId: "s",
+      tenantId: "t",
+      userId: "u",
+    });
     fetchMock.mockImplementation(async (req: Request) => {
       if (req.url.endsWith("/auth/refresh")) {
         expect(req.headers.get("x-csrf-token")).toBe("csrf-token");
@@ -84,10 +110,16 @@ describe("authFetch / session", () => {
       expect(await req.json()).toEqual({ goal: "g" }); // body preserved for the retry
       return json(202, { ok: true });
     });
-    const res = await authFetch(new Request("http://localhost:3000/api/v1/tasks", { method: "POST", body: JSON.stringify({ goal: "g" }) }));
+    const res = await authFetch(
+      new Request("http://localhost:3000/api/v1/tasks", { method: "POST", body: JSON.stringify({ goal: "g" }) }),
+    );
     expect(res.status).toBe(202);
     expect(sessionStore.get()?.accessToken).toBe("new");
-    expect(fetchMock.mock.calls.map(([r]) => new URL(r.url).pathname)).toEqual(["/api/v1/tasks", "/api/v1/auth/refresh", "/api/v1/tasks"]);
+    expect(fetchMock.mock.calls.map(([r]) => new URL(r.url).pathname)).toEqual([
+      "/api/v1/tasks",
+      "/api/v1/auth/refresh",
+      "/api/v1/tasks",
+    ]);
   });
 
   it("does not loop: auth endpoints are never refresh-retried", async () => {
@@ -98,7 +130,13 @@ describe("authFetch / session", () => {
   });
 
   it("wrong-credential 401s are returned as-is, and a failed refresh clears the session", async () => {
-    sessionStore.set({ accessToken: "old", expiresAt: Date.now() + 600_000, sessionId: "s", tenantId: "t", userId: "u" });
+    sessionStore.set({
+      accessToken: "old",
+      expiresAt: Date.now() + 600_000,
+      sessionId: "s",
+      tenantId: "t",
+      userId: "u",
+    });
     const expired = vi.fn();
     const off = sessionStore.onExpired(expired);
     fetchMock.mockImplementation(async (req: Request) =>
@@ -138,7 +176,9 @@ describe("authFetch / session", () => {
 
 describe("analytics privacy", () => {
   it("drops sensitive keys and free text", () => {
-    expect(sanitizeProps({ goal: "secret plan", tool: "gmail.send", count: 3, note: "x", long: "x".repeat(100) })).toEqual({
+    expect(
+      sanitizeProps({ goal: "secret plan", tool: "gmail.send", count: 3, note: "x", long: "x".repeat(100) }),
+    ).toEqual({
       tool: "gmail.send",
       count: 3,
     });

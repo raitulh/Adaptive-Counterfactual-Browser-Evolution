@@ -16,7 +16,13 @@ export const MEETING_STEP_IDS = {
 
 const S = MEETING_STEP_IDS;
 let seq = 0;
-function ev(type: string, payload: Record<string, unknown> = {}, stepId: string | null = null, actor = "system", ms?: number): TaskEvent {
+function ev(
+  type: string,
+  payload: Record<string, unknown> = {},
+  stepId: string | null = null,
+  actor = "system",
+  ms?: number,
+): TaskEvent {
   seq += 1;
   return { seq, event_type: type, step_id: stepId, actor_type: actor, payload, created_at: at(ms ?? seq * 120) };
 }
@@ -25,8 +31,20 @@ export const MEETING_PLAN: Record<string, unknown> = {
   goal: "Schedule a meeting with Rahim tomorrow after 2 PM and email him a confirmation",
   summary: "Find a free 30-minute slot tomorrow after 2 PM, invite Rahim, then e-mail a confirmation.",
   steps: [
-    { step_id: "find_slot", action: "Find a free 30-minute slot tomorrow after 2 PM", tool: "calendar.find_free_slots", arguments: { date: "tomorrow", duration_minutes: 30 }, dependencies: [] },
-    { step_id: "find_contact", action: "Look up Rahim's e-mail address", tool: "contacts.lookup", arguments: { name: "Rahim" }, dependencies: [] },
+    {
+      step_id: "find_slot",
+      action: "Find a free 30-minute slot tomorrow after 2 PM",
+      tool: "calendar.find_free_slots",
+      arguments: { date: "tomorrow", duration_minutes: 30 },
+      dependencies: [],
+    },
+    {
+      step_id: "find_contact",
+      action: "Look up Rahim's e-mail address",
+      tool: "contacts.lookup",
+      arguments: { name: "Rahim" },
+      dependencies: [],
+    },
     {
       step_id: "create_meeting",
       action: "Schedule the meeting with Rahim",
@@ -55,11 +73,22 @@ export const MEETING_PLAN: Record<string, unknown> = {
       risk_level: "high",
     },
   ],
-  dependencies: { find_slot: [], find_contact: [], create_meeting: ["find_slot", "find_contact"], send_confirmation: ["create_meeting", "find_contact"] },
+  dependencies: {
+    find_slot: [],
+    find_contact: [],
+    create_meeting: ["find_slot", "find_contact"],
+    send_confirmation: ["create_meeting", "find_contact"],
+  },
   direct_response: null,
 };
 
-function step(key: keyof typeof S, position: number, action: string, tool: string, extra: Partial<StepOut> = {}): StepOut {
+function step(
+  key: keyof typeof S,
+  position: number,
+  action: string,
+  tool: string,
+  extra: Partial<StepOut> = {},
+): StepOut {
   return {
     id: S[key],
     step_key: key,
@@ -89,8 +118,12 @@ function step(key: keyof typeof S, position: number, action: string, tool: strin
 }
 
 export const MEETING_STEPS: StepOut[] = [
-  step("find_slot", 0, "Find a free 30-minute slot tomorrow after 2 PM", "calendar.find_free_slots", { output_summary: "Found 5 free 30-minute slot(s) on 2026-09-30" }),
-  step("find_contact", 1, "Look up Rahim's e-mail address", "contacts.lookup", { output_summary: "Resolved “Rahim” to rahim@example.org (google_contacts)" }),
+  step("find_slot", 0, "Find a free 30-minute slot tomorrow after 2 PM", "calendar.find_free_slots", {
+    output_summary: "Found 5 free 30-minute slot(s) on 2026-09-30",
+  }),
+  step("find_contact", 1, "Look up Rahim's e-mail address", "contacts.lookup", {
+    output_summary: "Resolved “Rahim” to rahim@example.org (google_contacts)",
+  }),
   step("create_meeting", 2, "Schedule the meeting with Rahim", "calendar.create_event", {
     permission_level: "write",
     risk_level: "high",
@@ -115,41 +148,119 @@ export const MEETING_EVENTS: TaskEvent[] = [
   ev("TASK_STATE_CHANGED", { from: "created", to: "planning", reason: "planning started" }),
   ev("PLANNING_STARTED", { replan: false }),
   ev("TASK_STATE_CHANGED", { from: "planning", to: "planned", reason: "plan created" }),
-  ev("PLAN_CREATED", { plan_version: 1, steps: 4, summary: "Find a free 30-minute slot tomorrow after 2 PM, invite Rahim, then e-mail a confirmation." }),
+  ev("PLAN_CREATED", {
+    plan_version: 1,
+    steps: 4,
+    summary: "Find a free 30-minute slot tomorrow after 2 PM, invite Rahim, then e-mail a confirmation.",
+  }),
   ev("TASK_STATE_CHANGED", { from: "planned", to: "validating", reason: "validating plan" }),
   ev("PLAN_VALIDATED", { plan_version: 1, approvals_expected: 2 }),
   ev("TASK_STATE_CHANGED", { from: "validating", to: "queued", reason: "plan validated" }),
   ev("TASK_STATE_CHANGED", { from: "queued", to: "running", reason: "execution started" }),
-  ev("TOOL_CALL_STARTED", { step: "find_slot", tool: "calendar.find_free_slots", attempt: 1, action: "Find free time slots" }, S.find_slot),
-  ev("TOOL_CALL_STARTED", { step: "find_contact", tool: "contacts.lookup", attempt: 1, action: "Resolve a person's name" }, S.find_contact),
-  ev("TOOL_CALL_FINISHED", { step: "find_slot", tool: "calendar.find_free_slots", summary: "Found 5 free 30-minute slot(s) on 2026-09-30", duration_ms: 365 }, S.find_slot),
-  ev("TOOL_CALL_FINISHED", { step: "find_contact", tool: "contacts.lookup", summary: "Resolved “Rahim” to rahim@example.org (google_contacts)", duration_ms: 364 }, S.find_contact),
+  ev(
+    "TOOL_CALL_STARTED",
+    { step: "find_slot", tool: "calendar.find_free_slots", attempt: 1, action: "Find free time slots" },
+    S.find_slot,
+  ),
+  ev(
+    "TOOL_CALL_STARTED",
+    { step: "find_contact", tool: "contacts.lookup", attempt: 1, action: "Resolve a person's name" },
+    S.find_contact,
+  ),
+  ev(
+    "TOOL_CALL_FINISHED",
+    {
+      step: "find_slot",
+      tool: "calendar.find_free_slots",
+      summary: "Found 5 free 30-minute slot(s) on 2026-09-30",
+      duration_ms: 365,
+    },
+    S.find_slot,
+  ),
+  ev(
+    "TOOL_CALL_FINISHED",
+    {
+      step: "find_contact",
+      tool: "contacts.lookup",
+      summary: "Resolved “Rahim” to rahim@example.org (google_contacts)",
+      duration_ms: 364,
+    },
+    S.find_contact,
+  ),
   ev("VERIFICATION_STARTED", { step: "find_slot", method: "output_schema" }, S.find_slot),
   ev("VERIFICATION_STARTED", { step: "find_contact", method: "output_schema" }, S.find_contact),
   ev("VERIFICATION_PASSED", { step: "find_slot", method: "output_schema" }, S.find_slot),
   ev("STEP_COMPLETED", { step: "find_slot", summary: "Found 5 free 30-minute slot(s) on 2026-09-30" }, S.find_slot),
   ev("VERIFICATION_PASSED", { step: "find_contact", method: "output_schema" }, S.find_contact),
-  ev("STEP_COMPLETED", { step: "find_contact", summary: "Resolved “Rahim” to rahim@example.org (google_contacts)" }, S.find_contact),
-  ev("APPROVAL_REQUIRED", { approval_id: "ap-1", summary: "Create calendar event “Meeting with Rahim”", risk_level: "high", expires_at: at(86_400_000) }, S.create_meeting),
+  ev(
+    "STEP_COMPLETED",
+    { step: "find_contact", summary: "Resolved “Rahim” to rahim@example.org (google_contacts)" },
+    S.find_contact,
+  ),
+  ev(
+    "APPROVAL_REQUIRED",
+    {
+      approval_id: "ap-1",
+      summary: "Create calendar event “Meeting with Rahim”",
+      risk_level: "high",
+      expires_at: at(86_400_000),
+    },
+    S.create_meeting,
+  ),
   ev("TASK_STATE_CHANGED", { from: "running", to: "waiting_approval", reason: "waiting for approval" }),
   ev("APPROVAL_GRANTED", { approval_id: "ap-1" }, S.create_meeting, "user"),
   ev("TASK_STATE_CHANGED", { from: "waiting_approval", to: "queued", reason: "approval granted" }, null, "user"),
   ev("TASK_STATE_CHANGED", { from: "queued", to: "running", reason: "execution started" }),
   ev("TOOL_CALL_STARTED", { step: "create_meeting", tool: "calendar.create_event", attempt: 1 }, S.create_meeting),
-  ev("TOOL_CALL_FINISHED", { step: "create_meeting", tool: "calendar.create_event", summary: "Created calendar event “Meeting with Rahim” at 2026-09-30T15:00:00+00:00", duration_ms: 357 }, S.create_meeting),
+  ev(
+    "TOOL_CALL_FINISHED",
+    {
+      step: "create_meeting",
+      tool: "calendar.create_event",
+      summary: "Created calendar event “Meeting with Rahim” at 2026-09-30T15:00:00+00:00",
+      duration_ms: 357,
+    },
+    S.create_meeting,
+  ),
   ev("VERIFICATION_STARTED", { step: "create_meeting", method: "read_back" }, S.create_meeting),
   ev("VERIFICATION_PASSED", { step: "create_meeting", method: "read_back" }, S.create_meeting),
-  ev("STEP_COMPLETED", { step: "create_meeting", summary: "Created calendar event “Meeting with Rahim”" }, S.create_meeting),
-  ev("APPROVAL_REQUIRED", { approval_id: "ap-2", summary: "Send e-mail “Meeting confirmation” to rahim@example.org", risk_level: "high", expires_at: at(86_400_000) }, S.send_confirmation),
+  ev(
+    "STEP_COMPLETED",
+    { step: "create_meeting", summary: "Created calendar event “Meeting with Rahim”" },
+    S.create_meeting,
+  ),
+  ev(
+    "APPROVAL_REQUIRED",
+    {
+      approval_id: "ap-2",
+      summary: "Send e-mail “Meeting confirmation” to rahim@example.org",
+      risk_level: "high",
+      expires_at: at(86_400_000),
+    },
+    S.send_confirmation,
+  ),
   ev("TASK_STATE_CHANGED", { from: "running", to: "waiting_approval", reason: "waiting for approval" }),
   ev("APPROVAL_GRANTED", { approval_id: "ap-2" }, S.send_confirmation, "user"),
   ev("TASK_STATE_CHANGED", { from: "waiting_approval", to: "queued", reason: "approval granted" }, null, "user"),
   ev("TASK_STATE_CHANGED", { from: "queued", to: "running", reason: "execution started" }),
   ev("TOOL_CALL_STARTED", { step: "send_confirmation", tool: "gmail.send", attempt: 1 }, S.send_confirmation),
-  ev("TOOL_CALL_FINISHED", { step: "send_confirmation", tool: "gmail.send", summary: "Sent e-mail “Meeting confirmation” to rahim@example.org", duration_ms: 361 }, S.send_confirmation),
+  ev(
+    "TOOL_CALL_FINISHED",
+    {
+      step: "send_confirmation",
+      tool: "gmail.send",
+      summary: "Sent e-mail “Meeting confirmation” to rahim@example.org",
+      duration_ms: 361,
+    },
+    S.send_confirmation,
+  ),
   ev("VERIFICATION_STARTED", { step: "send_confirmation", method: "provider_confirmation" }, S.send_confirmation),
   ev("VERIFICATION_PASSED", { step: "send_confirmation", method: "read_back" }, S.send_confirmation),
-  ev("STEP_COMPLETED", { step: "send_confirmation", summary: "Sent e-mail “Meeting confirmation” to rahim@example.org" }, S.send_confirmation),
+  ev(
+    "STEP_COMPLETED",
+    { step: "send_confirmation", summary: "Sent e-mail “Meeting confirmation” to rahim@example.org" },
+    S.send_confirmation,
+  ),
   ev("TASK_STATE_CHANGED", { from: "running", to: "verifying", reason: "final verification" }),
   ev("TASK_COMPLETED", { from: "verifying", to: "completed", reason: "all steps verified" }),
 ];

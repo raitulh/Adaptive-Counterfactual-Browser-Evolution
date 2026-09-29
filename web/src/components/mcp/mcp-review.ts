@@ -20,7 +20,11 @@ export const mcpServerStatusMeta: Record<McpServerStatusValue, StatusMeta> = {
     attention: true,
     description: "Registered but not approved. Its tools cannot be synced or used until an admin approves the server.",
   },
-  approved: { label: "Approved", tone: "success", description: "Approved. Tools can be synced and individually enabled." },
+  approved: {
+    label: "Approved",
+    tone: "success",
+    description: "Approved. Tools can be synced and individually enabled.",
+  },
   disabled: { label: "Disabled", tone: "neutral", description: "Disabled. None of its tools are available to agents." },
   error: {
     label: "Error",
@@ -31,10 +35,17 @@ export const mcpServerStatusMeta: Record<McpServerStatusValue, StatusMeta> = {
 };
 
 export function serverStatusMeta(status: string): StatusMeta {
-  return (mcpServerStatusMeta as Record<string, StatusMeta>)[status] ?? { label: status, tone: "neutral", description: "Unrecognized status." };
+  return (
+    (mcpServerStatusMeta as Record<string, StatusMeta>)[status] ?? {
+      label: status,
+      tone: "neutral",
+      description: "Unrecognized status.",
+    }
+  );
 }
 
-export type ToolReviewState = "usable" | "unreviewed" | "schema_changed" | "removed" | "disabled" | "server_blocked" | "unknown";
+export type ToolReviewState =
+  "usable" | "unreviewed" | "schema_changed" | "removed" | "disabled" | "server_blocked" | "unknown";
 
 export interface ToolReview {
   state: ToolReviewState;
@@ -48,7 +59,13 @@ export interface ToolReview {
 }
 
 const REVIEW: Record<ToolReviewState, Omit<ToolReview, "state">> = {
-  usable: { label: "Enabled", tone: "success", attention: false, requiresReview: false, description: "Enabled with an approved definition. Agents can call it." },
+  usable: {
+    label: "Enabled",
+    tone: "success",
+    attention: false,
+    requiresReview: false,
+    description: "Enabled with an approved definition. Agents can call it.",
+  },
   unreviewed: {
     label: "Needs review",
     tone: "warning",
@@ -64,8 +81,20 @@ const REVIEW: Record<ToolReviewState, Omit<ToolReview, "state">> = {
     description:
       "The server changed this tool's name, description, schemas or hints after it was approved. It was disabled automatically and stays off until you re-approve the new definition.",
   },
-  removed: { label: "Removed", tone: "neutral", attention: false, requiresReview: false, description: "The server no longer advertises this tool. It cannot be enabled." },
-  disabled: { label: "Disabled", tone: "neutral", attention: false, requiresReview: false, description: "Approved definition, but turned off by an admin." },
+  removed: {
+    label: "Removed",
+    tone: "neutral",
+    attention: false,
+    requiresReview: false,
+    description: "The server no longer advertises this tool. It cannot be enabled.",
+  },
+  disabled: {
+    label: "Disabled",
+    tone: "neutral",
+    attention: false,
+    requiresReview: false,
+    description: "Approved definition, but turned off by an admin.",
+  },
   server_blocked: {
     label: "Server not approved",
     tone: "neutral",
@@ -73,7 +102,13 @@ const REVIEW: Record<ToolReviewState, Omit<ToolReview, "state">> = {
     requiresReview: false,
     description: "The tool is enabled, but its server is not approved, so agents cannot use it.",
   },
-  unknown: { label: "Unknown status", tone: "neutral", attention: true, requiresReview: true, description: "Unrecognized tool status." },
+  unknown: {
+    label: "Unknown status",
+    tone: "neutral",
+    attention: true,
+    requiresReview: true,
+    description: "Unrecognized tool status.",
+  },
 };
 
 export function reviewTool(tool: McpToolOut, server?: Pick<McpServerOut, "status"> | null): ToolReview {
@@ -84,7 +119,8 @@ export function reviewTool(tool: McpToolOut, server?: Pick<McpServerOut, "status
 export function reviewState(tool: McpToolOut, server?: Pick<McpServerOut, "status"> | null): ToolReviewState {
   if (tool.status === "removed") return "removed";
   const changed =
-    tool.status === "schema_changed" || (tool.approved_schema_hash !== null && tool.approved_schema_hash !== tool.schema_hash);
+    tool.status === "schema_changed" ||
+    (tool.approved_schema_hash !== null && tool.approved_schema_hash !== tool.schema_hash);
   if (changed) return "schema_changed";
   if (tool.status !== "active") return "unknown";
   if (tool.approved_schema_hash === null) return "unreviewed";
@@ -124,11 +160,18 @@ export function countTools(tools: readonly McpToolOut[], server?: Pick<McpServer
 }
 
 /** Tools that need an admin decision, most serious first. */
-export function toolsNeedingAttention(tools: readonly McpToolOut[], server?: Pick<McpServerOut, "status"> | null): McpToolOut[] {
+export function toolsNeedingAttention(
+  tools: readonly McpToolOut[],
+  server?: Pick<McpServerOut, "status"> | null,
+): McpToolOut[] {
   const rank: Partial<Record<ToolReviewState, number>> = { schema_changed: 0, unknown: 1, unreviewed: 2 };
   return tools
     .filter((t) => reviewTool(t, server).attention)
-    .sort((a, b) => (rank[reviewState(a, server)] ?? 9) - (rank[reviewState(b, server)] ?? 9) || a.qualified_name.localeCompare(b.qualified_name));
+    .sort(
+      (a, b) =>
+        (rank[reviewState(a, server)] ?? 9) - (rank[reviewState(b, server)] ?? 9) ||
+        a.qualified_name.localeCompare(b.qualified_name),
+    );
 }
 
 export interface SyncGroup {
@@ -139,7 +182,12 @@ export interface SyncGroup {
   items: Array<{ name: string; reason?: string }>;
 }
 
-export function summarizeSync(result: McpSyncResult): { groups: SyncGroup[]; suspicious: boolean; truncated: boolean; changed: number } {
+export function summarizeSync(result: McpSyncResult): {
+  groups: SyncGroup[];
+  suspicious: boolean;
+  truncated: boolean;
+  changed: number;
+} {
   const list = (names: string[] | undefined) => (names ?? []).map((name) => ({ name }));
   const groups: SyncGroup[] = [
     {
@@ -149,9 +197,27 @@ export function summarizeSync(result: McpSyncResult): { groups: SyncGroup[]; sus
       description: "Disabled automatically. Review and re-approve each one before agents can use it again.",
       items: list(result.schema_changed),
     },
-    { key: "added", label: "New", tone: "warning", description: "Stored disabled. Review and enable the ones you need.", items: list(result.added) },
-    { key: "updated", label: "Updated", tone: "info", description: "Definition refreshed (never approved, so nothing was disabled).", items: list(result.updated) },
-    { key: "removed", label: "Removed", tone: "neutral", description: "No longer advertised by the server; disabled.", items: list(result.removed) },
+    {
+      key: "added",
+      label: "New",
+      tone: "warning",
+      description: "Stored disabled. Review and enable the ones you need.",
+      items: list(result.added),
+    },
+    {
+      key: "updated",
+      label: "Updated",
+      tone: "info",
+      description: "Definition refreshed (never approved, so nothing was disabled).",
+      items: list(result.updated),
+    },
+    {
+      key: "removed",
+      label: "Removed",
+      tone: "neutral",
+      description: "No longer advertised by the server; disabled.",
+      items: list(result.removed),
+    },
     {
       key: "rejected",
       label: "Rejected",
@@ -159,7 +225,13 @@ export function summarizeSync(result: McpSyncResult): { groups: SyncGroup[]; sus
       description: "Not accepted by the gateway's safety checks.",
       items: (result.rejected ?? []).map((r) => ({ name: r.name, reason: r.reason })),
     },
-    { key: "unchanged", label: "Unchanged", tone: "neutral", description: "Same definition as before.", items: list(result.unchanged) },
+    {
+      key: "unchanged",
+      label: "Unchanged",
+      tone: "neutral",
+      description: "Same definition as before.",
+      items: list(result.unchanged),
+    },
   ];
   const nonEmpty = groups.filter((g) => g.items.length > 0);
   const changed = nonEmpty.filter((g) => g.key !== "unchanged").reduce((n, g) => n + g.items.length, 0);

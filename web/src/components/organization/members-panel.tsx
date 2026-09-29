@@ -15,14 +15,22 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EmptyState, InlineError } from "@/components/ui/states";
+import { EmptyState } from "@/components/ui/states";
 import { toast } from "@/components/ui/toaster";
-import { billingApi, organizationsApi, systemRoleValues, type MemberOut, type SystemRole } from "@/lib/api";
+import {
+  billingApi,
+  normalizeError,
+  organizationsApi,
+  systemRoleValues,
+  type MemberOut,
+  type SystemRole,
+} from "@/lib/api";
 import { useCurrentUser, usePermissions } from "@/lib/auth/hooks";
 import { humanize } from "@/lib/format";
 import { qk } from "@/lib/query/keys";
 import { applyFieldErrors, ruleMessage } from "@/components/settings/form-errors";
 import { SettingsCard } from "@/components/settings/settings-layout";
+import { InlineAlert } from "@/components/settings/inline-alert";
 
 /** What each system role can do (mirrors backend app/organizations/rbac.py ROLE_PERMISSIONS). */
 export const ROLE_SUMMARY: Record<SystemRole, string> = {
@@ -32,7 +40,12 @@ export const ROLE_SUMMARY: Record<SystemRole, string> = {
   viewer: "Read-only access to tasks, agents, memory, tools and files.",
 };
 
-const ROLE_TONE: Record<SystemRole, "accent" | "verify" | "neutral" | "info"> = { owner: "verify", admin: "accent", member: "info", viewer: "neutral" };
+const ROLE_TONE: Record<SystemRole, "accent" | "verify" | "neutral" | "info"> = {
+  owner: "verify",
+  admin: "accent",
+  member: "info",
+  viewer: "neutral",
+};
 
 function isSystemRole(role: string): role is SystemRole {
   return (systemRoleValues as readonly string[]).includes(role);
@@ -53,8 +66,15 @@ export function MembersPanel() {
   const me = useCurrentUser();
   const { can, role: myRole } = usePermissions();
   const canManage = can("members:manage");
-  const members = useQuery({ queryKey: qk.organization.members, queryFn: ({ signal }) => organizationsApi.members({ signal }) });
-  const entitlements = useQuery({ queryKey: qk.billing.entitlements, queryFn: ({ signal }) => billingApi.entitlements({ signal }), staleTime: 5 * 60_000 });
+  const members = useQuery({
+    queryKey: qk.organization.members,
+    queryFn: ({ signal }) => organizationsApi.members({ signal }),
+  });
+  const entitlements = useQuery({
+    queryKey: qk.billing.entitlements,
+    queryFn: ({ signal }) => billingApi.entitlements({ signal }),
+    staleTime: 5 * 60_000,
+  });
   const [removing, setRemoving] = React.useState<MemberOut | null>(null);
   const [ownerGrant, setOwnerGrant] = React.useState<MemberOut | null>(null);
   const [changing, setChanging] = React.useState<string | null>(null);
@@ -62,7 +82,8 @@ export function MembersPanel() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: qk.organization.members });
 
   const changeRole = useMutation({
-    mutationFn: ({ member, role }: { member: MemberOut; role: SystemRole }) => organizationsApi.updateMemberRole(member.id, { role }),
+    mutationFn: ({ member, role }: { member: MemberOut; role: SystemRole }) =>
+      organizationsApi.updateMemberRole(member.id, { role }),
     onMutate: ({ member }) => setChanging(member.id),
     onSuccess: (_d, { member, role }) => {
       toast.success(`${member.display_name || member.email} is now ${humanize(role).toLowerCase()}`);
@@ -79,7 +100,9 @@ export function MembersPanel() {
   const remove = useMutation({
     mutationFn: (member: MemberOut) => organizationsApi.removeMember(member.id),
     onSuccess: (_d, member) => {
-      toast.success(`Removed ${member.display_name || member.email}`, { description: "Their sessions in this organization were signed out." });
+      toast.success(`Removed ${member.display_name || member.email}`, {
+        description: "Their sessions in this organization were signed out.",
+      });
       setRemoving(null);
     },
     onSettled: () => void invalidate(),
@@ -129,7 +152,9 @@ export function MembersPanel() {
               {systemRoleValues.map((r) => (
                 <SelectItem key={r} value={r}>
                   {humanize(r)}
-                  {r === "owner" && myRole !== "owner" ? <span className="ml-1.5 text-2xs text-fg-subtle">(owners only)</span> : null}
+                  {r === "owner" && myRole !== "owner" ? (
+                    <span className="ml-1.5 text-2xs text-fg-subtle">(owners only)</span>
+                  ) : null}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -138,7 +163,12 @@ export function MembersPanel() {
           <RoleBadge role={m.role} />
         ),
     },
-    { id: "joined", header: "Joined", hideBelow: "md", cell: (m) => <RelativeTime value={m.created_at} className="text-fg-muted" /> },
+    {
+      id: "joined",
+      header: "Joined",
+      hideBelow: "md",
+      cell: (m) => <RelativeTime value={m.created_at} className="text-fg-muted" />,
+    },
     ...(canManage
       ? [
           {
@@ -146,7 +176,13 @@ export function MembersPanel() {
             header: <span className="sr-only">Actions</span>,
             className: "w-24 text-right",
             cell: (m: MemberOut) => (
-              <Button variant="ghost" size="icon-sm" onClick={() => setRemoving(m)} aria-label={`Remove ${m.email}`} className="text-fg-subtle hover:text-danger">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setRemoving(m)}
+                aria-label={`Remove ${m.email}`}
+                className="text-fg-subtle hover:text-danger"
+              >
                 <UserMinusIcon />
               </Button>
             ),
@@ -175,7 +211,9 @@ export function MembersPanel() {
         description={
           <>
             Everyone with access to this organization and their role.
-            {maxMembers ? ` Your ${entitlements.data?.plan.display_name} plan includes up to ${maxMembers.toLocaleString()} ${maxMembers === 1 ? "member" : "members"}.` : ""}
+            {maxMembers
+              ? ` Your ${entitlements.data?.plan.display_name} plan includes up to ${maxMembers.toLocaleString()} ${maxMembers === 1 ? "member" : "members"}.`
+              : ""}
             {!canManage && " Only owners and admins can change membership."}
           </>
         }
@@ -189,7 +227,14 @@ export function MembersPanel() {
           isLoading={members.isLoading}
           error={members.error}
           onRetry={() => void members.refetch()}
-          empty={<EmptyState size="sm" icon={<UsersIcon />} title="No members yet" description="Add teammates by the e-mail address they signed up with." />}
+          empty={
+            <EmptyState
+              size="sm"
+              icon={<UsersIcon />}
+              title="No members yet"
+              description="Add teammates by the e-mail address they signed up with."
+            />
+          }
         />
         <dl className="mt-6 grid gap-2 border-t border-line pt-4 text-xs sm:grid-cols-2">
           {systemRoleValues.map((r) => (
@@ -224,7 +269,7 @@ export function MembersPanel() {
           if (removing) remove.mutate(removing);
         }}
       >
-        {remove.error ? <InlineError error={new Error(ruleMessage(remove.error))} /> : null}
+        {remove.error ? <InlineAlert message={ruleMessage(remove.error)} error={remove.error} /> : null}
       </ConfirmDialog>
       <ConfirmDialog
         open={ownerGrant !== null}
@@ -241,7 +286,15 @@ export function MembersPanel() {
   );
 }
 
-function AddMemberCard({ existing, myRole, onAdded }: { existing: MemberOut[]; myRole: string | null; onAdded: () => void }) {
+function AddMemberCard({
+  existing,
+  myRole,
+  onAdded,
+}: {
+  existing: MemberOut[];
+  myRole: string | null;
+  onAdded: () => void;
+}) {
   const form = useForm<AddValues>({ resolver: zodResolver(addSchema), defaultValues: { email: "", role: "member" } });
   const { register, control, handleSubmit, formState, reset, setError } = form;
   const add = useMutation({
@@ -252,7 +305,20 @@ function AddMemberCard({ existing, myRole, onAdded }: { existing: MemberOut[]; m
       onAdded();
     },
     onError: (err) => {
-      if (!applyFieldErrors(err, setError, ["email", "role"])) setError("root", { type: "server", message: ruleMessage(err) });
+      const e = normalizeError(err);
+      if (e.kind === "not_found") {
+        setError("email", {
+          type: "server",
+          message: "No AgentOS account uses this address. Ask them to sign up first, then add them here.",
+        });
+        return;
+      }
+      if (e.kind === "conflict") {
+        setError("email", { type: "server", message: e.userMessage });
+        return;
+      }
+      if (!applyFieldErrors(err, setError, ["email", "role"]))
+        setError("root", { type: "server", message: ruleMessage(err) });
     },
   });
 
@@ -273,7 +339,15 @@ function AddMemberCard({ existing, myRole, onAdded }: { existing: MemberOut[]; m
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <Field label="E-mail address" error={formState.errors.email?.message} className="flex-1">
-            {(ids) => <Input {...ids} type="email" autoComplete="off" placeholder="teammate@company.com" {...register("email")} />}
+            {(ids) => (
+              <Input
+                {...ids}
+                type="email"
+                autoComplete="off"
+                placeholder="teammate@company.com"
+                {...register("email")}
+              />
+            )}
           </Field>
           <Field label="Role" error={formState.errors.role?.message} className="sm:w-40">
             {(ids) => (
@@ -289,7 +363,9 @@ function AddMemberCard({ existing, myRole, onAdded }: { existing: MemberOut[]; m
                       {systemRoleValues.map((r) => (
                         <SelectItem key={r} value={r}>
                           {humanize(r)}
-                          {r === "owner" && myRole !== "owner" ? <span className="ml-1.5 text-2xs text-fg-subtle">(owners only)</span> : null}
+                          {r === "owner" && myRole !== "owner" ? (
+                            <span className="ml-1.5 text-2xs text-fg-subtle">(owners only)</span>
+                          ) : null}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -302,7 +378,9 @@ function AddMemberCard({ existing, myRole, onAdded }: { existing: MemberOut[]; m
             <UserPlusIcon /> Add member
           </Button>
         </div>
-        {formState.errors.root?.message ? <InlineError className="mt-3" error={new Error(formState.errors.root.message)} /> : null}
+        {formState.errors.root?.message ? (
+          <InlineAlert className="mt-3" message={formState.errors.root.message} error={add.error} />
+        ) : null}
       </SettingsCard>
     </form>
   );

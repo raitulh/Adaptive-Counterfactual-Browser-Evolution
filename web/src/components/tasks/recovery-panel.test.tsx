@@ -6,14 +6,26 @@ import type { TaskActions } from "./hooks";
 import { isConnectionBlock, RecoveryPanel } from "./recovery-panel";
 import { MEETING_STEPS } from "./timeline/fixtures";
 
-vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => <a href={href} {...rest}>{children}</a> }));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 function mutation() {
   return { mutate: vi.fn(), isPending: false, error: null } as unknown as TaskActions["resume"];
 }
 
 function actions(): TaskActions {
-  return { cancel: mutation(), pause: mutation(), resume: mutation(), provideInput: mutation() as never, confirmStep: mutation() as never };
+  return {
+    cancel: mutation(),
+    pause: mutation(),
+    resume: mutation(),
+    provideInput: mutation() as never,
+    confirmStep: mutation() as never,
+  };
 }
 
 function task(over: Partial<TaskDetailView>): TaskDetailView {
@@ -47,7 +59,12 @@ function task(over: Partial<TaskDetailView>): TaskDetailView {
 describe("RecoveryPanel", () => {
   it("explains an unverified action with Expected / Observed / Difference and confirms the outcome", async () => {
     const a = actions();
-    const step = { ...MEETING_STEPS[2], status: "requires_reconciliation" as const, verification_status: "failed" as const, error_message: "The event could not be read back." };
+    const step = {
+      ...MEETING_STEPS[2],
+      status: "requires_reconciliation" as const,
+      verification_status: "failed" as const,
+      error_message: "The event could not be read back.",
+    };
     render(
       <RecoveryPanel
         task={task({
@@ -62,7 +79,9 @@ describe("RecoveryPanel", () => {
               method: "read_back",
               expected: { start: "2026-09-30T15:00:00+00:00", summary: "Meeting with Rahim" },
               observed: { start: "2026-09-30T16:00:00+00:00", summary: "Meeting with Rahim" },
-              differences: [{ field: "start", expected: "2026-09-30T15:00:00+00:00", observed: "2026-09-30T16:00:00+00:00" }],
+              differences: [
+                { field: "start", expected: "2026-09-30T15:00:00+00:00", observed: "2026-09-30T16:00:00+00:00" },
+              ],
               evidence: {},
               verified_at: "2026-09-29T05:01:00Z",
             },
@@ -83,12 +102,20 @@ describe("RecoveryPanel", () => {
     expect(dialog).toHaveTextContent(/it will happen twice/);
     fireEvent.click(within(dialog).getByRole("button", { name: "Run it again" }));
     await waitFor(() =>
-      expect(a.confirmStep.mutate).toHaveBeenCalledWith({ stepId: step.id, body: { outcome: "did_not_happen", note: null } }, expect.anything()),
+      expect(a.confirmStep.mutate).toHaveBeenCalledWith(
+        { stepId: step.id, body: { outcome: "did_not_happen", note: null } },
+        expect.anything(),
+      ),
     );
   });
 
   it("links to integrations when blocked by a missing connection", () => {
-    const blocked = { ...MEETING_STEPS[0], status: "blocked" as const, error_class: "auth_expired", error_message: "Google account is not connected" };
+    const blocked = {
+      ...MEETING_STEPS[0],
+      status: "blocked" as const,
+      error_class: "auth_expired",
+      error_message: "Google account is not connected",
+    };
     const t = task({ status: "blocked", failure_code: "integration_not_connected", steps: [blocked] });
     expect(isConnectionBlock(t)).toBe(true);
     render(<RecoveryPanel task={t} actions={actions()} entries={[]} />);
@@ -98,10 +125,21 @@ describe("RecoveryPanel", () => {
   });
 
   it("explains failures: what, which step, why, and what you can do", () => {
-    const failed = { ...MEETING_STEPS[0], status: "failed" as const, attempt_count: 3, error_class: "transient", error_message: "Google Calendar is temporarily unavailable." };
+    const failed = {
+      ...MEETING_STEPS[0],
+      status: "failed" as const,
+      attempt_count: 3,
+      error_class: "transient",
+      error_message: "Google Calendar is temporarily unavailable.",
+    };
     render(
       <RecoveryPanel
-        task={task({ status: "failed", failure_code: "integration_temporarily_unavailable", failure_message: "The external service is temporarily unavailable.", steps: [failed] })}
+        task={task({
+          status: "failed",
+          failure_code: "integration_temporarily_unavailable",
+          failure_message: "The external service is temporarily unavailable.",
+          steps: [failed],
+        })}
         actions={actions()}
         entries={[]}
       />,

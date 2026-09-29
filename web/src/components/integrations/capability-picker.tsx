@@ -8,7 +8,10 @@ import { GOOGLE_CAPABILITIES, GOOGLE_PRODUCTS, shortScope, type GoogleCapability
 function ProductIcon({ product }: { product: string }) {
   const letter = { gmail: "M", calendar: "31", drive: "D", contacts: "C" }[product] ?? "G";
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface-3 font-mono text-2xs font-semibold text-fg-muted" aria-hidden>
+    <span
+      className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface-3 font-mono text-2xs font-semibold text-fg-muted"
+      aria-hidden
+    >
       {letter}
     </span>
   );
@@ -35,19 +38,32 @@ function CapabilityOption({
         checked ? "border-accent/40 bg-accent/[0.06]" : "border-line bg-surface-1",
       )}
     >
-      <Checkbox id={id} checked={checked} onCheckedChange={(v) => onChange(v === true)} disabled={disabled} className="mt-0.5" aria-describedby={`${id}-d`} />
+      <Checkbox
+        id={id}
+        checked={checked}
+        onCheckedChange={(v) => onChange(v === true)}
+        disabled={disabled}
+        className="mt-0.5"
+        aria-describedby={`${id}-d`}
+      />
       <div className="min-w-0 flex-1">
         <label htmlFor={id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] font-medium text-fg">
           {cap.label}
           <span className="font-mono text-2xs font-normal text-fg-subtle">{cap.id}</span>
-          <span className={cn("rounded px-1 text-2xs font-normal", cap.access === "read" ? "text-fg-subtle" : "text-info")}>{cap.access === "read" ? "read-only" : "write"}</span>
+          <span
+            className={cn("rounded px-1 text-2xs font-normal", cap.access === "read" ? "text-fg-subtle" : "text-info")}
+          >
+            {cap.access === "read" ? "read-only" : "write"}
+          </span>
           {granted && <span className="text-2xs font-normal text-success">granted</span>}
         </label>
         <p id={`${id}-d`} className="mt-0.5 text-xs text-fg-muted">
           {cap.description}
           {cap.note && <span className="block text-fg-subtle">{cap.note}</span>}
         </p>
-        <p className="mt-1 break-all font-mono text-2xs text-fg-subtle">scope: {cap.scopes.map(shortScope).join(", ")}</p>
+        <p className="mt-1 font-mono text-2xs break-all text-fg-subtle">
+          scope: {cap.scopes.map(shortScope).join(", ")}
+        </p>
       </div>
     </div>
   );

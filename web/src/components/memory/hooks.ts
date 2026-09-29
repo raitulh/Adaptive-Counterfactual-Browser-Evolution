@@ -17,7 +17,10 @@ import { useCursorQuery } from "@/lib/query/pagination";
 
 export type MemoryStatusFilter = NonNullable<ListMemoryQuery["status"]>;
 
-export function useMemoryList(filter: { memory_type?: MemoryType | null; status?: MemoryStatusFilter | null }, enabled = true) {
+export function useMemoryList(
+  filter: { memory_type?: MemoryType | null; status?: MemoryStatusFilter | null },
+  enabled = true,
+) {
   const query: ListMemoryQuery = {};
   if (filter.memory_type) query.memory_type = filter.memory_type;
   if (filter.status) query.status = filter.status;
@@ -53,7 +56,8 @@ function replaceInLists(qc: ReturnType<typeof useQueryClient>, updated: MemoryOu
 export function useCreateMemory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ body, idempotencyKey }: { body: MemoryCreate; idempotencyKey: string }) => memoryApi.create(body, idempotencyKey),
+    mutationFn: ({ body, idempotencyKey }: { body: MemoryCreate; idempotencyKey: string }) =>
+      memoryApi.create(body, idempotencyKey),
     onSuccess: (memory) => {
       track("memory_created", { memory_type: memory.memory_type });
       void qc.invalidateQueries({ queryKey: qk.memory.all });

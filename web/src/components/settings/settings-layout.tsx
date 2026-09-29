@@ -1,6 +1,13 @@
 "use client";
 
-import { Building2Icon, LayoutGridIcon, MonitorSmartphoneIcon, ShieldIcon, UserIcon, type LucideIcon } from "lucide-react";
+import {
+  Building2Icon,
+  LayoutGridIcon,
+  MonitorSmartphoneIcon,
+  ShieldIcon,
+  UserIcon,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -49,7 +56,7 @@ export function SettingsLayout({ children }: { children: ReactNode }) {
           )
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
         <nav aria-label="Settings sections" className="-mx-4 min-w-0 px-4 lg:mx-0 lg:px-0">
           <ul className="flex gap-1 overflow-x-auto pb-1 lg:sticky lg:top-20 lg:flex-col lg:overflow-visible lg:pb-0">
             {SETTINGS_NAV.map((item) => {
@@ -61,7 +68,7 @@ export function SettingsLayout({ children }: { children: ReactNode }) {
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50",
+                      "flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                       active
                         ? "bg-surface-3 text-fg shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
                         : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
@@ -113,14 +120,21 @@ export function SettingsCard({
     >
       <div className="flex flex-col gap-3 px-5 pt-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h2 id={id ? `${id}-title` : undefined} className={cn("text-sm font-semibold tracking-tight", tone === "danger" ? "text-danger" : "text-fg")}>
+          <h2
+            id={id ? `${id}-title` : undefined}
+            className={cn("text-sm font-semibold tracking-tight", tone === "danger" ? "text-danger" : "text-fg")}
+          >
             {title}
           </h2>
           {description && <div className="mt-1 max-w-2xl text-[13px] leading-relaxed text-fg-muted">{description}</div>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {children !== undefined && children !== null ? <div className="px-5 py-4">{children}</div> : <div className="pb-5" />}
+      {children !== undefined && children !== null ? (
+        <div className="px-5 py-4">{children}</div>
+      ) : (
+        <div className="pb-5" />
+      )}
       {footer && (
         <div className="flex flex-col-reverse gap-2 border-t border-line px-5 py-3 sm:flex-row sm:items-center sm:justify-end">
           {footer}

@@ -72,7 +72,7 @@ export function summarizeUserAgent(ua: string | null | undefined): UaSummary {
         : browser || os
           ? "desktop"
           : "unknown";
-  const label = browser && os ? `${browser} on ${os}` : browser ?? os ?? ua.split(/[\s/]/)[0] ?? "Unknown device";
+  const label = browser && os ? `${browser} on ${os}` : (browser ?? os ?? ua.split(/[\s/]/)[0] ?? "Unknown device");
   return { browser, os, device, label };
 }
 

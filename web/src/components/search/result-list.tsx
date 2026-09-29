@@ -74,7 +74,12 @@ export function ResultList({
     );
   }
   return (
-    <ol ref={ref as React.RefObject<HTMLOListElement>} aria-label={label} onKeyDown={onKeyDown} className={cn("flex flex-col gap-3", className)}>
+    <ol
+      ref={ref as React.RefObject<HTMLOListElement>}
+      aria-label={label}
+      onKeyDown={onKeyDown}
+      className={cn("flex flex-col gap-3", className)}
+    >
       {children}
     </ol>
   );
@@ -105,7 +110,7 @@ export function ResultItem({
           }
         }}
         className={cn(
-          "group/result relative rounded-xl border border-line bg-surface-1 p-4 outline-none transition-colors duration-150 hover:border-line-strong focus-visible:border-accent/50 focus-visible:ring-2 focus-visible:ring-accent/25 sm:p-5",
+          "group/result relative rounded-xl border border-line bg-surface-1 p-4 transition-colors duration-150 outline-none hover:border-line-strong focus-visible:border-accent/50 focus-visible:ring-2 focus-visible:ring-accent/25 sm:p-5",
           className,
         )}
       >

@@ -50,7 +50,7 @@ src/
    query hook, loading/error/empty states, and precise invalidation after mutations. Use
    `useCursorQuery` for keyset-paginated lists (`next_cursor`/`has_more`) — never page numbers.
 5. **Idempotency**: for writes that accept `Idempotency-Key` (task creation, approvals, memory,
-   automations, MCP, evaluations, experiments, files), create the key once per *logical*
+   automations, MCP, evaluations, experiments, files), create the key once per _logical_
    submission (`newIdempotencyKey()`, keep it in a ref/state) and reuse it on retries of the same
    submission; make a new one only for a new submission.
 6. **Backend state drives the UI.** Never show "completed", "approved" or "verified" because an

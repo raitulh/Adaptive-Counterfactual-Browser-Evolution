@@ -63,7 +63,13 @@ const GOAL_MAX = 4000;
 let consumedFocusTick = 0;
 const BUILTIN = "__builtin__";
 
-export function TaskComposer({ className, onSubmitted }: { className?: string; onSubmitted?: (task: TaskOut) => void }) {
+export function TaskComposer({
+  className,
+  onSubmitted,
+}: {
+  className?: string;
+  onSubmitted?: (task: TaskOut) => void;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { can, isLoading: permsLoading } = usePermissions();
@@ -96,10 +102,18 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
   const ids = { goal: React.useId(), hint: React.useId(), list: React.useId() };
 
   const create = useMutation({
-    mutationFn: ({ body, key }: { body: ReturnType<typeof buildTaskCreate>; key: string }) => tasksApi.create(body, key),
+    mutationFn: ({ body, key }: { body: ReturnType<typeof buildTaskCreate>; key: string }) =>
+      tasksApi.create(body, key),
   });
 
-  const body = buildTaskCreate({ goal, context, agentId, priority, maxDurationSeconds: maxDuration || null, files: attachments.ready });
+  const body = buildTaskCreate({
+    goal,
+    context,
+    agentId,
+    priority,
+    maxDurationSeconds: maxDuration || null,
+    files: attachments.ready,
+  });
   const contextLength = body.context?.length ?? 0;
   const commands = slash ? matchCommands(slash.query) : [];
   const menuOpen = slash !== null && commands.length > 0;
@@ -266,7 +280,11 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
   const attachFiles = (files: FileList | File[]) => {
     const list = [...files];
     const accepted = attachments.add(list);
-    setHint(accepted < list.length ? `Up to ${MAX_ATTACHMENTS} files per task — ${list.length - accepted} not attached.` : null);
+    setHint(
+      accepted < list.length
+        ? `Up to ${MAX_ATTACHMENTS} files per task — ${list.length - accepted} not attached.`
+        : null,
+    );
   };
 
   const recentGoals = React.useMemo(() => {
@@ -293,7 +311,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
         className={cn(
           "group/composer relative rounded-2xl border bg-surface-1/90 shadow-panel backdrop-blur-sm transition-[border-color,box-shadow] duration-200",
           "focus-within:border-accent/45 focus-within:shadow-[0_0_0_4px_rgb(92_225_230/0.08),var(--shadow-panel)]",
-          dragging ? "border-accent/60 border-dashed" : "border-line-strong",
+          dragging ? "border-dashed border-accent/60" : "border-line-strong",
         )}
         onDragEnter={(e) => {
           if (!e.dataTransfer.types.includes("Files")) return;
@@ -324,7 +342,9 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
           aria-describedby={ids.hint}
           aria-autocomplete="list"
           aria-controls={menuOpen ? ids.list : undefined}
-          aria-activedescendant={menuOpen ? `${ids.list}-${commands[Math.min(active, commands.length - 1)]?.id}` : undefined}
+          aria-activedescendant={
+            menuOpen ? `${ids.list}-${commands[Math.min(active, commands.length - 1)]?.id}` : undefined
+          }
           onChange={(e) => {
             setGoal(e.target.value);
             setHint(null);
@@ -340,7 +360,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
               attachFiles(e.clipboardData.files);
             }
           }}
-          className="block min-h-[4.5rem] w-full resize-none bg-transparent px-5 pb-2 pt-4 text-[15px] leading-relaxed text-fg outline-none placeholder:text-fg-subtle disabled:opacity-60 sm:text-base"
+          className="block min-h-[4.5rem] w-full resize-none bg-transparent px-5 pt-4 pb-2 text-[15px] leading-relaxed text-fg outline-none placeholder:text-fg-subtle disabled:opacity-60 sm:text-base"
         />
 
         {menuOpen && (
@@ -348,7 +368,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
             id={ids.list}
             role="listbox"
             aria-label="Commands"
-            className="absolute left-3 right-3 top-full z-40 mt-1 overflow-hidden rounded-xl border border-line-strong bg-surface-2 p-1 shadow-float sm:right-auto sm:w-96"
+            className="absolute top-full right-3 left-3 z-40 mt-1 overflow-hidden rounded-xl border border-line-strong bg-surface-2 p-1 shadow-float sm:right-auto sm:w-96"
           >
             {commands.map((c, i) => (
               <li
@@ -361,9 +381,14 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
                   applySlash(c);
                 }}
                 onMouseEnter={() => setActive(i)}
-                className={cn("flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2", i === active ? "bg-white/[0.06]" : "")}
+                className={cn(
+                  "flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2",
+                  i === active ? "bg-white/[0.06]" : "",
+                )}
               >
-                <span className="flex size-7 items-center justify-center rounded-md border border-line-strong bg-surface-3 font-mono text-xs text-accent">/</span>
+                <span className="flex size-7 items-center justify-center rounded-md border border-line-strong bg-surface-3 font-mono text-xs text-accent">
+                  /
+                </span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-medium text-fg">
                     /{c.id} <span className="font-normal text-fg-muted">· {c.label}</span>
@@ -381,15 +406,22 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
               <li
                 key={a.localId}
                 className={cn(
-                  "flex min-w-0 max-w-full items-center gap-2 rounded-lg border bg-surface-2 py-1.5 pl-2 pr-1 text-xs sm:max-w-72",
+                  "flex max-w-full min-w-0 items-center gap-2 rounded-lg border bg-surface-2 py-1.5 pr-1 pl-2 text-xs sm:max-w-72",
                   a.status === "error" ? "border-danger/40" : "border-line-strong",
                 )}
               >
-                <FileIcon className={cn("size-3.5 shrink-0", a.status === "error" ? "text-danger" : "text-fg-subtle")} aria-hidden />
+                <FileIcon
+                  className={cn("size-3.5 shrink-0", a.status === "error" ? "text-danger" : "text-fg-subtle")}
+                  aria-hidden
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-fg">{a.file.name}</span>
                   {a.status === "uploading" ? (
-                    <Progress value={Math.round(a.progress * 100)} className="mt-1 h-1 w-24" label={`Uploading ${a.file.name}`} />
+                    <Progress
+                      value={Math.round(a.progress * 100)}
+                      className="mt-1 h-1 w-24"
+                      label={`Uploading ${a.file.name}`}
+                    />
                   ) : (
                     <span className={cn("block truncate", a.status === "error" ? "text-danger" : "text-fg-subtle")}>
                       {a.status === "error" ? a.error : `${bytes(a.file.size)} · attached`}
@@ -397,11 +429,23 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
                   )}
                 </span>
                 {a.status === "error" && (
-                  <Button type="button" variant="ghost" size="icon-xs" aria-label={`Retry uploading ${a.file.name}`} onClick={() => attachments.retry(a.localId)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Retry uploading ${a.file.name}`}
+                    onClick={() => attachments.retry(a.localId)}
+                  >
                     <RotateCcwIcon />
                   </Button>
                 )}
-                <Button type="button" variant="ghost" size="icon-xs" aria-label={a.status === "uploading" ? `Cancel uploading ${a.file.name}` : `Remove ${a.file.name}`} onClick={() => attachments.remove(a.localId)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={a.status === "uploading" ? `Cancel uploading ${a.file.name}` : `Remove ${a.file.name}`}
+                  onClick={() => attachments.remove(a.localId)}
+                >
                   <XIcon />
                 </Button>
               </li>
@@ -422,8 +466,17 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
               e.target.value = "";
             }}
           />
-          <Tooltip content={attachments.full ? `Up to ${MAX_ATTACHMENTS} files` : "Attach files (or drop / paste them)"}>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Attach files" disabled={attachments.full || create.isPending} onClick={() => fileRef.current?.click()}>
+          <Tooltip
+            content={attachments.full ? `Up to ${MAX_ATTACHMENTS} files` : "Attach files (or drop / paste them)"}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Attach files"
+              disabled={attachments.full || create.isPending}
+              onClick={() => fileRef.current?.click()}
+            >
               <PaperclipIcon />
             </Button>
           </Tooltip>
@@ -458,7 +511,10 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
             {optionSummary.length > 0 && <span className="size-1.5 rounded-full bg-accent" aria-label="(customized)" />}
             <ChevronDownIcon className={cn("transition-transform", advanced && "rotate-180")} />
           </Button>
-          <p id={ids.hint} className="ml-1 hidden min-w-0 flex-1 items-center gap-1 truncate text-2xs text-fg-subtle md:flex">
+          <p
+            id={ids.hint}
+            className="ml-1 hidden min-w-0 flex-1 items-center gap-1 truncate text-2xs text-fg-subtle md:flex"
+          >
             <Kbd>
               <CornerDownLeftIcon className="size-2.5" />
             </Kbd>
@@ -495,7 +551,10 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
         </div>
 
         {dragging && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-bg/80 text-sm text-accent" aria-hidden>
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-bg/80 text-sm text-accent"
+            aria-hidden
+          >
             <UploadCloudIcon className="mr-2 size-5" /> Drop files to attach
           </div>
         )}
@@ -557,7 +616,15 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
           description={`Anything AgentOS should know — preferences, constraints, links. Attached files are referenced here automatically (by file id) so the planner can read them. ${contextLength}/${CONTEXT_MAX}`}
           error={contextLength > CONTEXT_MAX ? `Context is too long (${contextLength}/${CONTEXT_MAX}).` : null}
         >
-          {(f) => <Textarea {...f} rows={3} value={context} onChange={(e) => setContext(e.target.value)} placeholder="e.g. I prefer mornings; keep e-mails short and friendly." />}
+          {(f) => (
+            <Textarea
+              {...f}
+              rows={3}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder="e.g. I prefer mornings; keep e-mails short and friendly."
+            />
+          )}
         </Field>
       </div>
 
@@ -587,7 +654,8 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
               )}
               {unknownOutcome && (
                 <p className="px-1 text-xs text-fg-muted">
-                  The request may not have reached AgentOS. Press <Kbd>↵</Kbd> to try again — it is safe and will never create the task twice.
+                  The request may not have reached AgentOS. Press <Kbd>↵</Kbd> to try again — it is safe and will never
+                  create the task twice.
                 </p>
               )}
             </div>
@@ -595,7 +663,9 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
         </div>
       )}
 
-      {!advanced && optionSummary.length > 0 && <p className="px-1 text-xs text-fg-subtle">{optionSummary.join(" · ")}</p>}
+      {!advanced && optionSummary.length > 0 && (
+        <p className="px-1 text-xs text-fg-subtle">{optionSummary.join(" · ")}</p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {QUICK_ACTIONS.map((q) =>
@@ -603,7 +673,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
             <Link
               key={q.id}
               href={q.href}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface-1/60 px-3 text-[13px] text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface-1/60 px-3 text-[13px] text-fg-muted transition-colors outline-none hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {q.label}
             </Link>
@@ -615,7 +685,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
                 insertTemplate(q.id);
                 if (q.attach) fileRef.current?.click();
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface-1/60 px-3 text-[13px] text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface-1/60 px-3 text-[13px] text-fg-muted transition-colors outline-none hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {q.label}
             </button>
@@ -625,7 +695,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
 
       {recentGoals.length > 0 && (
         <div className="flex min-w-0 flex-col gap-1.5">
-          <p className="flex items-center gap-1.5 px-1 text-2xs font-medium uppercase tracking-[0.12em] text-fg-subtle">
+          <p className="flex items-center gap-1.5 px-1 text-2xs font-medium tracking-[0.12em] text-fg-subtle uppercase">
             <HistoryIcon className="size-3" aria-hidden /> Recent goals
           </p>
           <ul className="flex flex-col">
@@ -638,7 +708,7 @@ export function TaskComposer({ className, onSubmitted }: { className?: string; o
                     setHint(null);
                     select(g.length, g.length);
                   }}
-                  className="w-full truncate rounded-md px-1 py-1 text-left text-[13px] text-fg-muted outline-none transition-colors hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="w-full truncate rounded-md px-1 py-1 text-left text-[13px] text-fg-muted transition-colors outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
                   title="Reuse this goal"
                 >
                   {g}

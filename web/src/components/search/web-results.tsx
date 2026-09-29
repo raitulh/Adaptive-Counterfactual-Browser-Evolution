@@ -11,7 +11,15 @@ import { HighlightText } from "./highlight-text";
 import { RelevanceMeter } from "./relevance-meter";
 import { ResultItem, ResultList } from "./result-list";
 
-export function WebResults({ data, terms, onEscape }: { data: WebSearchResponse; terms: string[]; onEscape: () => void }) {
+export function WebResults({
+  data,
+  terms,
+  onEscape,
+}: {
+  data: WebSearchResponse;
+  terms: string[];
+  onEscape: () => void;
+}) {
   if (data.results.length === 0) {
     return (
       <EmptyState
@@ -25,8 +33,8 @@ export function WebResults({ data, terms, onEscape }: { data: WebSearchResponse;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-fg-subtle">
-        {data.results.length} results via <span className="font-medium text-fg-muted">{data.provider}</span> · ranked and
-        de-duplicated · retrieved <RelativeTime value={data.retrieved_at} />
+        {data.results.length} results via <span className="font-medium text-fg-muted">{data.provider}</span> · ranked
+        and de-duplicated · retrieved <RelativeTime value={data.retrieved_at} />
       </p>
       <ResultList label={`Web results for ${data.query}`} onEscape={onEscape}>
         {data.results.map((hit) => (
@@ -56,7 +64,7 @@ function WebResult({ hit, terms }: { hit: WebSearchHit; terms: string[] }) {
             <span className="truncate font-medium text-fg-muted">{domainOf(hit.url)}</span>
             <span className="hidden truncate sm:inline">{pathOf(hit.url)}</span>
           </div>
-          <h3 className="mt-0.5 text-[15px] font-medium leading-snug text-fg">
+          <h3 className="mt-0.5 text-[15px] leading-snug font-medium text-fg">
             {safe ? (
               <a
                 href={hit.url}
@@ -87,7 +95,11 @@ function WebResult({ hit, terms }: { hit: WebSearchHit; terms: string[] }) {
             </span>
             <span className="ml-auto flex items-center gap-1">
               <CopyAction value={formatCitation(hit.citation)} label="Copy citation" icon={<QuoteIcon />} />
-              <CopyAction value={formatMarkdownCitation(hit.citation)} label="Copy as Markdown link" icon={<LinkIcon />} />
+              <CopyAction
+                value={formatMarkdownCitation(hit.citation)}
+                label="Copy as Markdown link"
+                icon={<LinkIcon />}
+              />
             </span>
           </div>
         </div>

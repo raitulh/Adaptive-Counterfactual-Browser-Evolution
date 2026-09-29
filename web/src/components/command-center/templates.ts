@@ -86,7 +86,12 @@ export function matchCommands(query: string): SlashCommand[] {
 }
 
 /** Replace the "/query" token (from `start` to `caret`) with the command's template. */
-export function applyCommand(text: string, start: number, caret: number, command: SlashCommand): { text: string; selection: { start: number; end: number } } {
+export function applyCommand(
+  text: string,
+  start: number,
+  caret: number,
+  command: SlashCommand,
+): { text: string; selection: { start: number; end: number } } {
   const next = text.slice(0, start) + command.template + text.slice(caret);
   const ph = nextPlaceholder(next, start);
   const end = start + command.template.length;

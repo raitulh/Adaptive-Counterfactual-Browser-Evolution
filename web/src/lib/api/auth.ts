@@ -35,7 +35,9 @@ export const authApi = {
 
   mfaEnroll: (): Promise<MfaEnrollResponse> => call(api.POST("/api/v1/auth/mfa/enroll")),
   mfaConfirm: (factorId: string, code: string) =>
-    call(api.POST("/api/v1/auth/mfa/{factor_id}/confirm", { params: { path: { factor_id: factorId } }, body: { code } })),
+    call(
+      api.POST("/api/v1/auth/mfa/{factor_id}/confirm", { params: { path: { factor_id: factorId } }, body: { code } }),
+    ),
   mfaDisable: (code: string) => call(api.POST("/api/v1/auth/mfa/disable", { body: { code } })),
 
   /** Short-lived token (type=stream) for SSE connections. Never put access tokens in URLs. */

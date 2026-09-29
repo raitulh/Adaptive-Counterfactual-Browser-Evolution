@@ -108,7 +108,7 @@ export function MemoryField({ memories, now, className }: { memories: MemoryOut[
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-fg-subtle text-[9px] uppercase tracking-wider"
+              className="fill-fg-subtle text-[9px] tracking-wider uppercase"
             >
               {metaForType(t).label}
             </text>
@@ -153,7 +153,8 @@ export function MemoryField({ memories, now, className }: { memories: MemoryOut[
           <span className="size-2 rounded-full bg-warning" aria-hidden /> Stale {counts.stale}
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="size-2 rounded-full border border-dashed border-recover" aria-hidden /> Unverified {counts.unverified}
+          <span className="size-2 rounded-full border border-dashed border-recover" aria-hidden /> Unverified{" "}
+          {counts.unverified}
         </span>
       </figcaption>
     </figure>

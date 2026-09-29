@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand, buildContext, buildTaskCreate, commandById, matchCommands, nextPlaceholder, slashQuery } from "./templates";
+import {
+  applyCommand,
+  buildContext,
+  buildTaskCreate,
+  commandById,
+  matchCommands,
+  nextPlaceholder,
+  slashQuery,
+} from "./templates";
 
 describe("slash commands", () => {
   it("detects a slash token at the start of the text or a line", () => {
@@ -36,17 +44,31 @@ describe("slash commands", () => {
 describe("request building", () => {
   it("references uploaded files in context so the planner can read them", () => {
     expect(buildContext("", [])).toBeNull();
-    expect(buildContext("  Use Q3 numbers ", [{ id: "f1", filename: "q3.csv" }, { id: "f2", filename: "notes.md" }])).toBe(
-      "Use Q3 numbers\n\nAttached files: q3.csv (file_id f1), notes.md (file_id f2)",
-    );
+    expect(
+      buildContext("  Use Q3 numbers ", [
+        { id: "f1", filename: "q3.csv" },
+        { id: "f2", filename: "notes.md" },
+      ]),
+    ).toBe("Use Q3 numbers\n\nAttached files: q3.csv (file_id f1), notes.md (file_id f2)");
   });
 
   it("builds a minimal TaskCreate", () => {
-    expect(buildTaskCreate({ goal: "  Plan my week ", context: "", agentId: null, priority: 100, maxDurationSeconds: null, files: [] })).toEqual({
+    expect(
+      buildTaskCreate({
+        goal: "  Plan my week ",
+        context: "",
+        agentId: null,
+        priority: 100,
+        maxDurationSeconds: null,
+        files: [],
+      }),
+    ).toEqual({
       goal: "Plan my week",
       priority: 100,
     });
-    expect(buildTaskCreate({ goal: "x", context: "c", agentId: "a1", priority: 50, maxDurationSeconds: 900, files: [] })).toEqual({
+    expect(
+      buildTaskCreate({ goal: "x", context: "c", agentId: "a1", priority: 50, maxDurationSeconds: 900, files: [] }),
+    ).toEqual({
       goal: "x",
       context: "c",
       agent_id: "a1",

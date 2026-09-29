@@ -12,7 +12,15 @@ import { describeRunError, presentRun } from "./automation-status";
 import { useAutomationRuns } from "./hooks";
 import { formatInZone } from "./schedule";
 
-export function RunsHistory({ automationId, timezone, action }: { automationId: string; timezone: string; action?: React.ReactNode }) {
+export function RunsHistory({
+  automationId,
+  timezone,
+  action,
+}: {
+  automationId: string;
+  timezone: string;
+  action?: React.ReactNode;
+}) {
   const runs = useAutomationRuns(automationId);
   const router = useRouter();
   const developerMode = useUiStore((s) => s.developerMode);
@@ -60,7 +68,7 @@ export function RunsHistory({ automationId, timezone, action }: { automationId: 
       cell: (r) => (
         <Tooltip content={`${dateTime(r.scheduled_for)} (your time)`}>
           <span tabIndex={0} className="flex flex-col outline-none">
-            <span className="tabular-nums text-fg">{formatInZone(new Date(r.scheduled_for), timezone)}</span>
+            <span className="text-fg tabular-nums">{formatInZone(new Date(r.scheduled_for), timezone)}</span>
             <span className="text-xs text-fg-subtle">
               <RelativeTime value={r.scheduled_for} />
             </span>
@@ -73,10 +81,17 @@ export function RunsHistory({ automationId, timezone, action }: { automationId: 
       header: "Duration",
       hideBelow: "md",
       cell: (r) => (
-        <span className="tabular-nums text-fg-muted">{r.finished_at ? duration(r.created_at, r.finished_at) : presentRun(r).open ? "In progress" : "—"}</span>
+        <span className="text-fg-muted tabular-nums">
+          {r.finished_at ? duration(r.created_at, r.finished_at) : presentRun(r).open ? "In progress" : "—"}
+        </span>
       ),
     },
-    { id: "attempts", header: "Attempts", hideBelow: "lg", cell: (r) => <span className="tabular-nums text-fg-muted">{r.attempts}</span> },
+    {
+      id: "attempts",
+      header: "Attempts",
+      hideBelow: "lg",
+      cell: (r) => <span className="text-fg-muted tabular-nums">{r.attempts}</span>,
+    },
     {
       id: "task",
       header: "Task",
@@ -86,7 +101,7 @@ export function RunsHistory({ automationId, timezone, action }: { automationId: 
           <Link
             href={`/app/tasks/${r.task_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 whitespace-nowrap font-medium text-fg-muted hover:text-fg"
+            className="inline-flex items-center gap-1 font-medium whitespace-nowrap text-fg-muted hover:text-fg"
           >
             Open task <ArrowUpRightIcon className="size-3.5" aria-hidden />
           </Link>
@@ -94,7 +109,16 @@ export function RunsHistory({ automationId, timezone, action }: { automationId: 
           <span className="text-xs text-fg-subtle">No task</span>
         ),
     },
-    ...(developerMode ? [{ id: "id", header: "Run", hideBelow: "lg" as const, cell: (r: AutomationRunOut) => <IdChip id={r.id} label="run" /> }] : []),
+    ...(developerMode
+      ? [
+          {
+            id: "id",
+            header: "Run",
+            hideBelow: "lg" as const,
+            cell: (r: AutomationRunOut) => <IdChip id={r.id} label="run" />,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -105,7 +129,9 @@ export function RunsHistory({ automationId, timezone, action }: { automationId: 
             Runs
           </h2>
           <p className="mt-0.5 text-[13px] text-fg-muted" aria-live="polite">
-            {openCount > 0 ? `${openCount} in progress — updating live.` : "Newest first. Each run links to the task it created."}
+            {openCount > 0
+              ? `${openCount} in progress — updating live.`
+              : "Newest first. Each run links to the task it created."}
           </p>
         </div>
         {action}

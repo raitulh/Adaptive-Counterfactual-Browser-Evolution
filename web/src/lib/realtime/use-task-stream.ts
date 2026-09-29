@@ -18,7 +18,14 @@ import { markTaskStreamActive } from "./registry";
 import { SseConnection, type StreamState } from "./sse";
 
 const APPROVAL_EVENTS = new Set(["APPROVAL_REQUIRED", "APPROVAL_GRANTED", "APPROVAL_REJECTED", "APPROVAL_EXPIRED"]);
-const LIST_EVENTS = new Set(["TASK_STATE_CHANGED", "TASK_COMPLETED", "TASK_FAILED", "TASK_CANCELLED", "TASK_PAUSED", "TASK_RESUMED"]);
+const LIST_EVENTS = new Set([
+  "TASK_STATE_CHANGED",
+  "TASK_COMPLETED",
+  "TASK_FAILED",
+  "TASK_CANCELLED",
+  "TASK_PAUSED",
+  "TASK_RESUMED",
+]);
 
 export interface TaskStreamResult {
   events: TaskEvent[];
@@ -39,7 +46,10 @@ export interface TaskStreamOptions {
   restartKey?: string | number | boolean | null;
 }
 
-export function useTaskStream(taskId: string | null, { enabled = true, restartKey = null }: TaskStreamOptions = {}): TaskStreamResult {
+export function useTaskStream(
+  taskId: string | null,
+  { enabled = true, restartKey = null }: TaskStreamOptions = {},
+): TaskStreamResult {
   const queryClient = useQueryClient();
   const [state, setState] = useState<StreamState>("idle");
   const key = qk.tasks.events(taskId ?? "none");
@@ -66,7 +76,8 @@ export function useTaskStream(taskId: string | null, { enabled = true, restartKe
       pendingKinds = new Set();
       void queryClient.invalidateQueries({ queryKey: qk.tasks.detail(taskId) });
       void queryClient.invalidateQueries({ queryKey: qk.tasks.summary(taskId) });
-      if ([...kinds].some((k) => APPROVAL_EVENTS.has(k))) void queryClient.invalidateQueries({ queryKey: qk.approvals.all });
+      if ([...kinds].some((k) => APPROVAL_EVENTS.has(k)))
+        void queryClient.invalidateQueries({ queryKey: qk.approvals.all });
       if ([...kinds].some((k) => LIST_EVENTS.has(k))) void queryClient.invalidateQueries({ queryKey: qk.tasks.lists });
     };
     const scheduleInvalidate = (kind: string) => {

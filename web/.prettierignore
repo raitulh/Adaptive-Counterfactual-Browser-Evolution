@@ -3,3 +3,6 @@ node_modules
 src/lib/api/generated
 playwright-report
 test-results
+coverage
+blob-report
+next-env.d.ts

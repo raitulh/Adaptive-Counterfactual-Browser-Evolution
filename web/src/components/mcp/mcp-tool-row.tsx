@@ -111,7 +111,13 @@ export function McpToolRow({
   );
 
   return (
-    <li className={cn("flex flex-col", review.state === "schema_changed" && "bg-danger/[0.035]", review.state === "unreviewed" && "bg-warning/[0.03]")}>
+    <li
+      className={cn(
+        "flex flex-col",
+        review.state === "schema_changed" && "bg-danger/[0.035]",
+        review.state === "unreviewed" && "bg-warning/[0.03]",
+      )}
+    >
       <div className="flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:gap-4">
         <button
           type="button"
@@ -120,22 +126,36 @@ export function McpToolRow({
           aria-controls={detailsId}
           className="flex min-w-0 flex-1 items-start gap-2 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
-          <ChevronDownIcon className={cn("mt-0.5 size-4 shrink-0 text-fg-subtle transition-transform", !open && "-rotate-90")} aria-hidden />
+          <ChevronDownIcon
+            className={cn("mt-0.5 size-4 shrink-0 text-fg-subtle transition-transform", !open && "-rotate-90")}
+            aria-hidden
+          />
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[13px] font-medium text-fg">{tool.qualified_name}</span>
               {tool.title && <span className="text-xs text-fg-muted">{tool.title}</span>}
             </span>
-            <span className={cn("mt-0.5 block text-xs leading-relaxed text-fg-muted", !open && "line-clamp-1")}>{tool.description || "No description"}</span>
+            <span className={cn("mt-0.5 block text-xs leading-relaxed text-fg-muted", !open && "line-clamp-1")}>
+              {tool.description || "No description"}
+            </span>
           </span>
         </button>
         <div className="flex flex-wrap items-center gap-1.5 pl-6 md:pl-0">
           <ToolReviewBadge tool={tool} server={server} />
           <PermissionBadge level={tool.permission_level} />
           <RiskBadge level={tool.risk_level} />
-          {tool.requires_approval && <Badge tone="warning" variant="outline">Approval</Badge>}
+          {tool.requires_approval && (
+            <Badge tone="warning" variant="outline">
+              Approval
+            </Badge>
+          )}
           {canManage && review.requiresReview && review.state !== "unknown" ? (
-            <Button size="xs" variant={review.state === "schema_changed" ? "danger" : "primary"} onClick={() => onReview(tool)} disabled={blocked !== null}>
+            <Button
+              size="xs"
+              variant={review.state === "schema_changed" ? "danger" : "primary"}
+              onClick={() => onReview(tool)}
+              disabled={blocked !== null}
+            >
               {review.state === "schema_changed" ? "Re-approve" : "Review"}
             </Button>
           ) : blocked && !tool.enabled ? (
@@ -150,7 +170,10 @@ export function McpToolRow({
         </div>
       </div>
       {open && (
-        <div id={detailsId} className="grid gap-6 border-t border-line bg-surface-2/40 px-4 py-4 pl-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <div
+          id={detailsId}
+          className="grid gap-6 border-t border-line bg-surface-2/40 px-4 py-4 pl-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]"
+        >
           <DefinitionReview tool={tool} />
           <div className="flex flex-col gap-5">
             <p className="text-xs leading-relaxed text-fg-muted">{review.description}</p>
@@ -161,11 +184,25 @@ export function McpToolRow({
             <KeyValue
               className="grid-cols-[minmax(7rem,auto)_1fr] text-xs"
               items={[
-                ["Remote name", <span key="r" className="font-mono">{tool.remote_name}</span>],
-                ["Definition hash", <span key="h" className="font-mono" title={tool.schema_hash}>{shortHash(tool.schema_hash)}</span>],
+                [
+                  "Remote name",
+                  <span key="r" className="font-mono">
+                    {tool.remote_name}
+                  </span>,
+                ],
+                [
+                  "Definition hash",
+                  <span key="h" className="font-mono" title={tool.schema_hash}>
+                    {shortHash(tool.schema_hash)}
+                  </span>,
+                ],
                 [
                   "Approved hash",
-                  <span key="a" className={cn("font-mono", !tool.schema_approved && tool.approved_schema_hash && "text-danger")} title={tool.approved_schema_hash ?? undefined}>
+                  <span
+                    key="a"
+                    className={cn("font-mono", !tool.schema_approved && tool.approved_schema_hash && "text-danger")}
+                    title={tool.approved_schema_hash ?? undefined}
+                  >
                     {tool.approved_schema_hash ? shortHash(tool.approved_schema_hash) : "never approved"}
                   </span>,
                 ],

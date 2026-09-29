@@ -47,7 +47,8 @@ export function MemoryRecallResults({
   renderItem?: (node: React.ReactNode, index: number, id: string) => React.ReactNode;
 }) {
   const request = React.useMemo(
-    () => (query.trim() ? { query: query.trim(), limit, memory_types: memoryTypes?.length ? memoryTypes : null } : null),
+    () =>
+      query.trim() ? { query: query.trim(), limit, memory_types: memoryTypes?.length ? memoryTypes : null } : null,
     [query, limit, memoryTypes],
   );
   const search = useMemorySearch(request);

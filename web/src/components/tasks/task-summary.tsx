@@ -5,7 +5,16 @@
  * recorded steps and verifications only — never model-written, except `direct_response`, which is
  * labelled as not externally verified.
  */
-import { CheckIcon, ChevronRightIcon, CircleAlertIcon, CircleDashedIcon, HandIcon, InfoIcon, ShieldCheckIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  CircleAlertIcon,
+  CircleDashedIcon,
+  HandIcon,
+  InfoIcon,
+  ShieldCheckIcon,
+  XIcon,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import * as React from "react";
 import type { StepOut, TaskDetailView, TaskSummaryOut } from "@/lib/api";
@@ -32,7 +41,7 @@ function Section({ title, children, empty }: { title: string; children?: React.R
   if (!hasContent && !empty) return null;
   return (
     <div>
-      <h3 className="text-2xs font-semibold uppercase tracking-[0.12em] text-fg-subtle">{title}</h3>
+      <h3 className="text-2xs font-semibold tracking-[0.12em] text-fg-subtle uppercase">{title}</h3>
       <div className="mt-1.5">{hasContent ? children : <p className="text-[13px] text-fg-subtle">{empty}</p>}</div>
     </div>
   );
@@ -53,7 +62,8 @@ export interface TaskSummaryProps {
 
 export function TaskSummary({ task, summary, isLoading, error, onRetry, developerMode }: TaskSummaryProps) {
   const [techOpen, setTechOpen] = React.useState(false);
-  if (error && !summary) return <ErrorState error={error} onRetry={onRetry} compact title="Couldn't load the summary" />;
+  if (error && !summary)
+    return <ErrorState error={error} onRetry={onRetry} compact title="Couldn't load the summary" />;
   if (isLoading || !summary) {
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface-1 p-5" aria-busy>
@@ -68,19 +78,41 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
   const tone = toneClasses[status.tone];
 
   return (
-    <section aria-labelledby="summary-title" className={cn("rounded-xl border bg-surface-1", summary.status === "completed" ? "border-success/25" : "border-line")}>
+    <section
+      aria-labelledby="summary-title"
+      className={cn(
+        "rounded-xl border bg-surface-1",
+        summary.status === "completed" ? "border-success/25" : "border-line",
+      )}
+    >
       <div className="flex items-start gap-3 border-b border-line p-4 sm:p-5">
-        <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border", tone.border, tone.soft, tone.text)} aria-hidden>
-          {summary.status === "completed" ? <CheckIcon className="size-4" /> : status.tone === "danger" ? <XIcon className="size-4" /> : <InfoIcon className="size-4" />}
+        <span
+          className={cn(
+            "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border",
+            tone.border,
+            tone.soft,
+            tone.text,
+          )}
+          aria-hidden
+        >
+          {summary.status === "completed" ? (
+            <CheckIcon className="size-4" />
+          ) : status.tone === "danger" ? (
+            <XIcon className="size-4" />
+          ) : (
+            <InfoIcon className="size-4" />
+          )}
         </span>
         <div className="min-w-0">
-          <h2 id="summary-title" className="text-[15px] font-semibold leading-snug tracking-tight text-fg">
+          <h2 id="summary-title" className="text-[15px] leading-snug font-semibold tracking-tight text-fg">
             {summary.direct_response && summary.what_happened.length === 0 && summary.status === "completed"
               ? "Answered directly — no actions were taken"
               : readable(summary.headline)}
           </h2>
           {summary.partial_completion && (
-            <p className="mt-1 text-xs text-recover">Partially completed — some changes were made before it stopped. They are listed below.</p>
+            <p className="mt-1 text-xs text-recover">
+              Partially completed — some changes were made before it stopped. They are listed below.
+            </p>
           )}
         </div>
       </div>
@@ -95,7 +127,8 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
             <Markdown>{summary.direct_response}</Markdown>
             <p className="mt-3 flex items-start gap-1.5 border-t border-line pt-2.5 text-xs text-fg-muted">
               <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-info" aria-hidden />
-              {summary.direct_response_note ?? "Answered by the model without taking any action; not externally verified."}
+              {summary.direct_response_note ??
+                "Answered by the model without taking any action; not externally verified."}
             </p>
           </div>
         )}
@@ -107,8 +140,20 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
                 const m = stepStatusMeta[h.status];
                 return (
                   <li key={h.step} className="flex items-start gap-2 text-[13px]">
-                    <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center", toneClasses[m.tone].text)} aria-hidden>
-                      {h.status === "completed" ? <CheckIcon className="size-3.5" /> : h.status === "failed" || h.status === "blocked" ? <XIcon className="size-3.5" /> : <CircleDashedIcon className="size-3.5" />}
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-4 shrink-0 items-center justify-center",
+                        toneClasses[m.tone].text,
+                      )}
+                      aria-hidden
+                    >
+                      {h.status === "completed" ? (
+                        <CheckIcon className="size-3.5" />
+                      ) : h.status === "failed" || h.status === "blocked" ? (
+                        <XIcon className="size-3.5" />
+                      ) : (
+                        <CircleDashedIcon className="size-3.5" />
+                      )}
                     </span>
                     <span className="min-w-0">
                       <span className="text-fg">{h.action}</span>
@@ -122,7 +167,14 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
           )}
         </Section>
 
-        <Section title="What changed" empty={summary.status === "completed" || summary.what_happened.length ? "Nothing was changed in any external system." : undefined}>
+        <Section
+          title="What changed"
+          empty={
+            summary.status === "completed" || summary.what_happened.length
+              ? "Nothing was changed in any external system."
+              : undefined
+          }
+        >
           {summary.what_changed.length > 0 && (
             <ul className="flex flex-col gap-1.5">
               {summary.what_changed.map((c) => (
@@ -132,7 +184,7 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
                     <span>{humanizeTool(c.tool)}</span>
                     {c.external_ref && (
                       <span>
-                        ref <code className="break-all font-mono text-2xs text-fg-muted">{c.external_ref}</code>
+                        ref <code className="font-mono text-2xs break-all text-fg-muted">{c.external_ref}</code>
                       </span>
                     )}
                   </p>
@@ -155,7 +207,9 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
                       <span className="text-fg">{stepName(steps, v.step)}</span>
                       <span className={cn(toneClasses[m.tone].text)}> · {m.label}</span>
                       <span className="block text-xs text-fg-muted">{verificationMethodLabel(v.method)}</span>
-                      {diffs.length > 0 && <span className="block text-xs text-recover">Differences: {diffs.join(", ")}</span>}
+                      {diffs.length > 0 && (
+                        <span className="block text-xs text-recover">Differences: {diffs.join(", ")}</span>
+                      )}
                     </span>
                   </li>
                 );
@@ -186,8 +240,14 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
                 <li key={i} className="flex items-start gap-2 text-[13px]">
                   <HandIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
                   <span className="text-fg">
-                    {w.type === "approval" ? `Your approval: ${readable(w.summary) ?? "an action"}` : w.type === "input" ? `Your answer: ${w.question ?? ""}` : `Confirm the outcome of ${w.step ? stepName(steps, w.step) : "an action"}`}
-                    {w.type === "confirm_outcome" && w.message && <span className="block text-fg-muted">{w.message}</span>}
+                    {w.type === "approval"
+                      ? `Your approval: ${readable(w.summary) ?? "an action"}`
+                      : w.type === "input"
+                        ? `Your answer: ${w.question ?? ""}`
+                        : `Confirm the outcome of ${w.step ? stepName(steps, w.step) : "an action"}`}
+                    {w.type === "confirm_outcome" && w.message && (
+                      <span className="block text-fg-muted">{w.message}</span>
+                    )}
                   </span>
                 </li>
               ))}
@@ -210,7 +270,7 @@ export function TaskSummary({ task, summary, isLoading, error, onRetry, develope
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[30rem] text-left text-xs">
                   <thead>
-                    <tr className="text-2xs uppercase tracking-wider text-fg-subtle">
+                    <tr className="text-2xs tracking-wider text-fg-subtle uppercase">
                       <th className="py-1 pr-3 font-medium">Step</th>
                       <th className="py-1 pr-3 font-medium">Tool</th>
                       <th className="py-1 pr-3 font-medium">Verification</th>

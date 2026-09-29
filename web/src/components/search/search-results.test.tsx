@@ -47,7 +47,13 @@ const web: WebSearchResponse = {
       provider_rank: 3,
       relevance: 0.2,
       retrieved_at: "2026-09-29T05:00:00Z",
-      citation: { source_url: "javascript:alert(1)", title: "Unsafe", provider: "brave", retrieved_at: "2026-09-29T05:00:00Z", relevance: 0.2 },
+      citation: {
+        source_url: "javascript:alert(1)",
+        title: "Unsafe",
+        provider: "brave",
+        retrieved_at: "2026-09-29T05:00:00Z",
+        relevance: 0.2,
+      },
     },
   ],
 };
@@ -132,7 +138,13 @@ describe("<SearchErrorPanel>", () => {
   it("explains a missing web search provider and offers the other tabs", async () => {
     const onSwitchTab = vi.fn();
     wrap(
-      <SearchErrorPanel error={err(503, "configuration_missing")} tab="web" failedAt={Date.now()} onSwitchTab={onSwitchTab} onRetry={() => {}} />,
+      <SearchErrorPanel
+        error={err(503, "configuration_missing")}
+        tab="web"
+        failedAt={Date.now()}
+        onSwitchTab={onSwitchTab}
+        onRetry={() => {}}
+      />,
     );
     expect(screen.getByText("Web search isn't set up on this server")).toBeInTheDocument();
     expect(screen.getByText("SEARCH_PROVIDER")).toBeInTheDocument();
@@ -142,23 +154,55 @@ describe("<SearchErrorPanel>", () => {
   });
 
   it("distinguishes a disabled feature", () => {
-    wrap(<SearchErrorPanel error={err(403, "feature_disabled")} tab="web" failedAt={Date.now()} onSwitchTab={() => {}} onRetry={() => {}} />);
+    wrap(
+      <SearchErrorPanel
+        error={err(403, "feature_disabled")}
+        tab="web"
+        failedAt={Date.now()}
+        onSwitchTab={() => {}}
+        onRetry={() => {}}
+      />,
+    );
     expect(screen.getByText("Web search is turned off for this organization")).toBeInTheDocument();
   });
 
   it("shows a permission error for a missing permission", () => {
-    wrap(<SearchErrorPanel error={err(403, "forbidden")} tab="web" failedAt={Date.now()} onSwitchTab={() => {}} onRetry={() => {}} />);
+    wrap(
+      <SearchErrorPanel
+        error={err(403, "forbidden")}
+        tab="web"
+        failedAt={Date.now()}
+        onSwitchTab={() => {}}
+        onRetry={() => {}}
+      />,
+    );
     expect(screen.getByText("You don't have permission to do this")).toBeInTheDocument();
   });
 
   it("counts down a rate limit before allowing a retry", () => {
-    wrap(<SearchErrorPanel error={err(429, "rate_limited", "Too many", 20)} tab="web" failedAt={Date.now()} onSwitchTab={() => {}} onRetry={() => {}} />);
+    wrap(
+      <SearchErrorPanel
+        error={err(429, "rate_limited", "Too many", 20)}
+        tab="web"
+        failedAt={Date.now()}
+        onSwitchTab={() => {}}
+        onRetry={() => {}}
+      />,
+    );
     expect(screen.getByText("You've reached the search limit")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Try again in \d+s/ })).toBeDisabled();
   });
 
   it("names the provider when the provider is rate limiting", () => {
-    wrap(<SearchErrorPanel error={err(429, "integration_rate_limited")} tab="web" failedAt={Date.now()} onSwitchTab={() => {}} onRetry={() => {}} />);
+    wrap(
+      <SearchErrorPanel
+        error={err(429, "integration_rate_limited")}
+        tab="web"
+        failedAt={Date.now()}
+        onSwitchTab={() => {}}
+        onRetry={() => {}}
+      />,
+    );
     expect(screen.getByText("The search provider is limiting requests")).toBeInTheDocument();
   });
 });

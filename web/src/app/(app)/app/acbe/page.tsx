@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { AcbeLab } from "@/components/acbe/acbe-lab";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "ACBE Lab" };
+
 export default function AcbePage() {
   return (
-    <PageContainer>
-      <PageHeader title="ACBE Lab" description="Self-improvement: failures, candidates, canaries and promotion." />
-    </PageContainer>
+    <Suspense>
+      <AcbeLab />
+    </Suspense>
   );
 }

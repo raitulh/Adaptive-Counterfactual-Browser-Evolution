@@ -53,7 +53,8 @@ export function DataTable<T>({
   if (error && rows.length === 0) return <ErrorState error={error} onRetry={onRetry} />;
   return (
     <div className={cn("overflow-hidden rounded-xl border border-line bg-surface-1", className)}>
-      <div className="overflow-x-auto">
+      {/* `relative` keeps visually-hidden (absolutely positioned) header text inside the scroll area. */}
+      <div className="relative overflow-x-auto">
         <table className="w-full border-collapse text-left text-[13px]">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
@@ -62,7 +63,11 @@ export function DataTable<T>({
                 <th
                   key={c.id}
                   scope="col"
-                  className={cn("h-9 px-4 text-2xs font-medium uppercase tracking-wider text-fg-subtle", c.hideBelow && hide[c.hideBelow], c.className)}
+                  className={cn(
+                    "h-9 px-4 text-2xs font-medium tracking-wider text-fg-subtle uppercase",
+                    c.hideBelow && hide[c.hideBelow],
+                    c.className,
+                  )}
                 >
                   {c.header}
                 </th>
@@ -95,11 +100,15 @@ export function DataTable<T>({
                 tabIndex={onRowClick ? 0 : undefined}
                 className={cn(
                   "border-b border-line last:border-0",
-                  onRowClick && "cursor-pointer outline-none transition-colors hover:bg-white/[0.025] focus-visible:bg-white/[0.04]",
+                  onRowClick &&
+                    "cursor-pointer transition-colors outline-none hover:bg-white/[0.025] focus-visible:bg-white/[0.04]",
                 )}
               >
                 {columns.map((c) => (
-                  <td key={c.id} className={cn("px-4 py-3 align-middle text-fg", c.hideBelow && hide[c.hideBelow], c.className)}>
+                  <td
+                    key={c.id}
+                    className={cn("px-4 py-3 align-middle text-fg", c.hideBelow && hide[c.hideBelow], c.className)}
+                  >
                     {c.cell(row)}
                   </td>
                 ))}

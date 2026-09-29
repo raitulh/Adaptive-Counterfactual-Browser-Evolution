@@ -79,7 +79,12 @@ describe("result helpers", () => {
   });
 
   it("formats citations", () => {
-    const c = { title: "AgentOS docs", source_url: "https://example.com/docs", provider: "brave", retrieved_at: "2026-09-29T05:00:00Z" };
+    const c = {
+      title: "AgentOS docs",
+      source_url: "https://example.com/docs",
+      provider: "brave",
+      retrieved_at: "2026-09-29T05:00:00Z",
+    };
     expect(formatCitation(c)).toBe("AgentOS docs. https://example.com/docs (via brave, retrieved 2026-09-29)");
     expect(formatMarkdownCitation({ ...c, title: "A [b]" })).toBe("[A b](https://example.com/docs)");
   });

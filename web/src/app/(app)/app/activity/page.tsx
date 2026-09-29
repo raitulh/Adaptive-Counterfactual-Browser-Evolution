@@ -1,10 +1,13 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ActivityLog } from "@/components/activity/activity-log";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Activity" };
+
 export default function ActivityPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Activity" description="The organization's audit trail." />
-    </PageContainer>
+    <Suspense>
+      <ActivityLog />
+    </Suspense>
   );
 }

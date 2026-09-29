@@ -18,14 +18,21 @@ export function RelevanceMeter({
 }) {
   const fill = Math.max(0, Math.min(1, fraction ?? value));
   return (
-    <span className={cn("inline-flex items-center gap-2", className)} role="img" aria-label={`${label} ${value.toFixed(digits)}`}>
+    <span
+      className={cn("inline-flex items-center gap-2", className)}
+      role="img"
+      aria-label={`${label} ${value.toFixed(digits)}`}
+    >
       <span className="text-fg-subtle" aria-hidden>
         {label}
       </span>
       <span className="relative h-1.5 w-12 overflow-hidden rounded-full bg-white/[0.07]" aria-hidden>
-        <span className="absolute inset-y-0 left-0 rounded-full bg-accent/80" style={{ width: `${Math.max(4, fill * 100)}%` }} />
+        <span
+          className="absolute inset-y-0 left-0 rounded-full bg-accent/80"
+          style={{ width: `${Math.max(4, fill * 100)}%` }}
+        />
       </span>
-      <span className="font-mono tabular-nums text-fg-muted" aria-hidden>
+      <span className="font-mono text-fg-muted tabular-nums" aria-hidden>
         {value.toFixed(digits)}
       </span>
     </span>

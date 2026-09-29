@@ -48,7 +48,7 @@ export function TimezonePicker({
           aria-haspopup="listbox"
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
-          className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-left text-sm text-fg outline-none transition-colors focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 aria-[invalid=true]:border-danger/60"
+          className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-surface-1 px-3 text-left text-sm text-fg transition-colors outline-none focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 aria-[invalid=true]:border-danger/60"
         >
           <span className="flex min-w-0 items-center gap-2">
             <GlobeIcon className="size-4 shrink-0 text-fg-subtle" aria-hidden />
@@ -60,7 +60,9 @@ export function TimezonePicker({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden p-0">
         <Command
-          filter={(itemValue, search) => (itemValue.toLowerCase().replace(/_/g, " ").includes(search.toLowerCase().trim()) ? 1 : 0)}
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().replace(/_/g, " ").includes(search.toLowerCase().trim()) ? 1 : 0
+          }
         >
           <CommandInput placeholder="Search time zones…" aria-label="Search time zones" />
           <CommandList id={listId} className="max-h-72">
@@ -68,7 +70,13 @@ export function TimezonePicker({
             {local !== "UTC" && (
               <CommandGroup heading="Suggested">
                 {[local, "UTC"].map((z) => (
-                  <ZoneItem key={`s-${z}`} zone={z} selected={z === value} onSelect={(v) => (onChange(v), setOpen(false))} hint={z === local ? "Your time zone" : "Universal"} />
+                  <ZoneItem
+                    key={`s-${z}`}
+                    zone={z}
+                    selected={z === value}
+                    onSelect={(v) => (onChange(v), setOpen(false))}
+                    hint={z === local ? "Your time zone" : "Universal"}
+                  />
                 ))}
               </CommandGroup>
             )}
@@ -84,7 +92,17 @@ export function TimezonePicker({
   );
 }
 
-function ZoneItem({ zone, selected, onSelect, hint }: { zone: string; selected: boolean; onSelect: (z: string) => void; hint?: string }) {
+function ZoneItem({
+  zone,
+  selected,
+  onSelect,
+  hint,
+}: {
+  zone: string;
+  selected: boolean;
+  onSelect: (z: string) => void;
+  hint?: string;
+}) {
   return (
     <CommandItem value={hint !== undefined ? `${zone} · ${hint}` : zone} onSelect={() => onSelect(zone)}>
       <CheckIcon className={cn("size-4", selected ? "text-accent opacity-100" : "opacity-0")} aria-hidden />

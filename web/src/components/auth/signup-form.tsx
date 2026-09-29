@@ -78,10 +78,12 @@ export function SignupForm() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Create your AgentOS workspace</h1>
-        <p className="mt-1.5 text-sm text-fg-muted">Give goals instead of clicking through tools. You stay in control of every action.</p>
+        <p className="mt-1.5 text-sm text-fg-muted">
+          Give goals instead of clicking through tools. You stay in control of every action.
+        </p>
       </div>
       <GoogleButton next={next} label="Sign up with Google" />
-      <div className="flex items-center gap-3 text-2xs uppercase tracking-widest text-fg-subtle">
+      <div className="flex items-center gap-3 text-2xs tracking-widest text-fg-subtle uppercase">
         <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
       </div>
       <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
@@ -94,7 +96,11 @@ export function SignupForm() {
         <Field label="Password" description="At least 10 characters." error={errors.password?.message} required>
           {(ids) => <Input type="password" autoComplete="new-password" {...ids} {...form.register("password")} />}
         </Field>
-        <Field label="Organization name" description="Optional — you can rename it later." error={errors.organizationName?.message}>
+        <Field
+          label="Organization name"
+          description="Optional — you can rename it later."
+          error={errors.organizationName?.message}
+        >
           {(ids) => <Input autoComplete="organization" {...ids} {...form.register("organizationName")} />}
         </Field>
         {error ? <InlineError error={error} /> : null}

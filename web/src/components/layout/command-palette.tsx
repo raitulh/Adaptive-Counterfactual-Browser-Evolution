@@ -49,7 +49,7 @@ export function CommandPalette() {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
-          className="fixed left-1/2 top-[12dvh] z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-line-strong shadow-float outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]"
+          className="fixed top-[12dvh] left-1/2 z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-line-strong shadow-float outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]"
           aria-describedby={undefined}
         >
           <DialogPrimitive.Title className="sr-only">Command palette</DialogPrimitive.Title>
@@ -96,92 +96,110 @@ function PaletteContent() {
   };
 
   return (
-      <Command loop>
-        <CommandInput value={query} onValueChange={setQuery} placeholder="Type a command or search…" />
-        <CommandList>
-          <CommandEmpty>No matching commands.</CommandEmpty>
+    <Command loop>
+      <CommandInput value={query} onValueChange={setQuery} placeholder="Type a command or search…" />
+      <CommandList>
+        <CommandEmpty>No matching commands.</CommandEmpty>
 
-          <CommandGroup heading="Actions">
+        <CommandGroup heading="Actions">
+          <CommandItem
+            value="new task give agentos a goal"
+            onSelect={() => {
+              go("/app");
+              setTimeout(focusComposer, 50);
+            }}
+          >
+            <PlusIcon /> New task
+          </CommandItem>
+          {query.trim() && (
             <CommandItem
-              value="new task give agentos a goal"
-              onSelect={() => {
-                go("/app");
-                setTimeout(focusComposer, 50);
-              }}
+              value={`search web documents ${query}`}
+              onSelect={() => go(`/app/search?q=${encodeURIComponent(query.trim())}`)}
             >
-              <PlusIcon /> New task
+              <SearchIcon /> Search for “{query.trim()}”
             </CommandItem>
-            {query.trim() && (
-              <CommandItem value={`search web documents ${query}`} onSelect={() => go(`/app/search?q=${encodeURIComponent(query.trim())}`)}>
-                <SearchIcon /> Search for “{query.trim()}”
-              </CommandItem>
-            )}
-            <CommandItem value="toggle developer details advanced" onSelect={() => setDeveloperMode(!developerMode)}>
-              <CodeIcon /> {developerMode ? "Hide" : "Show"} developer details
-            </CommandItem>
-          </CommandGroup>
-
-          {(pending.data?.items.length ?? 0) > 0 && (
-            <CommandGroup heading="Waiting for your approval">
-              {pending.data!.items.map((a) => (
-                <CommandItem key={a.id} value={`approve ${a.summary} ${a.tool_name} ${a.id}`} onSelect={() => go(`/app/approvals?focus=${a.id}`)}>
-                  <ShieldCheckIcon className="text-warning" />
-                  <span className="truncate">{a.summary}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
           )}
+          <CommandItem value="toggle developer details advanced" onSelect={() => setDeveloperMode(!developerMode)}>
+            <CodeIcon /> {developerMode ? "Hide" : "Show"} developer details
+          </CommandItem>
+        </CommandGroup>
 
-          {(recentTasks.data?.items.length ?? 0) > 0 && (
-            <CommandGroup heading="Recent tasks">
-              {recentTasks.data!.items.map((t) => (
-                <CommandItem key={t.task_id} value={`task ${t.goal} ${t.task_id}`} onSelect={() => go(`/app/tasks/${t.task_id}`)}>
-                  <ListChecksIcon />
-                  <span className="min-w-0 flex-1 truncate">{t.goal}</span>
-                  <StatusBadge kind="task" value={t.status} />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-
-          {(agents.data?.items.length ?? 0) > 0 && (
-            <CommandGroup heading="Agents">
-              {agents.data!.items.map((a) => (
-                <CommandItem key={a.id} value={`agent ${a.name} ${a.id}`} onSelect={() => go(`/app/agents/${a.id}`)}>
-                  <BotIcon /> {a.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-
-          <CommandSeparator />
-          <CommandGroup heading="Go to">
-            {sections.flatMap((s) => s.items).concat(SETTINGS_ITEM).map((item) => (
-              <CommandItem key={item.href} value={`go ${item.label} ${(item.keywords ?? []).join(" ")}`} onSelect={() => go(item.href)}>
-                <item.icon /> {item.label}
+        {(pending.data?.items.length ?? 0) > 0 && (
+          <CommandGroup heading="Waiting for your approval">
+            {pending.data!.items.map((a) => (
+              <CommandItem
+                key={a.id}
+                value={`approve ${a.summary} ${a.tool_name} ${a.id}`}
+                onSelect={() => go(`/app/approvals?focus=${a.id}`)}
+              >
+                <ShieldCheckIcon className="text-warning" />
+                <span className="truncate">{a.summary}</span>
               </CommandItem>
             ))}
           </CommandGroup>
+        )}
 
-          {organizations.length > 1 && (
-            <CommandGroup heading="Switch organization">
-              {organizations
-                .filter((o) => o.id !== tenantId)
-                .map((o) => (
-                  <CommandItem
-                    key={o.id}
-                    value={`switch organization ${o.name}`}
-                    onSelect={() => {
-                      setOpen(false);
-                      void switchOrganization(o.id);
-                    }}
-                  >
-                    <Building2Icon /> {o.name}
-                  </CommandItem>
-                ))}
-            </CommandGroup>
-          )}
-        </CommandList>
-      </Command>
+        {(recentTasks.data?.items.length ?? 0) > 0 && (
+          <CommandGroup heading="Recent tasks">
+            {recentTasks.data!.items.map((t) => (
+              <CommandItem
+                key={t.task_id}
+                value={`task ${t.goal} ${t.task_id}`}
+                onSelect={() => go(`/app/tasks/${t.task_id}`)}
+              >
+                <ListChecksIcon />
+                <span className="min-w-0 flex-1 truncate">{t.goal}</span>
+                <StatusBadge kind="task" value={t.status} />
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {(agents.data?.items.length ?? 0) > 0 && (
+          <CommandGroup heading="Agents">
+            {agents.data!.items.map((a) => (
+              <CommandItem key={a.id} value={`agent ${a.name} ${a.id}`} onSelect={() => go(`/app/agents/${a.id}`)}>
+                <BotIcon /> {a.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        <CommandSeparator />
+        <CommandGroup heading="Go to">
+          {sections
+            .flatMap((s) => s.items)
+            .concat(SETTINGS_ITEM)
+            .map((item) => (
+              <CommandItem
+                key={item.href}
+                value={`go ${item.label} ${(item.keywords ?? []).join(" ")}`}
+                onSelect={() => go(item.href)}
+              >
+                <item.icon /> {item.label}
+              </CommandItem>
+            ))}
+        </CommandGroup>
+
+        {organizations.length > 1 && (
+          <CommandGroup heading="Switch organization">
+            {organizations
+              .filter((o) => o.id !== tenantId)
+              .map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={`switch organization ${o.name}`}
+                  onSelect={() => {
+                    setOpen(false);
+                    void switchOrganization(o.id);
+                  }}
+                >
+                  <Building2Icon /> {o.name}
+                </CommandItem>
+              ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </Command>
   );
 }

@@ -10,7 +10,9 @@ export const approvalsApi = {
     call(api.GET("/api/v1/approvals", { params: { query }, signal: o.signal })),
 
   get: (approvalId: string, o: Opts = {}): Promise<ApprovalOut> =>
-    call(api.GET("/api/v1/approvals/{approval_id}", { params: { path: { approval_id: approvalId } }, signal: o.signal })),
+    call(
+      api.GET("/api/v1/approvals/{approval_id}", { params: { path: { approval_id: approvalId } }, signal: o.signal }),
+    ),
 
   /** Approval is bound to the exact action shown; the backend consumes it once. */
   approve: (approvalId: string, idempotencyKey: string, note?: string): Promise<ApprovalOut> =>

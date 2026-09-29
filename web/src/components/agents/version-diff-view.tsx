@@ -18,17 +18,16 @@ import {
 function LineRow({ op }: { op: LineOp }) {
   const sign = op.type === "add" ? "+" : op.type === "remove" ? "−" : " ";
   return (
-    <tr
-      className={cn(
-        op.type === "add" && "bg-success/[0.09]",
-        op.type === "remove" && "bg-danger/[0.09]",
-      )}
-    >
-      <td className="w-10 select-none border-r border-line px-2 text-right align-top text-fg-subtle/70 tabular-nums">{op.oldNo ?? ""}</td>
-      <td className="w-10 select-none border-r border-line px-2 text-right align-top text-fg-subtle/70 tabular-nums">{op.newNo ?? ""}</td>
+    <tr className={cn(op.type === "add" && "bg-success/[0.09]", op.type === "remove" && "bg-danger/[0.09]")}>
+      <td className="w-10 border-r border-line px-2 text-right align-top text-fg-subtle/70 tabular-nums select-none">
+        {op.oldNo ?? ""}
+      </td>
+      <td className="w-10 border-r border-line px-2 text-right align-top text-fg-subtle/70 tabular-nums select-none">
+        {op.newNo ?? ""}
+      </td>
       <td
         className={cn(
-          "w-5 select-none pl-2 align-top",
+          "w-5 pl-2 align-top select-none",
           op.type === "add" && "text-success",
           op.type === "remove" && "text-danger",
         )}
@@ -36,7 +35,12 @@ function LineRow({ op }: { op: LineOp }) {
       >
         {sign}
       </td>
-      <td className={cn("whitespace-pre-wrap break-words py-px pr-3 align-top", op.type === "equal" ? "text-fg-muted" : "text-fg")}>
+      <td
+        className={cn(
+          "py-px pr-3 align-top break-words whitespace-pre-wrap",
+          op.type === "equal" ? "text-fg-muted" : "text-fg",
+        )}
+      >
         <span className="sr-only">{op.type === "add" ? "Added: " : op.type === "remove" ? "Removed: " : ""}</span>
         {op.text || " "}
       </td>
@@ -46,14 +50,21 @@ function LineRow({ op }: { op: LineOp }) {
 
 function CollapsedRows({ block }: { block: DiffBlock }) {
   const [open, setOpen] = React.useState(false);
-  if (open) return <>{block.ops.map((op, i) => <LineRow key={i} op={op} />)}</>;
+  if (open)
+    return (
+      <>
+        {block.ops.map((op, i) => (
+          <LineRow key={i} op={op} />
+        ))}
+      </>
+    );
   return (
     <tr className="bg-surface-2/60">
       <td colSpan={4} className="px-2 py-1">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-2xs text-info hover:bg-info/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-2xs text-info hover:bg-info/10 focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
         >
           <ChevronsUpDownIcon className="size-3" aria-hidden />
           Show {block.ops.length} unchanged {block.ops.length === 1 ? "line" : "lines"}
@@ -65,7 +76,7 @@ function CollapsedRows({ block }: { block: DiffBlock }) {
 
 export function InstructionsDiff({ ops }: { ops: LineOp[] }) {
   const blocks = React.useMemo(() => toDisplayBlocks(ops, 3), [ops]);
-  if (ops.length === 0) return <p className="text-[13px] italic text-fg-subtle">No instructions in either version.</p>;
+  if (ops.length === 0) return <p className="text-[13px] text-fg-subtle italic">No instructions in either version.</p>;
   return (
     <div className="overflow-x-auto rounded-lg border border-line bg-bg">
       <table className="w-full border-collapse font-mono text-xs leading-5">
@@ -114,7 +125,9 @@ function ListChange({ change }: { change: Extract<FieldDiff, { kind: "list" }> }
       <div className="flex flex-col gap-1 text-[13px]">
         <span className="text-xs text-fg-subtle">Order changed</span>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-mono text-xs text-fg-muted line-through decoration-danger/50">{change.before.join(" → ")}</span>
+          <span className="font-mono text-xs text-fg-muted line-through decoration-danger/50">
+            {change.before.join(" → ")}
+          </span>
           <ArrowRightIcon className="size-3.5 text-fg-subtle" aria-hidden />
           <span className="font-mono text-xs text-fg">{change.after.join(" → ")}</span>
         </div>
@@ -124,20 +137,30 @@ function ListChange({ change }: { change: Extract<FieldDiff, { kind: "list" }> }
   return (
     <ul className="flex flex-wrap gap-1.5">
       {change.removed.map((v) => (
-        <li key={`-${v}`} className="inline-flex items-center gap-1 rounded border border-danger/30 bg-danger/10 px-1.5 py-0.5 font-mono text-xs text-fg-muted line-through decoration-danger/50">
-          <span aria-hidden className="text-danger no-underline">−</span>
+        <li
+          key={`-${v}`}
+          className="inline-flex items-center gap-1 rounded border border-danger/30 bg-danger/10 px-1.5 py-0.5 font-mono text-xs text-fg-muted line-through decoration-danger/50"
+        >
+          <span aria-hidden className="text-danger no-underline">
+            −
+          </span>
           <span className="sr-only">Removed </span>
           {v}
         </li>
       ))}
       {change.added.map((v) => (
-        <li key={`+${v}`} className="inline-flex items-center gap-1 rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-fg">
-          <span aria-hidden className="text-success">+</span>
+        <li
+          key={`+${v}`}
+          className="inline-flex items-center gap-1 rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-fg"
+        >
+          <span aria-hidden className="text-success">
+            +
+          </span>
           <span className="sr-only">Added </span>
           {v}
         </li>
       ))}
-      {change.after.length === 0 && <li className="text-xs italic text-fg-subtle">now empty</li>}
+      {change.after.length === 0 && <li className="text-xs text-fg-subtle italic">now empty</li>}
     </ul>
   );
 }
@@ -196,7 +219,8 @@ export function VersionDiffView({
         <span className="text-fg-subtle">·</span>
         {diff.identical ? (
           <span className="inline-flex items-center gap-1 text-success">
-            <CheckCircle2Icon className="size-3.5" aria-hidden /> Identical configuration{sameChecksum ? " (same checksum)" : ""}
+            <CheckCircle2Icon className="size-3.5" aria-hidden /> Identical configuration
+            {sameChecksum ? " (same checksum)" : ""}
           </span>
         ) : (
           <span className="text-fg-muted">
@@ -223,7 +247,9 @@ export function VersionDiffView({
         <SectionChanges key={s.section} section={s} />
       ))}
 
-      {!diff.identical && unchanged.length > 0 && <p className="text-xs text-fg-subtle">Unchanged: {unchanged.join(", ")}.</p>}
+      {!diff.identical && unchanged.length > 0 && (
+        <p className="text-xs text-fg-subtle">Unchanged: {unchanged.join(", ")}.</p>
+      )}
     </div>
   );
 }

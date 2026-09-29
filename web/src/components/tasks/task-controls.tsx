@@ -30,7 +30,14 @@ export interface TaskControlsProps {
   className?: string;
 }
 
-export function TaskControls({ task, actions, onProvideInput, onConfirmOutcome, layout = "row", className }: TaskControlsProps) {
+export function TaskControls({
+  task,
+  actions,
+  onProvideInput,
+  onConfirmOutcome,
+  layout = "row",
+  className,
+}: TaskControlsProps) {
   const { can, isLoading } = usePermissions();
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [lastError, setLastError] = React.useState<unknown>(null);
@@ -39,7 +46,11 @@ export function TaskControls({ task, actions, onProvideInput, onConfirmOutcome, 
   const done = current.filter((s) => s.status === "completed" && s.permission_level !== "read");
 
   if (!isLoading && !can("tasks:cancel")) {
-    return <p className={cn("text-xs text-fg-subtle", className)}>You can follow this task but your role can&apos;t control it.</p>;
+    return (
+      <p className={cn("text-xs text-fg-subtle", className)}>
+        You can follow this task but your role can&apos;t control it.
+      </p>
+    );
   }
   const any = c.cancel || c.pause || c.resume || c.provideInput || c.confirmOutcome;
   if (!any) return null;
@@ -86,14 +97,22 @@ export function TaskControls({ task, actions, onProvideInput, onConfirmOutcome, 
               size="sm"
               className={btn}
               loading={actions.pause.isPending}
-              onClick={() => run(actions.pause, (s) => (s === "paused" ? "Paused." : "Pausing at the next safe point."))}
+              onClick={() =>
+                run(actions.pause, (s) => (s === "paused" ? "Paused." : "Pausing at the next safe point."))
+              }
             >
               <PauseIcon /> Pause
             </Button>
           </Tooltip>
         )}
         {c.cancel && (
-          <Button variant="danger-outline" size="sm" className={btn} loading={actions.cancel.isPending} onClick={() => setConfirmCancel(true)}>
+          <Button
+            variant="danger-outline"
+            size="sm"
+            className={btn}
+            loading={actions.cancel.isPending}
+            onClick={() => setConfirmCancel(true)}
+          >
             <SquareIcon /> Cancel task
           </Button>
         )}

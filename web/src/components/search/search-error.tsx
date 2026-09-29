@@ -1,6 +1,14 @@
 "use client";
 
-import { BrainCircuitIcon, CloudOffIcon, FileTextIcon, GaugeIcon, PlugZapIcon, PowerOffIcon, RefreshCwIcon } from "lucide-react";
+import {
+  BrainCircuitIcon,
+  CloudOffIcon,
+  FileTextIcon,
+  GaugeIcon,
+  PlugZapIcon,
+  PowerOffIcon,
+  RefreshCwIcon,
+} from "lucide-react";
 import * as React from "react";
 import { Button, EmptyState, ErrorState, RequestId } from "@/components/ui";
 import { normalizeError } from "@/lib/api/errors";
@@ -65,13 +73,13 @@ export function SearchErrorPanel({
         title="Web search isn't set up on this server"
         description={
           <>
-            AgentOS needs a search provider to research the web, and none is configured here. Your documents and memory are
-            still fully searchable.
+            AgentOS needs a search provider to research the web, and none is configured here. Your documents and memory
+            are still fully searchable.
             <span className="mt-3 block rounded-lg border border-line bg-surface-2 px-3 py-2 text-left text-xs text-fg-subtle">
               <span className="font-medium text-fg-muted">For administrators:</span> set{" "}
-              <code className="font-mono text-fg-muted">SEARCH_PROVIDER</code> (<code className="font-mono">brave</code> or{" "}
-              <code className="font-mono">google_cse</code>) and <code className="font-mono text-fg-muted">SEARCH_API_KEY</code> on the
-              API server, then restart it.
+              <code className="font-mono text-fg-muted">SEARCH_PROVIDER</code> (<code className="font-mono">brave</code>{" "}
+              or <code className="font-mono">google_cse</code>) and{" "}
+              <code className="font-mono text-fg-muted">SEARCH_API_KEY</code> on the API server, then restart it.
             </span>
             {requestId}
           </>
@@ -88,8 +96,8 @@ export function SearchErrorPanel({
         title="Web search is turned off for this organization"
         description={
           <>
-            A platform administrator has disabled the web search feature for your organization. Documents and memory search are
-            unaffected.
+            A platform administrator has disabled the web search feature for your organization. Documents and memory
+            search are unaffected.
             {requestId}
           </>
         }
@@ -109,7 +117,9 @@ export function SearchErrorPanel({
             {provider
               ? "The web search provider asked AgentOS to slow down. This usually clears within a minute."
               : "Searches are limited per minute to keep costs predictable."}{" "}
-            <span aria-live="polite">{retryIn > 0 ? `You can search again in ${retryIn}s.` : "You can try again now."}</span>
+            <span aria-live="polite">
+              {retryIn > 0 ? `You can search again in ${retryIn}s.` : "You can try again now."}
+            </span>
             {requestId}
           </>
         }
@@ -125,7 +135,11 @@ export function SearchErrorPanel({
     );
   }
 
-  if (e.code === "integration_timeout" || e.code === "integration_temporarily_unavailable" || (tab === "web" && e.kind === "unavailable")) {
+  if (
+    e.code === "integration_timeout" ||
+    e.code === "integration_temporarily_unavailable" ||
+    (tab === "web" && e.kind === "unavailable")
+  ) {
     return (
       <EmptyState
         icon={<CloudOffIcon />}
@@ -149,7 +163,9 @@ export function SearchErrorPanel({
   }
 
   if (e.kind === "validation") {
-    return <EmptyState size="sm" icon={<CloudOffIcon />} title="That search couldn't run" description={e.userMessage} />;
+    return (
+      <EmptyState size="sm" icon={<CloudOffIcon />} title="That search couldn't run" description={e.userMessage} />
+    );
   }
 
   // Permission denied (403 → PermissionDenied), network, server errors.

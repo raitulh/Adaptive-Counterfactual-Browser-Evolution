@@ -95,7 +95,8 @@ function CreateMemoryForm({ defaultType, onDone }: { defaultType: MemoryType; on
       expires_at: v.expires_at ? new Date(v.expires_at).toISOString() : null,
     };
     const serialized = JSON.stringify(body);
-    if (!attempt.current || attempt.current.body !== serialized) attempt.current = { body: serialized, key: newIdempotencyKey() };
+    if (!attempt.current || attempt.current.body !== serialized)
+      attempt.current = { body: serialized, key: newIdempotencyKey() };
     try {
       const memory = await create.mutateAsync({ body, idempotencyKey: attempt.current.key });
       const reinforced = Date.parse(memory.created_at) < Date.now() - 60_000;
@@ -128,8 +129,8 @@ function CreateMemoryForm({ defaultType, onDone }: { defaultType: MemoryType; on
         </div>
         <DialogTitle>Remember something</DialogTitle>
         <DialogDescription>
-          Things you tell AgentOS directly are trusted most (100% confidence) and replace older values for the same subject.
-          Never store passwords or other secrets — they&apos;re refused.
+          Things you tell AgentOS directly are trusted most (100% confidence) and replace older values for the same
+          subject. Never store passwords or other secrets — they&apos;re refused.
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="flex flex-col gap-5">
@@ -144,7 +145,10 @@ function CreateMemoryForm({ defaultType, onDone }: { defaultType: MemoryType; on
                 placeholder="e.g. I prefer 30-minute meetings before noon."
                 className="pb-6"
               />
-              <span className="pointer-events-none absolute bottom-2 right-3 text-2xs tabular-nums text-fg-subtle" aria-hidden>
+              <span
+                className="pointer-events-none absolute right-3 bottom-2 text-2xs text-fg-subtle tabular-nums"
+                aria-hidden
+              >
                 {content.length}/2000
               </span>
             </div>
@@ -188,7 +192,8 @@ function CreateMemoryForm({ defaultType, onDone }: { defaultType: MemoryType; on
           <Field
             label={
               <span className="flex w-full items-center justify-between">
-                Importance <span className="font-mono text-xs tabular-nums text-fg-muted">{Math.round(importance * 100)}%</span>
+                Importance{" "}
+                <span className="font-mono text-xs text-fg-muted tabular-nums">{Math.round(importance * 100)}%</span>
               </span>
             }
             description="How useful this is for future tasks. Higher ranks first when recalled."
@@ -224,7 +229,13 @@ function CreateMemoryForm({ defaultType, onDone }: { defaultType: MemoryType; on
             error={errors.subject_key?.message}
           >
             {(ids) => (
-              <Input {...ids} {...form.register("subject_key")} placeholder="contact:rahim:email" className="font-mono text-[13px]" autoComplete="off" />
+              <Input
+                {...ids}
+                {...form.register("subject_key")}
+                placeholder="contact:rahim:email"
+                className="font-mono text-[13px]"
+                autoComplete="off"
+              />
             )}
           </Field>
           <Field

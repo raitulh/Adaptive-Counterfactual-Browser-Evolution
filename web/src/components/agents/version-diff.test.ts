@@ -78,12 +78,15 @@ describe("diffConfigs", () => {
   });
 
   it("applies backend defaults so omitted fields equal their defaults", () => {
-    const d = diffConfigs({ instructions: "x" }, {
-      instructions: "x",
-      tool_policy: { allowed: ["*"], denied: [] },
-      memory_policy: { enabled: true, max_items: 8, extract_after_task: true },
-      verification_policy: { readback_attempts: 3, readback_delay_ms: 500 },
-    });
+    const d = diffConfigs(
+      { instructions: "x" },
+      {
+        instructions: "x",
+        tool_policy: { allowed: ["*"], denied: [] },
+        memory_policy: { enabled: true, max_items: 8, extract_after_task: true },
+        verification_policy: { readback_attempts: 3, readback_delay_ms: 500 },
+      },
+    );
     expect(d.identical).toBe(true);
   });
 

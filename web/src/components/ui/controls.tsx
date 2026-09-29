@@ -39,7 +39,7 @@ export const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      "peer size-4 shrink-0 rounded-[5px] border border-line-strong bg-surface-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-50 data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-fg-on-accent",
+      "peer size-4 shrink-0 rounded-[5px] border border-line-strong bg-surface-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-50 data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-fg-on-accent",
       className,
     )}
     {...props}
@@ -54,7 +54,9 @@ Checkbox.displayName = "Checkbox";
 export const RadioGroup = React.forwardRef<
   React.ComponentRef<typeof RadioPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof RadioPrimitive.Root>
->(({ className, ...props }, ref) => <RadioPrimitive.Root ref={ref} className={cn("grid gap-2", className)} {...props} />);
+>(({ className, ...props }, ref) => (
+  <RadioPrimitive.Root ref={ref} className={cn("grid gap-2", className)} {...props} />
+));
 RadioGroup.displayName = "RadioGroup";
 
 export const RadioGroupItem = React.forwardRef<
@@ -74,7 +76,11 @@ export const RadioGroupItem = React.forwardRef<
 ));
 RadioGroupItem.displayName = "RadioGroupItem";
 
-export function Separator({ className, orientation = "horizontal", ...props }: React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>) {
+export function Separator({
+  className,
+  orientation = "horizontal",
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>) {
   return (
     <SeparatorPrimitive.Root
       orientation={orientation}
@@ -84,11 +90,15 @@ export function Separator({ className, orientation = "horizontal", ...props }: R
   );
 }
 
-export function ScrollArea({ className, children, ...props }: React.ComponentPropsWithoutRef<typeof ScrollPrimitive.Root>) {
+export function ScrollArea({
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof ScrollPrimitive.Root>) {
   return (
     <ScrollPrimitive.Root className={cn("relative overflow-hidden", className)} {...props}>
       <ScrollPrimitive.Viewport className="size-full rounded-[inherit]">{children}</ScrollPrimitive.Viewport>
-      <ScrollPrimitive.Scrollbar orientation="vertical" className="flex w-2 touch-none select-none p-px">
+      <ScrollPrimitive.Scrollbar orientation="vertical" className="flex w-2 touch-none p-px select-none">
         <ScrollPrimitive.Thumb className="relative flex-1 rounded-full bg-white/15" />
       </ScrollPrimitive.Scrollbar>
     </ScrollPrimitive.Root>
@@ -104,7 +114,10 @@ export function Avatar({ name, src, className }: { name?: string | null; src?: s
     .join("");
   return (
     <AvatarPrimitive.Root
-      className={cn("relative inline-flex size-7 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface-3", className)}
+      className={cn(
+        "relative inline-flex size-7 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface-3",
+        className,
+      )}
     >
       {src && <AvatarPrimitive.Image src={src} alt="" className="size-full object-cover" />}
       <AvatarPrimitive.Fallback className="flex size-full items-center justify-center text-2xs font-semibold text-fg-muted">
@@ -133,7 +146,11 @@ export function Progress({
       className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]", className)}
     >
       <ProgressPrimitive.Indicator
-        className={cn("h-full rounded-full transition-[width] duration-500 ease-out", toneClasses[tone].bg, pct === null && "w-1/3 motion-safe:animate-pulse")}
+        className={cn(
+          "h-full rounded-full transition-[width] duration-500 ease-out",
+          toneClasses[tone].bg,
+          pct === null && "w-1/3 motion-safe:animate-pulse",
+        )}
         style={pct === null ? undefined : { width: `${pct}%` }}
       />
     </ProgressPrimitive.Root>

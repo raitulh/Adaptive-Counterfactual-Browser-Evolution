@@ -62,7 +62,9 @@ describe("session lifecycle", () => {
     sessionStore.set({ accessToken: "old", expiresAt: Date.now() + 1000, sessionId: "s", tenantId: "t", userId: "u" });
     const expired = vi.fn();
     const off = sessionStore.onExpired(expired);
-    fetchMock.mockResolvedValue(json(401, { error: { code: "refresh_reused", message: "m", request_id: null, details: {} } }));
+    fetchMock.mockResolvedValue(
+      json(401, { error: { code: "refresh_reused", message: "m", request_id: null, details: {} } }),
+    );
     await expect(refreshSession()).resolves.toBeNull();
     expect(sessionStore.get()).toBeNull();
     expect(readCsrfCookie()).toBeNull();
@@ -71,9 +73,17 @@ describe("session lifecycle", () => {
   });
 
   it("transient refresh failures keep the current session (no forced sign-out on a blip)", async () => {
-    const session: Session = { accessToken: "keep", expiresAt: Date.now() + 1000, sessionId: "s", tenantId: "t", userId: "u" };
+    const session: Session = {
+      accessToken: "keep",
+      expiresAt: Date.now() + 1000,
+      sessionId: "s",
+      tenantId: "t",
+      userId: "u",
+    };
     sessionStore.set(session);
-    fetchMock.mockResolvedValue(json(503, { error: { code: "unavailable", message: "m", request_id: null, details: {} } }));
+    fetchMock.mockResolvedValue(
+      json(503, { error: { code: "unavailable", message: "m", request_id: null, details: {} } }),
+    );
     await expect(refreshSession()).rejects.toMatchObject({ kind: "unavailable" });
     expect(sessionStore.get()).toEqual(session);
   });
@@ -90,7 +100,13 @@ describe("session lifecycle", () => {
     const expired = vi.fn();
     const off = sessionStore.onExpired(expired); // also opens this tab's channel
     const otherTab = new BroadcastChannel("agentos-auth");
-    const shared: Session = { accessToken: "from-other-tab", expiresAt: Date.now() + 600_000, sessionId: "s", tenantId: "t2", userId: "u" };
+    const shared: Session = {
+      accessToken: "from-other-tab",
+      expiresAt: Date.now() + 600_000,
+      sessionId: "s",
+      tenantId: "t2",
+      userId: "u",
+    };
 
     otherTab.postMessage({ type: "session", session: shared });
     await nextMessage();

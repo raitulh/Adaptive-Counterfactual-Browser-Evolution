@@ -6,7 +6,15 @@
  * the external reference it produced. Execution state and verification state are shown separately
  * (verification = violet ring). Pure: data comes from props.
  */
-import { AlertTriangleIcon, ExternalLinkIcon, HandIcon, RotateCcwIcon, ShieldCheckIcon, ShieldQuestionIcon, TimerIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ExternalLinkIcon,
+  HandIcon,
+  RotateCcwIcon,
+  ShieldCheckIcon,
+  ShieldQuestionIcon,
+  TimerIcon,
+} from "lucide-react";
 import { createElement } from "react";
 import type { StepOut, VerificationOut } from "@/lib/api";
 import { PermissionBadge, RiskBadge, StatusBadge } from "@/components/ui/badge";
@@ -53,16 +61,29 @@ export interface StepCardProps {
   className?: string;
 }
 
-function approvalState(step: StepCardStep): { label: string; tone: "warning" | "success" | "danger" | "neutral" } | null {
+function approvalState(
+  step: StepCardStep,
+): { label: string; tone: "warning" | "success" | "danger" | "neutral" } | null {
   if (!step.requires_approval) return null;
   if (step.status === "waiting_approval") return { label: "Waiting for your approval", tone: "warning" };
   if (step.error_class === "policy_blocked" && step.status === "failed") return { label: "Rejected", tone: "danger" };
-  if (["running", "waiting_external", "verifying", "completed", "retry_scheduled", "requires_reconciliation"].includes(step.status))
+  if (
+    ["running", "waiting_external", "verifying", "completed", "retry_scheduled", "requires_reconciliation"].includes(
+      step.status,
+    )
+  )
     return { label: "Approved", tone: "success" };
   return { label: "Requires approval", tone: "neutral" };
 }
 
-export function StepCard({ step, verification, total, developerMode = false, highlighted = false, className }: StepCardProps) {
+export function StepCard({
+  step,
+  verification,
+  total,
+  developerMode = false,
+  highlighted = false,
+  className,
+}: StepCardProps) {
   const meta = stepStatusMeta[step.status];
   const running = step.status === "running" || step.status === "waiting_external";
   const verifying = step.status === "verifying";
@@ -98,7 +119,17 @@ export function StepCard({ step, verification, total, developerMode = false, hig
           {running && <span className="absolute inset-0 rounded-lg bg-accent/25 motion-safe:animate-pulse-ring" />}
           {verifying && (
             <svg viewBox="0 0 40 40" className="absolute -inset-1 size-11 text-verify motion-safe:animate-spin-slow">
-              <rect x="1.5" y="1.5" width="37" height="37" rx="10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 6" />
+              <rect
+                x="1.5"
+                y="1.5"
+                width="37"
+                height="37"
+                rx="10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeDasharray="8 6"
+              />
             </svg>
           )}
           {createElement(toolIcon(step.tool_name), { className: "relative size-4" })}
@@ -111,7 +142,7 @@ export function StepCard({ step, verification, total, developerMode = false, hig
             </span>
             <StatusBadge kind="step" value={step.status} />
           </div>
-          <h4 className="mt-1 text-sm font-medium leading-snug text-fg">{step.action}</h4>
+          <h4 className="mt-1 text-sm leading-snug font-medium text-fg">{step.action}</h4>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-fg-muted">
             {humanizeTool(step.tool_name)}
             <code className="font-mono text-2xs text-fg-subtle">
@@ -125,7 +156,13 @@ export function StepCard({ step, verification, total, developerMode = false, hig
         <PermissionBadge level={step.permission_level} />
         <RiskBadge level={step.risk_level} />
         {approval && (
-          <span className={cn("inline-flex h-5 items-center gap-1 rounded-full border px-2 text-2xs font-medium", toneClasses[approval.tone].border, toneClasses[approval.tone].text)}>
+          <span
+            className={cn(
+              "inline-flex h-5 items-center gap-1 rounded-full border px-2 text-2xs font-medium",
+              toneClasses[approval.tone].border,
+              toneClasses[approval.tone].text,
+            )}
+          >
             <HandIcon className="size-3" aria-hidden />
             {approval.label}
           </span>
@@ -136,21 +173,27 @@ export function StepCard({ step, verification, total, developerMode = false, hig
         <div>
           <dt className="text-fg-subtle">Verification</dt>
           <dd className={cn("mt-0.5 flex items-center gap-1 font-medium", toneClasses[vMeta.tone].text)}>
-            {vStatus === "passed" ? <ShieldCheckIcon className="size-3.5" aria-hidden /> : <ShieldQuestionIcon className="size-3.5" aria-hidden />}
+            {vStatus === "passed" ? (
+              <ShieldCheckIcon className="size-3.5" aria-hidden />
+            ) : (
+              <ShieldQuestionIcon className="size-3.5" aria-hidden />
+            )}
             {verifying ? "Verifying now" : vMeta.label}
           </dd>
-          {method && vStatus !== "not_applicable" && <dd className="mt-0.5 text-2xs text-fg-subtle">{verificationMethodLabel(method)}</dd>}
+          {method && vStatus !== "not_applicable" && (
+            <dd className="mt-0.5 text-2xs text-fg-subtle">{verificationMethodLabel(method)}</dd>
+          )}
         </div>
         <div>
           <dt className="text-fg-subtle">Attempts</dt>
-          <dd className="mt-0.5 flex items-center gap-1 font-medium tabular-nums text-fg">
+          <dd className="mt-0.5 flex items-center gap-1 font-medium text-fg tabular-nums">
             {step.attempt_count > 1 && <RotateCcwIcon className="size-3 text-recover" aria-hidden />}
             {step.attempt_count}
           </dd>
         </div>
         <div>
           <dt className="text-fg-subtle">Duration</dt>
-          <dd className="mt-0.5 flex items-center gap-1 font-medium tabular-nums text-fg">
+          <dd className="mt-0.5 flex items-center gap-1 font-medium text-fg tabular-nums">
             <TimerIcon className="size-3 text-fg-subtle" aria-hidden />
             {took ?? "—"}
           </dd>
@@ -158,14 +201,18 @@ export function StepCard({ step, verification, total, developerMode = false, hig
       </dl>
 
       {step.output_summary && (
-        <p className="mt-3 rounded-lg bg-surface-2/70 px-3 py-2 text-[13px] leading-relaxed text-fg">{readable(step.output_summary)}</p>
+        <p className="mt-3 rounded-lg bg-surface-2/70 px-3 py-2 text-[13px] leading-relaxed text-fg">
+          {readable(step.output_summary)}
+        </p>
       )}
       {(step.error_message || step.error_class) && !["completed"].includes(step.status) && (
         <div className="mt-3 flex items-start gap-2 rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-[13px] text-fg">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-danger" aria-hidden />
           <div className="min-w-0">
             <p className="font-medium text-danger">{errorLabel(step.error_class)}</p>
-            {step.error_message && <p className="mt-0.5 leading-relaxed text-fg-muted">{readable(step.error_message)}</p>}
+            {step.error_message && (
+              <p className="mt-0.5 leading-relaxed text-fg-muted">{readable(step.error_message)}</p>
+            )}
           </div>
         </div>
       )}
@@ -175,7 +222,7 @@ export function StepCard({ step, verification, total, developerMode = false, hig
         </p>
       )}
       {step.external_ref && (
-        <p className="mt-2 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs text-fg-subtle">
+        <p className="mt-2 flex min-w-0 items-center gap-1.5 text-xs whitespace-nowrap text-fg-subtle">
           <ExternalLinkIcon className="size-3 shrink-0" aria-hidden />
           External reference <code className="truncate font-mono text-2xs text-fg-muted">{step.external_ref}</code>
         </p>

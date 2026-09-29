@@ -35,27 +35,35 @@ export function CreateAgentPage() {
   const tools = useToolCatalog();
   const create = useCreateAgent();
   const [error, setError] = React.useState<unknown>(null);
-  const form = useForm<AgentCreateValues>({ resolver: zodResolver(agentCreateSchema), defaultValues: defaultCreateValues(), mode: "onTouched" });
+  const form = useForm<AgentCreateValues>({
+    resolver: zodResolver(agentCreateSchema),
+    defaultValues: defaultCreateValues(),
+    mode: "onTouched",
+  });
   const { errors, isSubmitting } = form.formState;
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    setError(null);
-    try {
-      const agent = await create.mutateAsync(formValuesToCreatePayload(values));
-      track("agent_created", { agent_id: agent.id });
-      toast.success(`${agent.name} created`, { description: "Version 1 is now current." });
-      router.push(`/app/agents/${agent.id}`);
-    } catch (err) {
-      if (isApiError(err)) {
-        if (err.kind === "validation") for (const [field, message] of mapBackendFieldErrors(err.fieldErrors)) form.setError(field, { message });
-        if (err.kind === "conflict") form.setError("name", { message: err.userMessage });
+  const onSubmit = form.handleSubmit(
+    async (values) => {
+      setError(null);
+      try {
+        const agent = await create.mutateAsync(formValuesToCreatePayload(values));
+        track("agent_created", { agent_id: agent.id });
+        toast.success(`${agent.name} created`, { description: "Version 1 is now current." });
+        router.push(`/app/agents/${agent.id}`);
+      } catch (err) {
+        if (isApiError(err)) {
+          if (err.kind === "validation")
+            for (const [field, message] of mapBackendFieldErrors(err.fieldErrors)) form.setError(field, { message });
+          if (err.kind === "conflict") form.setError("name", { message: err.userMessage });
+        }
+        setError(err);
       }
-      setError(err);
-    }
-  }, () => {
-    // Bring the first invalid field into view.
-    requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid=true]")?.focus());
-  });
+    },
+    () => {
+      // Bring the first invalid field into view.
+      requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid=true]")?.focus());
+    },
+  );
 
   const back = (
     <Link href="/app/agents" className="inline-flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg">
@@ -88,11 +96,36 @@ export function CreateAgentPage() {
         <div className="flex min-w-0 flex-col gap-5">
           <Card id="section-identity" className="scroll-mt-24">
             <div className="grid gap-5 px-5 py-5">
-              <Field label="Name" required error={errors.name?.message} description="Unique in your organization. Names can't be changed later.">
-                {(ids) => <Input {...ids} {...form.register("name")} autoFocus maxLength={LIMITS.name + 20} autoComplete="off" placeholder="e.g. Sales scheduler" />}
+              <Field
+                label="Name"
+                required
+                error={errors.name?.message}
+                description="Unique in your organization. Names can't be changed later."
+              >
+                {(ids) => (
+                  <Input
+                    {...ids}
+                    {...form.register("name")}
+                    autoFocus
+                    maxLength={LIMITS.name + 20}
+                    autoComplete="off"
+                    placeholder="e.g. Sales scheduler"
+                  />
+                )}
               </Field>
-              <Field label="Description" error={errors.description?.message} description="What this agent is for (shown to your team).">
-                {(ids) => <Textarea {...ids} {...form.register("description")} rows={2} placeholder="Books customer meetings and sends confirmations." />}
+              <Field
+                label="Description"
+                error={errors.description?.message}
+                description="What this agent is for (shown to your team)."
+              >
+                {(ids) => (
+                  <Textarea
+                    {...ids}
+                    {...form.register("description")}
+                    rows={2}
+                    placeholder="Books customer meetings and sends confirmations."
+                  />
+                )}
               </Field>
             </div>
           </Card>
@@ -106,7 +139,9 @@ export function CreateAgentPage() {
           <div className="sticky bottom-0 z-20 -mx-4 border-t border-line bg-bg/85 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:px-5">
             {error !== null && <InlineError error={error} className="mb-3" />}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-fg-subtle">Creates the agent and publishes its first immutable version (v1).</p>
+              <p className="text-xs text-fg-subtle">
+                Creates the agent and publishes its first immutable version (v1).
+              </p>
               <div className="flex gap-2">
                 <Button type="button" variant="ghost" onClick={() => router.push("/app/agents")}>
                   Cancel

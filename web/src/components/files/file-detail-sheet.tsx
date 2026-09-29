@@ -28,7 +28,14 @@ import { bytes, dateTime, number } from "@/lib/format";
 import { useUiStore } from "@/stores/ui";
 import { FileTypeIcon } from "./file-icon";
 import { FileStages } from "./file-stages";
-import { PURPOSE_LABELS, kindLabel, metaForExtraction, metaForFileStatus, scanStatusMeta, stagesForFile } from "./file-status";
+import {
+  PURPOSE_LABELS,
+  kindLabel,
+  metaForExtraction,
+  metaForFileStatus,
+  scanStatusMeta,
+  stagesForFile,
+} from "./file-status";
 import { useDeleteFile, useDownloadFile, useFileDetail } from "./hooks";
 
 function languageName(code: string | null | undefined): string | null {
@@ -94,7 +101,11 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
   const remove = useDeleteFile();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const status = metaForFileStatus(file.status);
-  const scan = scanStatusMeta[file.scan_status] ?? { label: file.scan_status, tone: "neutral" as const, description: "" };
+  const scan = scanStatusMeta[file.scan_status] ?? {
+    label: file.scan_status,
+    tone: "neutral" as const,
+    description: "",
+  };
   const meta = file.metadata ?? null;
   const extraction = metaForExtraction(meta?.extraction_status);
   const downloadable = file.status !== "quarantined" && file.status !== "deleted";
@@ -106,9 +117,12 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
           <div className="flex items-start gap-3 pr-8">
             <FileTypeIcon type={file.content_type} className="size-11 rounded-xl" />
             <div className="min-w-0">
-              <SheetTitle className="break-all text-base font-semibold leading-snug tracking-tight text-fg">{file.filename}</SheetTitle>
+              <SheetTitle className="text-base leading-snug font-semibold tracking-tight break-all text-fg">
+                {file.filename}
+              </SheetTitle>
               <SheetDescription className="mt-0.5 text-[13px] text-fg-muted">
-                {kindLabel(file.content_type)} · {bytes(file.size_bytes)} · uploaded <RelativeTime value={file.created_at} />
+                {kindLabel(file.content_type)} · {bytes(file.size_bytes)} · uploaded{" "}
+                <RelativeTime value={file.created_at} />
               </SheetDescription>
             </div>
           </div>
@@ -126,13 +140,21 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Tooltip content={downloadable ? "Downloads through a signed link that expires in a few minutes." : "Quarantined files can't be downloaded."}>
+            <Tooltip
+              content={
+                downloadable
+                  ? "Downloads through a signed link that expires in a few minutes."
+                  : "Quarantined files can't be downloaded."
+              }
+            >
               <span>
                 <Button
                   variant="secondary"
                   disabled={!downloadable}
                   loading={download.isPending}
-                  onClick={() => download.mutate(file.id, { onError: (err) => toastError(err, "Couldn't start the download") })}
+                  onClick={() =>
+                    download.mutate(file.id, { onError: (err) => toastError(err, "Couldn't start the download") })
+                  }
                 >
                   <DownloadIcon aria-hidden /> Download
                 </Button>
@@ -148,7 +170,7 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
 
         <div className="flex flex-col gap-6 p-5 sm:p-6">
           <section className="flex flex-col gap-3">
-            <h3 className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">Extracted content</h3>
+            <h3 className="text-2xs font-medium tracking-wider text-fg-subtle uppercase">Extracted content</h3>
             {meta ? (
               <>
                 <KeyValue
@@ -165,16 +187,23 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
                         meta.extraction_status
                       ),
                     ],
-                    ...(meta.page_count !== null && meta.page_count !== undefined ? ([["Pages", number(meta.page_count)]] as [string, React.ReactNode][]) : []),
-                    ["Characters", meta.char_count !== null && meta.char_count !== undefined ? number(meta.char_count) : "—"],
+                    ...(meta.page_count !== null && meta.page_count !== undefined
+                      ? ([["Pages", number(meta.page_count)]] as [string, React.ReactNode][])
+                      : []),
+                    [
+                      "Characters",
+                      meta.char_count !== null && meta.char_count !== undefined ? number(meta.char_count) : "—",
+                    ],
                     [
                       "Indexed passages",
                       meta.chunk_count !== null && meta.chunk_count !== undefined ? (
                         meta.chunk_count > 0 ? (
                           <span>
-                            {number(meta.chunk_count)}{" "}
-                            <span className="text-fg-subtle">· searchable in</span>{" "}
-                            <Link href="/app/search?tab=documents" className="text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+                            {number(meta.chunk_count)} <span className="text-fg-subtle">· searchable in</span>{" "}
+                            <Link
+                              href="/app/search?tab=documents"
+                              className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                            >
                               Documents
                             </Link>
                           </span>
@@ -191,7 +220,7 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
                 {meta.extracted_summary && (
                   <figure className="flex flex-col gap-1.5">
                     <figcaption className="text-xs text-fg-subtle">Beginning of the extracted text</figcaption>
-                    <blockquote className="max-h-48 overflow-y-auto whitespace-pre-line rounded-lg border border-line bg-bg px-3 py-2.5 text-[13px] leading-relaxed text-fg-muted">
+                    <blockquote className="max-h-48 overflow-y-auto rounded-lg border border-line bg-bg px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-line text-fg-muted">
                       {meta.extracted_summary}
                     </blockquote>
                   </figure>
@@ -199,16 +228,23 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
               </>
             ) : (
               <p className="text-[13px] text-fg-muted">
-                {status.processing ? "Extraction hasn't finished yet." : "No extracted content is available for this file."}
+                {status.processing
+                  ? "Extraction hasn't finished yet."
+                  : "No extracted content is available for this file."}
               </p>
             )}
           </section>
 
           <section className="flex flex-col gap-3">
-            <h3 className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">File</h3>
+            <h3 className="text-2xs font-medium tracking-wider text-fg-subtle uppercase">File</h3>
             <KeyValue
               items={[
-                ["Type", <span key="t" className="font-mono text-xs">{file.content_type}</span>],
+                [
+                  "Type",
+                  <span key="t" className="font-mono text-xs">
+                    {file.content_type}
+                  </span>,
+                ],
                 ["Size", `${bytes(file.size_bytes)} (${number(file.size_bytes)} bytes)`],
                 ["Purpose", PURPOSE_LABELS[file.purpose] ?? file.purpose],
                 [
@@ -223,12 +259,18 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
                 ],
                 ["Uploaded", dateTime(file.created_at)],
                 ["Updated", dateTime(file.updated_at)],
-                ...(file.expires_at ? ([["Deleted automatically", dateTime(file.expires_at)]] as [string, React.ReactNode][]) : []),
+                ...(file.expires_at
+                  ? ([["Deleted automatically", dateTime(file.expires_at)]] as [string, React.ReactNode][])
+                  : []),
                 ...(file.task_id
                   ? ([
                       [
                         "Task",
-                        <Link key="task" href={`/app/tasks/${file.task_id}`} className="inline-flex items-center gap-1 text-fg-muted hover:text-fg">
+                        <Link
+                          key="task"
+                          href={`/app/tasks/${file.task_id}`}
+                          className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"
+                        >
                           Open task <ArrowUpRightIcon className="size-3.5" aria-hidden />
                         </Link>,
                       ],
@@ -243,7 +285,9 @@ function FileDetailBody({ file, onDeleted }: { file: FileOut; onDeleted: () => v
                     <CopyButton value={file.sha256} label="Copy SHA-256" />
                   </span>,
                 ],
-                ...(developerMode ? ([["ID", <IdChip key="id" id={file.id} label="file" />]] as [string, React.ReactNode][]) : []),
+                ...(developerMode
+                  ? ([["ID", <IdChip key="id" id={file.id} label="file" />]] as [string, React.ReactNode][])
+                  : []),
               ]}
             />
           </section>

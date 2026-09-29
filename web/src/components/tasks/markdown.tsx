@@ -13,7 +13,12 @@ const SAFE_URL = /^(https?:|mailto:)/i;
 const components: Components = {
   a: ({ href, children }) =>
     href && SAFE_URL.test(href) ? (
-      <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="text-accent underline-offset-2 hover:underline">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="text-accent underline-offset-2 hover:underline"
+      >
         {children}
       </a>
     ) : (
@@ -25,8 +30,14 @@ const components: Components = {
         {alt || "image"}
       </a>
     ) : null,
-  code: ({ children, className }) => <code className={`rounded bg-surface-3 px-1 py-px font-mono text-[0.85em] ${className ?? ""}`}>{children}</code>,
-  pre: ({ children }) => <pre className="overflow-x-auto rounded-lg border border-line bg-bg p-3 text-xs [&_code]:bg-transparent [&_code]:p-0">{children}</pre>,
+  code: ({ children, className }) => (
+    <code className={`rounded bg-surface-3 px-1 py-px font-mono text-[0.85em] ${className ?? ""}`}>{children}</code>
+  ),
+  pre: ({ children }) => (
+    <pre className="overflow-x-auto rounded-lg border border-line bg-bg p-3 text-xs [&_code]:bg-transparent [&_code]:p-0">
+      {children}
+    </pre>
+  ),
   table: ({ children }) => (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-[13px] [&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-line [&_th]:px-2 [&_th]:py-1 [&_th]:text-left">

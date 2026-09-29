@@ -1,10 +1,8 @@
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import type { Metadata } from "next";
+import { ExperimentsLab } from "@/components/experiments/experiments-lab";
 
-// Scaffold: replaced by the feature implementation.
+export const metadata: Metadata = { title: "Experiments" };
+
 export default function ExperimentsPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Experiments" description="Strategy experiments, rollouts and decisions." />
-    </PageContainer>
-  );
+  return <ExperimentsLab />;
 }

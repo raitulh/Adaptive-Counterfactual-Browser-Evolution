@@ -9,7 +9,8 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-accent text-fg-on-accent hover:bg-accent-strong shadow-[0_0_0_1px_rgb(92_225_230/0.4),0_8px_24px_-12px_rgb(92_225_230/0.6)]",
+        primary:
+          "bg-accent text-fg-on-accent hover:bg-accent-strong shadow-[0_0_0_1px_rgb(92_225_230/0.4),0_8px_24px_-12px_rgb(92_225_230/0.6)]",
         secondary: "bg-surface-3 text-fg border border-line-strong hover:bg-surface-4",
         outline: "border border-line-strong bg-transparent text-fg hover:bg-white/[0.04]",
         ghost: "bg-transparent text-fg-muted hover:text-fg hover:bg-white/[0.05]",
@@ -31,7 +32,8 @@ export const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
 }

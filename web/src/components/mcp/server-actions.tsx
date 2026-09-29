@@ -5,7 +5,13 @@ import { BanIcon, CheckCircle2Icon, MoreHorizontalIcon, RefreshCwIcon, Trash2Ico
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast, toastError } from "@/components/ui/toaster";
 import type { McpServerOut, McpSyncResult } from "@/lib/api";
 import { isApiError } from "@/lib/api/errors";
@@ -50,8 +56,12 @@ export function useServerActions(server: McpServerOut, opts: { onDeleted?: () =>
       const result = await sync.mutateAsync(server.id);
       qc.setQueryData(lastSyncKey(server.id), { result, at: Date.now() });
       const s = summarizeSync(result);
-      const message = s.changed === 0 ? "No changes." : `${s.changed} ${s.changed === 1 ? "change" : "changes"} detected.`;
-      if (s.suspicious) toast.warning(`Synced ${server.name} — review required`, { description: `${message} Some tools changed since approval or were rejected.` });
+      const message =
+        s.changed === 0 ? "No changes." : `${s.changed} ${s.changed === 1 ? "change" : "changes"} detected.`;
+      if (s.suspicious)
+        toast.warning(`Synced ${server.name} — review required`, {
+          description: `${message} Some tools changed since approval or were rejected.`,
+        });
       else toast.success(`Synced ${server.name}`, { description: message });
       return result;
     } catch (err) {
@@ -70,8 +80,8 @@ export function useServerActions(server: McpServerOut, opts: { onDeleted?: () =>
         title={`Approve ${server.name}?`}
         description={
           <>
-            AgentOS re-checks <span className="font-mono text-fg">{hostOf(server.url)}</span> against the egress policy, then allows syncing its tools. Every
-            tool stays disabled until you review and enable it individually.
+            AgentOS re-checks <span className="font-mono text-fg">{hostOf(server.url)}</span> against the egress policy,
+            then allows syncing its tools. Every tool stays disabled until you review and enable it individually.
           </>
         }
         confirmLabel="Approve server"
@@ -133,7 +143,17 @@ export function useServerActions(server: McpServerOut, opts: { onDeleted?: () =>
 }
 
 /** Contextual primary action + overflow menu. */
-export function ServerActionBar({ server, size = "sm", onDeleted, onSynced }: { server: McpServerOut; size?: "sm" | "xs"; onDeleted?: () => void; onSynced?: (r: McpSyncResult) => void }) {
+export function ServerActionBar({
+  server,
+  size = "sm",
+  onDeleted,
+  onSynced,
+}: {
+  server: McpServerOut;
+  size?: "sm" | "xs";
+  onDeleted?: () => void;
+  onSynced?: (r: McpSyncResult) => void;
+}) {
   const a = useServerActions(server, { onDeleted });
   return (
     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -157,7 +177,11 @@ export function ServerActionBar({ server, size = "sm", onDeleted, onSynced }: { 
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size={size === "xs" ? "icon-xs" : "icon-sm"} aria-label={`More actions for ${server.name}`}>
+          <Button
+            variant="ghost"
+            size={size === "xs" ? "icon-xs" : "icon-sm"}
+            aria-label={`More actions for ${server.name}`}
+          >
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>

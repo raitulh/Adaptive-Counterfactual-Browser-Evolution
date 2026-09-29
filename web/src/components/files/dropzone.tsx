@@ -80,9 +80,12 @@ export function Dropzone({
         <UploadCloudIcon className="size-5" />
       </span>
       <div className="relative">
-        <p className="text-[15px] font-medium text-fg">{dragging ? "Drop to upload" : "Drag files here to give your agents something to read"}</p>
+        <p className="text-[15px] font-medium text-fg">
+          {dragging ? "Drop to upload" : "Drag files here to give your agents something to read"}
+        </p>
         <p className="mt-1 text-[13px] text-fg-muted">
-          {ACCEPTED_KINDS.map((k) => k.label).join(", ")} · up to {bytes(MAX_UPLOAD_BYTES)} each · scanned, then indexed for search
+          {ACCEPTED_KINDS.map((k) => k.label).join(", ")} · up to {bytes(MAX_UPLOAD_BYTES)} each · scanned, then indexed
+          for search
         </p>
       </div>
       <div className="relative flex flex-wrap items-center justify-center gap-x-5 gap-y-3">

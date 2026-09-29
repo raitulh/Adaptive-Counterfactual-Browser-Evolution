@@ -85,7 +85,8 @@ function constraintsOf(node: Json): string[] {
   const pair = (min: string, max: string, unit: string) => {
     const lo = node[min];
     const hi = node[max];
-    if (typeof lo === "number" && typeof hi === "number") c.push(lo === hi ? `exactly ${lo} ${unit}` : `${lo}–${hi} ${unit}`);
+    if (typeof lo === "number" && typeof hi === "number")
+      c.push(lo === hi ? `exactly ${lo} ${unit}` : `${lo}–${hi} ${unit}`);
     else if (typeof lo === "number") c.push(`≥ ${lo} ${unit}`);
     else if (typeof hi === "number") c.push(`≤ ${hi} ${unit}`);
   };
@@ -126,7 +127,12 @@ export function describeSchema(schema: unknown, maxDepth = 3): SchemaRow[] {
         type: typeLabel(root, prop),
         required: required.has(name),
         nullable,
-        description: typeof prop.description === "string" ? prop.description : typeof raw.description === "string" ? raw.description : undefined,
+        description:
+          typeof prop.description === "string"
+            ? prop.description
+            : typeof raw.description === "string"
+              ? raw.description
+              : undefined,
         constraints: constraintsOf(prop),
         enumValues,
         defaultValue: "default" in raw ? show(raw.default) : "default" in prop ? show(prop.default) : undefined,

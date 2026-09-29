@@ -3,7 +3,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { FILE_STAGES, type FileStage, type StageState } from "./file-status";
 
-const STATE_TEXT: Record<StageState, string> = { pending: "not started", active: "in progress", done: "done", failed: "failed" };
+const STATE_TEXT: Record<StageState, string> = {
+  pending: "not started",
+  active: "in progress",
+  done: "done",
+  failed: "failed",
+};
 
 /** Upload → Scan → Extract → Ready, as a compact step indicator (text for screen readers). */
 export function FileStages({
@@ -39,11 +44,14 @@ export function FileStages({
                   size === "md" ? "size-5" : "size-3",
                   state === "pending" && "border-line-strong bg-surface-2",
                   state === "active" && "border-accent bg-accent/15",
-                  state === "done" && (s.id === "ready" ? "border-success bg-success" : "border-accent/60 bg-accent/60"),
+                  state === "done" &&
+                    (s.id === "ready" ? "border-success bg-success" : "border-accent/60 bg-accent/60"),
                   state === "failed" && "border-danger bg-danger",
                 )}
               >
-                {state === "active" && <span className="absolute inset-0 rounded-full border border-accent motion-safe:animate-pulse-ring" />}
+                {state === "active" && (
+                  <span className="absolute inset-0 rounded-full border border-accent motion-safe:animate-pulse-ring" />
+                )}
                 {size === "md" && state === "done" && <CheckIcon className="size-3 text-bg" strokeWidth={3} />}
                 {size === "md" && state === "failed" && <XIcon className="size-3 text-bg" strokeWidth={3} />}
                 {size === "md" && state === "active" && <span className="size-1.5 rounded-full bg-accent" />}
@@ -52,7 +60,13 @@ export function FileStages({
                 <span
                   className={cn(
                     "text-2xs sm:text-xs",
-                    state === "pending" ? "text-fg-subtle" : state === "failed" ? "text-danger" : state === "active" ? "text-fg" : "text-fg-muted",
+                    state === "pending"
+                      ? "text-fg-subtle"
+                      : state === "failed"
+                        ? "text-danger"
+                        : state === "active"
+                          ? "text-fg"
+                          : "text-fg-muted",
                   )}
                 >
                   {s.label}

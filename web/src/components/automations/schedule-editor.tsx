@@ -70,8 +70,10 @@ export function ScheduleEditor({
               aria-pressed={active}
               onClick={() => setSpec(p.spec)}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50",
-                active ? "border-accent/50 bg-accent/10 text-fg" : "border-line bg-surface-1 text-fg-muted hover:border-line-strong hover:text-fg",
+                "rounded-full border px-2.5 py-1 text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                active
+                  ? "border-accent/50 bg-accent/10 text-fg"
+                  : "border-line bg-surface-1 text-fg-muted hover:border-line-strong hover:text-fg",
               )}
             >
               {p.label}
@@ -158,7 +160,7 @@ export function ScheduleEditor({
                       if (days.length) setSpec({ ...spec, days });
                     }}
                     className={cn(
-                      "h-9 w-11 rounded-md border text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50",
+                      "h-9 w-11 rounded-md border text-[13px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                       on ? "border-accent/50 bg-accent/12 text-fg" : "border-line-strong text-fg-muted hover:text-fg",
                     )}
                   >
@@ -209,11 +211,21 @@ export function ScheduleEditor({
           </div>
         )}
 
-        {spec.kind === "custom" && <CustomCron value={spec.cron} onChange={(c) => setSpec({ kind: "custom", cron: c })} error={error} idBase={idBase} />}
+        {spec.kind === "custom" && (
+          <CustomCron
+            value={spec.cron}
+            onChange={(c) => setSpec({ kind: "custom", cron: c })}
+            error={error}
+            idBase={idBase}
+          />
+        )}
 
         {spec.kind !== "custom" && (
           <div className="flex items-center gap-2 sm:ml-auto sm:self-center">
-            <code className="rounded-md border border-line bg-bg px-2 py-1 font-mono text-xs text-fg-muted" aria-label={`Cron expression ${cron}`}>
+            <code
+              className="rounded-md border border-line bg-bg px-2 py-1 font-mono text-xs text-fg-muted"
+              aria-label={`Cron expression ${cron}`}
+            >
               {cron}
             </code>
             <button
@@ -238,7 +250,17 @@ export function ScheduleEditor({
   );
 }
 
-function CustomCron({ value, onChange, error, idBase }: { value: string; onChange: (v: string) => void; error?: string; idBase: string }) {
+function CustomCron({
+  value,
+  onChange,
+  error,
+  idBase,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+  idBase: string;
+}) {
   const validation = validateCron(value);
   const words = validation.ok ? cronToWords(validation.expression) : null;
   const message = error ?? (validation.ok ? null : validation.error);
@@ -258,7 +280,11 @@ function CustomCron({ value, onChange, error, idBase }: { value: string; onChang
         aria-describedby={`${idBase}-cron-help`}
         className="font-mono"
       />
-      <p id={`${idBase}-cron-help`} className={cn("text-xs", message ? "text-danger" : "text-fg-muted")} aria-live="polite">
+      <p
+        id={`${idBase}-cron-help`}
+        className={cn("text-xs", message ? "text-danger" : "text-fg-muted")}
+        aria-live="polite"
+      >
         {message ?? words}
       </p>
     </div>

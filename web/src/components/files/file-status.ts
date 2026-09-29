@@ -44,7 +44,12 @@ export const fileStatusMeta: Record<FileStatus, FileStatusMeta> = {
     processing: true,
     description: "Extracting text and indexing it for document search.",
   },
-  ready: { label: "Ready", tone: "success", stage: "ready", description: "Available to your agents and to document search." },
+  ready: {
+    label: "Ready",
+    tone: "success",
+    stage: "ready",
+    description: "Available to your agents and to document search.",
+  },
   quarantined: {
     label: "Quarantined",
     tone: "danger",
@@ -62,7 +67,12 @@ export const fileStatusMeta: Record<FileStatus, FileStatusMeta> = {
   deleted: { label: "Deleted", tone: "neutral", stage: "ready", description: "Deleted." },
 };
 
-const UNKNOWN_STATUS: FileStatusMeta = { label: "Unknown", tone: "neutral", stage: "extract", description: "Unrecognized status." };
+const UNKNOWN_STATUS: FileStatusMeta = {
+  label: "Unknown",
+  tone: "neutral",
+  stage: "extract",
+  description: "Unrecognized status.",
+};
 
 export function metaForFileStatus(status: string): FileStatusMeta {
   return (fileStatusMeta as Record<string, FileStatusMeta>)[status] ?? UNKNOWN_STATUS;
@@ -98,7 +108,9 @@ export const extractionStatusMeta: Record<ExtractionStatus, { label: string; ton
 };
 
 export function metaForExtraction(status: string | null | undefined) {
-  return status ? ((extractionStatusMeta as Record<string, (typeof extractionStatusMeta)["pending"]>)[status] ?? null) : null;
+  return status
+    ? ((extractionStatusMeta as Record<string, (typeof extractionStatusMeta)["pending"]>)[status] ?? null)
+    : null;
 }
 
 export type StageState = "pending" | "active" | "done" | "failed";
@@ -122,7 +134,10 @@ export function stagesForFile(file: Pick<FileOut, "status">): Record<FileStage, 
  * side (bytes sent → the server is sniffing, scanning and storing); afterwards the latest server
  * copy of the file (from the polled list) is authoritative.
  */
-export function stagesForUpload(item: UploadItem, server?: Pick<FileOut, "status"> | null): Record<FileStage, StageState> {
+export function stagesForUpload(
+  item: UploadItem,
+  server?: Pick<FileOut, "status"> | null,
+): Record<FileStage, StageState> {
   if (item.phase === "done") return stagesForFile(server ?? item.result ?? { status: "uploaded" });
   const failed = item.phase === "failed";
   const code = item.error?.code ?? "";
@@ -131,7 +146,12 @@ export function stagesForUpload(item: UploadItem, server?: Pick<FileOut, "status
     case "queued":
     case "rejected":
     case "cancelled":
-      return { upload: item.phase === "rejected" ? "failed" : "pending", scan: "pending", extract: "pending", ready: "pending" };
+      return {
+        upload: item.phase === "rejected" ? "failed" : "pending",
+        scan: "pending",
+        extract: "pending",
+        ready: "pending",
+      };
     case "uploading":
       return { upload: "active", scan: "pending", extract: "pending", ready: "pending" };
     case "sending":

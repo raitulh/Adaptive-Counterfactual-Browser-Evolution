@@ -1,7 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, ArrowLeftIcon, BlocksIcon, KeyRoundIcon, RefreshCwIcon, ShieldAlertIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+  BlocksIcon,
+  KeyRoundIcon,
+  RefreshCwIcon,
+  ShieldAlertIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -43,36 +50,50 @@ function useLastSync(serverId: string) {
 function StatusBanner({ server }: { server: McpServerOut }) {
   if (server.status === "pending_review") {
     return (
-      <div role="status" className="flex gap-3 rounded-xl border border-warning/30 bg-warning/[0.06] px-4 py-3 text-[13px]">
+      <div
+        role="status"
+        className="flex gap-3 rounded-xl border border-warning/30 bg-warning/[0.06] px-4 py-3 text-[13px]"
+      >
         <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
         <p className="text-fg-muted">
-          <span className="font-medium text-fg">Awaiting approval.</span> AgentOS has not contacted <span className="font-mono text-fg">{hostOf(server.url)}</span>{" "}
-          yet. Approving re-checks the URL against the egress policy and allows syncing; every discovered tool still needs its own review.
+          <span className="font-medium text-fg">Awaiting approval.</span> AgentOS has not contacted{" "}
+          <span className="font-mono text-fg">{hostOf(server.url)}</span> yet. Approving re-checks the URL against the
+          egress policy and allows syncing; every discovered tool still needs its own review.
         </p>
       </div>
     );
   }
   if (server.status === "error" || server.last_error) {
     return (
-      <div role="alert" className="flex gap-3 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-[13px]">
+      <div
+        role="alert"
+        className="flex gap-3 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-[13px]"
+      >
         <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
         <div className="min-w-0 text-fg-muted">
           <p>
-            <span className="font-medium text-fg">{server.status === "error" ? "The last sync failed." : "The last sync attempt failed."}</span>{" "}
-            {server.status === "error" ? serverStatusMeta("error").description : "The previous tool list is kept; transient failures do not change the server status."}
+            <span className="font-medium text-fg">
+              {server.status === "error" ? "The last sync failed." : "The last sync attempt failed."}
+            </span>{" "}
+            {server.status === "error"
+              ? serverStatusMeta("error").description
+              : "The previous tool list is kept; transient failures do not change the server status."}
           </p>
-          {server.last_error && <p className="mt-1 break-words font-mono text-2xs text-danger">{server.last_error}</p>}
+          {server.last_error && <p className="mt-1 font-mono text-2xs break-words text-danger">{server.last_error}</p>}
         </div>
       </div>
     );
   }
   if (server.status === "disabled") {
     return (
-      <div role="status" className="flex gap-3 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-fg-muted">
+      <div
+        role="status"
+        className="flex gap-3 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-fg-muted"
+      >
         <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
         <p>
-          <span className="font-medium text-fg">Disabled.</span> None of this server&apos;s tools are available to agents. Approve the server again to restore
-          previously enabled tools.
+          <span className="font-medium text-fg">Disabled.</span> None of this server&apos;s tools are available to
+          agents. Approve the server again to restore previously enabled tools.
         </p>
       </div>
     );
@@ -80,16 +101,33 @@ function StatusBanner({ server }: { server: McpServerOut }) {
   return null;
 }
 
-function AttentionBanner({ tools, server, onReview }: { tools: McpToolOut[]; server: McpServerOut; onReview: (t: McpToolOut) => void }) {
+function AttentionBanner({
+  tools,
+  server,
+  onReview,
+}: {
+  tools: McpToolOut[];
+  server: McpServerOut;
+  onReview: (t: McpToolOut) => void;
+}) {
   const attention = toolsNeedingAttention(tools, server);
   if (attention.length === 0) return null;
   const changed = attention.filter((t) => reviewState(t, server) === "schema_changed");
   const fresh = attention.length - changed.length;
   const danger = changed.length > 0;
   return (
-    <div role="alert" className={cn("rounded-xl border px-4 py-3", danger ? "border-danger/35 bg-danger/[0.06]" : "border-warning/30 bg-warning/[0.06]")}>
+    <div
+      role="alert"
+      className={cn(
+        "rounded-xl border px-4 py-3",
+        danger ? "border-danger/35 bg-danger/[0.06]" : "border-warning/30 bg-warning/[0.06]",
+      )}
+    >
       <div className="flex gap-3 text-[13px]">
-        <ShieldAlertIcon className={cn("mt-0.5 size-4 shrink-0", danger ? "text-danger" : "text-warning")} aria-hidden />
+        <ShieldAlertIcon
+          className={cn("mt-0.5 size-4 shrink-0", danger ? "text-danger" : "text-warning")}
+          aria-hidden
+        />
         <div className="min-w-0 flex-1 text-fg-muted">
           <p className="font-medium text-fg">
             {danger
@@ -110,8 +148,10 @@ function AttentionBanner({ tools, server, onReview }: { tools: McpToolOut[]; ser
                   onClick={() => onReview(t)}
                   disabled={server.status !== "approved"}
                   className={cn(
-                    "rounded-md border px-2 py-0.5 font-mono text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-60",
-                    reviewState(t, server) === "schema_changed" ? "border-danger/40 text-fg hover:bg-danger/10" : "border-warning/40 text-fg hover:bg-warning/10",
+                    "rounded-md border px-2 py-0.5 font-mono text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-60",
+                    reviewState(t, server) === "schema_changed"
+                      ? "border-danger/40 text-fg hover:bg-danger/10"
+                      : "border-warning/40 text-fg hover:bg-warning/10",
                   )}
                 >
                   {t.qualified_name}
@@ -185,16 +225,20 @@ export function ServerDetail({ serverId }: { serverId: string }) {
               <CopyButton value={server.url} label="Copy URL" className="size-6" />
             </div>
           </div>
-          {canManage && (
-            <ServerActionBar server={server} onDeleted={() => router.push("/app/mcp")} />
-          )}
+          {canManage && <ServerActionBar server={server} onDeleted={() => router.push("/app/mcp")} />}
         </header>
       )}
 
       {server && (
         <div className="flex flex-col gap-5">
           <StatusBanner server={server} />
-          {lastSync.data && <SyncResultPanel result={lastSync.data.result} at={lastSync.data.at} onDismiss={() => qc.setQueryData(lastSyncKey(serverId), null)} />}
+          {lastSync.data && (
+            <SyncResultPanel
+              result={lastSync.data.result}
+              at={lastSync.data.at}
+              onDismiss={() => qc.setQueryData(lastSyncKey(serverId), null)}
+            />
+          )}
           {toolsQ.data && <AttentionBanner tools={tools} server={server} onReview={(t) => setReviewing(t)} />}
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -207,7 +251,9 @@ export function ServerDetail({ serverId }: { serverId: string }) {
                   {counts && counts.total > 0 && (
                     <p className="text-xs text-fg-subtle">
                       {counts.usable} of {counts.total} enabled
-                      {counts.schemaChanged > 0 && <span className="text-danger"> · {counts.schemaChanged} changed</span>}
+                      {counts.schemaChanged > 0 && (
+                        <span className="text-danger"> · {counts.schemaChanged} changed</span>
+                      )}
                       {counts.unreviewed > 0 && <span className="text-warning"> · {counts.unreviewed} to review</span>}
                       {counts.removed > 0 && <span> · {counts.removed} removed</span>}
                     </p>
@@ -230,7 +276,11 @@ export function ServerDetail({ serverId }: { serverId: string }) {
                   <EmptyState
                     size="sm"
                     icon={<RefreshCwIcon />}
-                    title={server.status === "pending_review" ? "Approve the server to discover its tools" : "No tools discovered yet"}
+                    title={
+                      server.status === "pending_review"
+                        ? "Approve the server to discover its tools"
+                        : "No tools discovered yet"
+                    }
                     description={
                       server.status === "pending_review"
                         ? "Tools are listed after the first successful sync, which requires an approved server."
@@ -245,7 +295,16 @@ export function ServerDetail({ serverId }: { serverId: string }) {
                   <ul className="divide-y divide-line" aria-label={`Tools on ${server.name}`}>
                     {[...tools]
                       .sort((a, b) => {
-                        const rank = (t: McpToolOut) => ({ schema_changed: 0, unknown: 1, unreviewed: 2, usable: 3, disabled: 4, server_blocked: 4, removed: 5 })[reviewState(t, server)];
+                        const rank = (t: McpToolOut) =>
+                          ({
+                            schema_changed: 0,
+                            unknown: 1,
+                            unreviewed: 2,
+                            usable: 3,
+                            disabled: 4,
+                            server_blocked: 4,
+                            removed: 5,
+                          })[reviewState(t, server)];
                         return rank(a) - rank(b) || a.qualified_name.localeCompare(b.qualified_name);
                       })
                       .map((t) => (
@@ -262,28 +321,78 @@ export function ServerDetail({ serverId }: { serverId: string }) {
                 <KeyValue
                   className="grid-cols-[minmax(6.5rem,auto)_1fr] text-xs"
                   items={[
-                    ["Transport", <span key="t" className="font-mono">{server.transport}</span>],
-                    ["Protocol", server.protocol_version ? <span key="p" className="font-mono">{server.protocol_version}</span> : <span key="p" className="text-fg-subtle">Unknown until synced</span>],
-                    ["Reports as", infoName || <span key="i" className="text-fg-subtle">—</span>],
+                    [
+                      "Transport",
+                      <span key="t" className="font-mono">
+                        {server.transport}
+                      </span>,
+                    ],
+                    [
+                      "Protocol",
+                      server.protocol_version ? (
+                        <span key="p" className="font-mono">
+                          {server.protocol_version}
+                        </span>
+                      ) : (
+                        <span key="p" className="text-fg-subtle">
+                          Unknown until synced
+                        </span>
+                      ),
+                    ],
+                    [
+                      "Reports as",
+                      infoName || (
+                        <span key="i" className="text-fg-subtle">
+                          —
+                        </span>
+                      ),
+                    ],
                     [
                       "Auth",
                       server.has_auth ? (
                         <span key="a" className="flex flex-col gap-0.5">
                           <span className="inline-flex items-center gap-1">
                             <KeyRoundIcon className="size-3 text-fg-subtle" aria-hidden />
-                            <span className="font-mono">{server.auth_header_name ?? (server.auth_credential_id ? "stored credential" : "header")}</span>
+                            <span className="font-mono">
+                              {server.auth_header_name ?? (server.auth_credential_id ? "stored credential" : "header")}
+                            </span>
                           </span>
                           <span className="text-fg-subtle">Value encrypted · write-only</span>
                         </span>
                       ) : (
-                        <span key="a" className="text-fg-subtle">None</span>
+                        <span key="a" className="text-fg-subtle">
+                          None
+                        </span>
                       ),
                     ],
                     ["Timeout", `${server.timeout_seconds} s`],
                     ["Rate limit", `${server.rate_limit_per_minute} / min`],
-                    ["Registered", <span key="r" title={dateTime(server.created_at)}><RelativeTime value={server.created_at} /></span>],
-                    ["Approved", server.approved_at ? <RelativeTime key="ap" value={server.approved_at} /> : <span key="ap" className="text-fg-subtle">Not approved</span>],
-                    ["Last sync", server.last_sync_at ? <RelativeTime key="ls" value={server.last_sync_at} /> : <span key="ls" className="text-fg-subtle">Never</span>],
+                    [
+                      "Registered",
+                      <span key="r" title={dateTime(server.created_at)}>
+                        <RelativeTime value={server.created_at} />
+                      </span>,
+                    ],
+                    [
+                      "Approved",
+                      server.approved_at ? (
+                        <RelativeTime key="ap" value={server.approved_at} />
+                      ) : (
+                        <span key="ap" className="text-fg-subtle">
+                          Not approved
+                        </span>
+                      ),
+                    ],
+                    [
+                      "Last sync",
+                      server.last_sync_at ? (
+                        <RelativeTime key="ls" value={server.last_sync_at} />
+                      ) : (
+                        <span key="ls" className="text-fg-subtle">
+                          Never
+                        </span>
+                      ),
+                    ],
                   ]}
                 />
                 {developerMode && (
@@ -295,14 +404,16 @@ export function ServerDetail({ serverId }: { serverId: string }) {
                 )}
               </Card>
               <p className="text-2xs leading-relaxed text-fg-subtle">
-                Tools are exposed to agents as <span className="font-mono">mcp.{server.name}.*</span>. Organization tool rules and each agent&apos;s tool policy apply
-                to them like any other tool.
+                Tools are exposed to agents as <span className="font-mono">mcp.{server.name}.*</span>. Organization tool
+                rules and each agent&apos;s tool policy apply to them like any other tool.
               </p>
             </aside>
           </div>
         </div>
       )}
-      {server && <ToolReviewDialog tool={reviewingLive} server={server} onOpenChange={(o) => !o && setReviewing(null)} />}
+      {server && (
+        <ToolReviewDialog tool={reviewingLive} server={server} onOpenChange={(o) => !o && setReviewing(null)} />
+      )}
     </PageContainer>
   );
 }

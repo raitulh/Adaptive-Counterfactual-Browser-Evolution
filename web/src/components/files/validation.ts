@@ -46,7 +46,8 @@ const MIMES = new Set(ACCEPTED_KINDS.flatMap((k) => k.mimes));
 /** `accept` attribute for the file input. */
 export const ACCEPT_ATTRIBUTE = [...EXTENSIONS].map((e) => `.${e}`).join(",");
 
-export const ACCEPTED_SUMMARY = "PDF, Word (.docx), Excel (.xlsx), images (PNG, JPEG, GIF, WebP) and text (TXT, CSV, Markdown, JSON, HTML)";
+export const ACCEPTED_SUMMARY =
+  "PDF, Word (.docx), Excel (.xlsx), images (PNG, JPEG, GIF, WebP) and text (TXT, CSV, Markdown, JSON, HTML)";
 
 export function extensionOf(name: string): string {
   const idx = name.lastIndexOf(".");

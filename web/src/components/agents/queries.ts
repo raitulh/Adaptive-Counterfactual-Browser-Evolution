@@ -1,7 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { agentsApi, type AgentCreate, type AgentOut, type AgentUpdate, type AgentVersionIn, type Page } from "@/lib/api";
+import {
+  agentsApi,
+  type AgentCreate,
+  type AgentOut,
+  type AgentUpdate,
+  type AgentVersionIn,
+  type Page,
+} from "@/lib/api";
 import { qk } from "@/lib/query/keys";
 import { useCursorQuery } from "@/lib/query/pagination";
 

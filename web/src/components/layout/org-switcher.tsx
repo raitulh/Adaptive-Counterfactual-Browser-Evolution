@@ -25,12 +25,12 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const trigger = (
     <DropdownMenuTrigger
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-md border border-line bg-surface-2/70 px-2 py-1.5 text-left outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent/50",
+        "flex w-full items-center gap-2.5 rounded-md border border-line bg-surface-2/70 px-2 py-1.5 text-left transition-colors outline-none hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent/50",
         collapsed && "size-9 justify-center p-0",
       )}
       aria-label={`Active organization: ${name}. Switch organization`}
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded bg-accent/12 text-2xs font-bold uppercase text-accent">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded bg-accent/12 text-2xs font-bold text-accent uppercase">
         {name.slice(0, 1)}
       </span>
       {!collapsed && (
@@ -38,7 +38,9 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-medium text-fg">{name}</span>
             <span className="block truncate text-2xs text-fg-subtle">
-              {organization ? `${humanize(organization.plan)} plan${organization.role ? ` · ${humanize(organization.role)}` : ""}` : "Loading…"}
+              {organization
+                ? `${humanize(organization.plan)} plan${organization.role ? ` · ${humanize(organization.role)}` : ""}`
+                : "Loading…"}
             </span>
           </span>
           <ChevronsUpDownIcon className="size-3.5 shrink-0 text-fg-subtle" aria-hidden />

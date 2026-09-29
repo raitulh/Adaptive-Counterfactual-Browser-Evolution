@@ -7,7 +7,13 @@ import { AgentOSApiError } from "@/lib/api/errors";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => <a href={href} {...rest}>{children}</a> }));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 vi.mock("@/lib/auth/hooks", () => ({ usePermissions: () => ({ can: () => true, isLoading: false }) }));
 
 const create = vi.fn();
@@ -15,7 +21,11 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    tasksApi: { ...actual.tasksApi, create: (...args: unknown[]) => create(...args), list: vi.fn(async () => ({ items: [], has_more: false })) },
+    tasksApi: {
+      ...actual.tasksApi,
+      create: (...args: unknown[]) => create(...args),
+      list: vi.fn(async () => ({ items: [], has_more: false })),
+    },
     agentsApi: { ...actual.agentsApi, list: vi.fn(async () => ({ items: [], has_more: false })) },
   };
 });
@@ -34,7 +44,8 @@ function renderComposer() {
 }
 
 const task = (id: string) => ({ task_id: id, status: "created", goal: "g" });
-const networkError = () => new AgentOSApiError({ status: 0, code: "network_error", message: "Network request failed." });
+const networkError = () =>
+  new AgentOSApiError({ status: 0, code: "network_error", message: "Network request failed." });
 
 describe("TaskComposer submission", () => {
   beforeEach(() => {
@@ -43,7 +54,10 @@ describe("TaskComposer submission", () => {
   });
 
   it("reuses the idempotency key when retrying after a network error, and uses a new one after an edit", async () => {
-    create.mockRejectedValueOnce(networkError()).mockRejectedValueOnce(networkError()).mockResolvedValueOnce(task("t-1"));
+    create
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValueOnce(task("t-1"));
     renderComposer();
     const box = screen.getByLabelText("What do you want done?");
 

@@ -99,7 +99,15 @@ export function ErrorState({
   const e = normalizeError(error);
   if (e.kind === "forbidden") return <PermissionDenied error={e} className={className} />;
   const icon =
-    e.kind === "not_found" ? <SearchXIcon /> : e.kind === "network" || e.kind === "unavailable" ? <CloudOffIcon /> : e.kind === "rate_limited" ? <TimerIcon /> : <AlertOctagonIcon />;
+    e.kind === "not_found" ? (
+      <SearchXIcon />
+    ) : e.kind === "network" || e.kind === "unavailable" ? (
+      <CloudOffIcon />
+    ) : e.kind === "rate_limited" ? (
+      <TimerIcon />
+    ) : (
+      <AlertOctagonIcon />
+    );
   const heading =
     title ??
     (e.kind === "not_found"
@@ -143,7 +151,13 @@ export function InlineError({ error, className }: { error: unknown; className?: 
   if (!error) return null;
   const e = normalizeError(error);
   return (
-    <div role="alert" className={cn("flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/8 px-3 py-2 text-[13px] text-danger", className)}>
+    <div
+      role="alert"
+      className={cn(
+        "flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/8 px-3 py-2 text-[13px] text-danger",
+        className,
+      )}
+    >
       <AlertOctagonIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p>{e.userMessage}</p>

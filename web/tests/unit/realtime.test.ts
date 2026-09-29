@@ -16,7 +16,8 @@ describe("SseParser", () => {
   it("parses events split across arbitrary chunk boundaries, ignoring comments", () => {
     const out: SseEvent[] = [];
     const parser = new SseParser((e) => out.push(e));
-    const wire = ': connected\n\nid: 3\nevent: TASK_CREATED\ndata: {"seq":3}\n\n: keep-alive\n\nevent: end\ndata: {"status":"completed"}\n\n';
+    const wire =
+      ': connected\n\nid: 3\nevent: TASK_CREATED\ndata: {"seq":3}\n\n: keep-alive\n\nevent: end\ndata: {"status":"completed"}\n\n';
     for (let i = 0; i < wire.length; i += 7) parser.push(wire.slice(i, i + 7));
     expect(out).toEqual([
       { event: "TASK_CREATED", data: '{"seq":3}', id: "3" },
@@ -51,7 +52,10 @@ describe("task event merging", () => {
   });
 
   it("parses SSE payloads into TaskEvent shape", () => {
-    const parsed = parseTaskEvent("PLAN_CREATED", '{"seq":5,"task_id":"t","step_id":null,"payload":{"n":1},"created_at":"x"}');
+    const parsed = parseTaskEvent(
+      "PLAN_CREATED",
+      '{"seq":5,"task_id":"t","step_id":null,"payload":{"n":1},"created_at":"x"}',
+    );
     expect(parsed).toMatchObject({ seq: 5, event_type: "PLAN_CREATED", payload: { n: 1 }, task_id: "t" });
     expect(parseTaskEvent("X", "not json")).toBeNull();
   });

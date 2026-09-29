@@ -4,7 +4,15 @@ import { ShieldAlertIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/controls";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { InlineError } from "@/components/ui/states";
 import { toast } from "@/components/ui/toaster";
 import type { McpServerOut, McpToolOut } from "@/lib/api";
@@ -18,10 +26,12 @@ export function DefinitionReview({ tool }: { tool: McpToolOut }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-1.5 text-xs text-fg-subtle">Description as advertised by the server (untrusted text — it is shown to the planning model)</p>
-        <blockquote className="whitespace-pre-wrap break-words rounded-lg border border-line bg-bg px-3 py-2.5 text-[13px] leading-relaxed text-fg">
+        <p className="mb-1.5 text-xs text-fg-subtle">
+          Description as advertised by the server (untrusted text — it is shown to the planning model)
+        </p>
+        <blockquote className="rounded-lg border border-line bg-bg px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-fg">
           {tool.title && <span className="mb-1 block font-medium">{tool.title}</span>}
-          {tool.description || <span className="italic text-fg-subtle">No description</span>}
+          {tool.description || <span className="text-fg-subtle italic">No description</span>}
         </blockquote>
       </div>
       <div>
@@ -41,7 +51,10 @@ export function DefinitionReview({ tool }: { tool: McpToolOut }) {
         ) : (
           <ul className="flex flex-wrap gap-1.5">
             {hints.map((h) => (
-              <li key={h} className="rounded border border-line-strong bg-surface-2 px-1.5 py-0.5 text-xs text-fg-muted">
+              <li
+                key={h}
+                className="rounded border border-line-strong bg-surface-2 px-1.5 py-0.5 text-xs text-fg-muted"
+              >
                 {h}
               </li>
             ))}
@@ -103,22 +116,28 @@ export function ToolReviewDialog({
       <DialogContent size="xl">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
-            {changed ? "Re-approve changed tool" : "Review tool"} <code className="font-mono text-[15px]">{tool.qualified_name}</code>
+            {changed ? "Re-approve changed tool" : "Review tool"}{" "}
+            <code className="font-mono text-[15px]">{tool.qualified_name}</code>
           </DialogTitle>
           <DialogDescription>
-            Enabling approves this exact definition (hash <span className="font-mono">{shortHash(tool.schema_hash)}</span>). If the server changes the name,
+            Enabling approves this exact definition (hash{" "}
+            <span className="font-mono">{shortHash(tool.schema_hash)}</span>). If the server changes the name,
             description, schemas or hints later, the tool is disabled again automatically.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="flex flex-col gap-5">
           {changed && (
-            <div role="alert" className="flex gap-3 rounded-xl border border-danger/35 bg-danger/[0.07] px-4 py-3 text-[13px]">
+            <div
+              role="alert"
+              className="flex gap-3 rounded-xl border border-danger/35 bg-danger/[0.07] px-4 py-3 text-[13px]"
+            >
               <ShieldAlertIcon className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
               <div className="text-fg-muted">
                 <p className="font-medium text-fg">This tool changed after it was approved</p>
                 <p className="mt-0.5">
-                  AgentOS disabled it when a sync found a different definition. Only the approved hash is kept, so check the current description and parameters
-                  carefully — a changed description can smuggle instructions to the model (tool poisoning).
+                  AgentOS disabled it when a sync found a different definition. Only the approved hash is kept, so check
+                  the current description and parameters carefully — a changed description can smuggle instructions to
+                  the model (tool poisoning).
                 </p>
                 <p className="mt-1.5 font-mono text-2xs text-fg-subtle">
                   approved {shortHash(tool.approved_schema_hash)} → current {shortHash(tool.schema_hash)}
@@ -129,13 +148,24 @@ export function ToolReviewDialog({
           <DefinitionReview tool={tool} />
           <div className="flex flex-col gap-3 rounded-xl border border-line p-4">
             <p className="text-[13px] font-medium text-fg">How AgentOS should treat it</p>
-            <p className="-mt-2 text-xs text-fg-muted">These settings govern the tool — the server&apos;s own hints are ignored.</p>
+            <p className="-mt-2 text-xs text-fg-muted">
+              These settings govern the tool — the server&apos;s own hints are ignored.
+            </p>
             <GovernanceFields value={values} onChange={setGov} disabled={update.isPending} />
           </div>
-          <label htmlFor={checkId} className="flex items-start gap-2.5 rounded-lg border border-line-strong bg-surface-1 px-3 py-2.5 text-[13px] text-fg">
-            <Checkbox id={checkId} checked={confirmed} onCheckedChange={(v) => setConfirmed(v === true)} className="mt-0.5" />
+          <label
+            htmlFor={checkId}
+            className="flex items-start gap-2.5 rounded-lg border border-line-strong bg-surface-1 px-3 py-2.5 text-[13px] text-fg"
+          >
+            <Checkbox
+              id={checkId}
+              checked={confirmed}
+              onCheckedChange={(v) => setConfirmed(v === true)}
+              className="mt-0.5"
+            />
             <span>
-              I reviewed the current description and input schema of <span className="font-mono">{tool.qualified_name}</span> and approve this definition.
+              I reviewed the current description and input schema of{" "}
+              <span className="font-mono">{tool.qualified_name}</span> and approve this definition.
             </span>
           </label>
           {error !== null && <InlineError error={error} />}
@@ -144,7 +174,12 @@ export function ToolReviewDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={update.isPending}>
             Cancel
           </Button>
-          <Button variant={changed ? "danger" : "primary"} disabled={!confirmed} loading={update.isPending} onClick={() => void submit()}>
+          <Button
+            variant={changed ? "danger" : "primary"}
+            disabled={!confirmed}
+            loading={update.isPending}
+            onClick={() => void submit()}
+          >
             {changed ? "Re-approve & enable" : "Approve & enable"}
           </Button>
         </DialogFooter>

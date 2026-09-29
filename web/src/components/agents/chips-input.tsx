@@ -151,7 +151,7 @@ export function ChipsInput({
                 e.stopPropagation();
                 remove(item);
               }}
-              className="inline-flex size-6 items-center justify-center rounded-r-md text-fg-subtle hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="inline-flex size-6 items-center justify-center rounded-r-md text-fg-subtle hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
               aria-label={`Remove ${item}`}
             >
               <XIcon className="size-3" aria-hidden />
@@ -189,7 +189,10 @@ export function ChipsInput({
             setActive(-1);
           }}
           onKeyDown={onKeyDown}
-          className={cn("h-6 min-w-[8rem] flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle", mono && "font-mono text-[13px] placeholder:font-sans")}
+          className={cn(
+            "h-6 min-w-[8rem] flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle",
+            mono && "font-mono text-[13px] placeholder:font-sans",
+          )}
         />
       </div>
       {showList && (

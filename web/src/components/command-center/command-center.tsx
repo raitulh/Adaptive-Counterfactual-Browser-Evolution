@@ -6,7 +6,15 @@
  * Every list is a real query, kept live by the user stream (list queries are invalidated).
  */
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon, CheckCircle2Icon, CircleAlertIcon, HandIcon, MessageSquareTextIcon, PlugIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  CheckCircle2Icon,
+  CircleAlertIcon,
+  HandIcon,
+  MessageSquareTextIcon,
+  PlugIcon,
+  SparklesIcon,
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { approvalsApi, tasksApi, type ApprovalOut, type TaskOut, type TaskStatus } from "@/lib/api";
@@ -35,13 +43,28 @@ function greeting(date = new Date()): string {
   return h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
-function SectionTitle({ children, count, href, linkLabel }: { children: React.ReactNode; count?: number; href?: string; linkLabel?: string }) {
+function SectionTitle({
+  children,
+  count,
+  href,
+  linkLabel,
+}: {
+  children: React.ReactNode;
+  count?: number;
+  href?: string;
+  linkLabel?: string;
+}) {
   return (
     <div className="mb-3 flex items-center gap-2">
       <h2 className="text-sm font-semibold tracking-tight text-fg">{children}</h2>
-      {count !== undefined && count > 0 && <span className="rounded-full bg-white/[0.06] px-1.5 text-2xs tabular-nums text-fg-muted">{count}</span>}
+      {count !== undefined && count > 0 && (
+        <span className="rounded-full bg-white/[0.06] px-1.5 text-2xs text-fg-muted tabular-nums">{count}</span>
+      )}
       {href && (
-        <Link href={href} className="ml-auto inline-flex items-center gap-1 rounded text-xs text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50">
+        <Link
+          href={href}
+          className="ml-auto inline-flex items-center gap-1 rounded text-xs text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+        >
           {linkLabel ?? "View all"} <ArrowRightIcon className="size-3" aria-hidden />
         </Link>
       )}
@@ -64,15 +87,20 @@ function ActiveCard({ task, agentName }: { task: TaskOut; agentName: string }) {
   return (
     <Link
       href={`/app/tasks/${task.task_id}`}
-      className="group flex flex-col gap-2.5 rounded-xl border border-accent/15 bg-surface-1 p-3.5 outline-none transition-colors hover:border-accent/35 hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="group flex flex-col gap-2.5 rounded-xl border border-accent/15 bg-surface-1 p-3.5 transition-colors outline-none hover:border-accent/35 hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="line-clamp-2 text-[13.5px] font-medium leading-snug text-fg">{task.goal}</p>
+        <p className="line-clamp-2 text-[13.5px] leading-snug font-medium text-fg">{task.goal}</p>
         <StatusBadge kind="task" value={task.status} className="shrink-0" />
       </div>
       <div className="flex items-center gap-2">
-        <Progress value={Math.round(task.progress * 100)} tone={meta.tone === "neutral" ? "accent" : meta.tone} className="h-1" label="Progress" />
-        <span className="font-mono text-2xs tabular-nums text-fg-subtle">{Math.round(task.progress * 100)}%</span>
+        <Progress
+          value={Math.round(task.progress * 100)}
+          tone={meta.tone === "neutral" ? "accent" : meta.tone}
+          className="h-1"
+          label="Progress"
+        />
+        <span className="font-mono text-2xs text-fg-subtle tabular-nums">{Math.round(task.progress * 100)}%</span>
       </div>
       <p className="flex items-center gap-1.5 text-xs text-fg-subtle">
         {agentName} · <Elapsed task={task} className="text-fg-muted" /> elapsed
@@ -87,9 +115,12 @@ function ApprovalRow({ approval }: { approval: ApprovalOut }) {
   return (
     <Link
       href={`/app/approvals?focus=${approval.id}`}
-      className="group flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/[0.03] p-3.5 outline-none transition-colors hover:border-warning/45 hover:bg-warning/[0.06] focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="group flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/[0.03] p-3.5 transition-colors outline-none hover:border-warning/45 hover:bg-warning/[0.06] focus-visible:ring-2 focus-visible:ring-accent/50"
     >
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-warning/35 bg-warning/10 text-warning" aria-hidden>
+      <span
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-warning/35 bg-warning/10 text-warning"
+        aria-hidden
+      >
         <HandIcon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
@@ -114,19 +145,28 @@ function NeedsTaskRow({ task }: { task: TaskOut }) {
   const copy = NEEDS_COPY[task.status] ?? { action: "Open", icon: CircleAlertIcon };
   const meta = taskStatusMeta[task.status];
   const Icon = copy.icon;
-  const detail = task.status === "waiting_input" ? task.pending_questions?.[0] : task.failure_message ?? meta.description;
+  const detail =
+    task.status === "waiting_input" ? task.pending_questions?.[0] : (task.failure_message ?? meta.description);
   return (
     <Link
       href={`/app/tasks/${task.task_id}`}
       className={cn(
-        "group flex items-start gap-3 rounded-xl border bg-surface-1 p-3.5 outline-none transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50",
-        meta.tone === "danger" ? "border-danger/25 hover:border-danger/45" : meta.tone === "recover" ? "border-recover/25 hover:border-recover/45" : "border-warning/25 hover:border-warning/45",
+        "group flex items-start gap-3 rounded-xl border bg-surface-1 p-3.5 transition-colors outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/50",
+        meta.tone === "danger"
+          ? "border-danger/25 hover:border-danger/45"
+          : meta.tone === "recover"
+            ? "border-recover/25 hover:border-recover/45"
+            : "border-warning/25 hover:border-warning/45",
       )}
     >
       <span
         className={cn(
           "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border",
-          meta.tone === "danger" ? "border-danger/35 bg-danger/10 text-danger" : meta.tone === "recover" ? "border-recover/35 bg-recover/10 text-recover" : "border-warning/35 bg-warning/10 text-warning",
+          meta.tone === "danger"
+            ? "border-danger/35 bg-danger/10 text-danger"
+            : meta.tone === "recover"
+              ? "border-recover/35 bg-recover/10 text-recover"
+              : "border-warning/35 bg-warning/10 text-warning",
         )}
         aria-hidden
       >
@@ -150,12 +190,15 @@ function RecentRow({ task }: { task: TaskOut }) {
     <li>
       <Link
         href={`/app/tasks/${task.task_id}`}
-        className="flex items-center gap-3 rounded-lg px-2 py-2.5 outline-none transition-colors hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors outline-none hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         {task.status === "completed" ? (
           <CheckCircle2Icon className="size-4 shrink-0 text-success" aria-hidden />
         ) : (
-          <CircleAlertIcon className={cn("size-4 shrink-0", meta.tone === "danger" ? "text-danger" : "text-fg-subtle")} aria-hidden />
+          <CircleAlertIcon
+            className={cn("size-4 shrink-0", meta.tone === "danger" ? "text-danger" : "text-fg-subtle")}
+            aria-hidden
+          />
         )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] text-fg">{task.goal}</span>
@@ -208,24 +251,39 @@ export function CommandCenter() {
   const statusLine =
     active.length === 0 && needsCount === 0
       ? "All quiet — ready for the next goal."
-      : [active.length ? `${active.length} running` : null, needsCount ? `${needsCount} need${needsCount === 1 ? "s" : ""} you` : null].filter(Boolean).join(" · ");
+      : [
+          active.length ? `${active.length} running` : null,
+          needsCount ? `${needsCount} need${needsCount === 1 ? "s" : ""} you` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
   return (
     <PageContainer width="wide" className="relative">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-grid [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)] opacity-60" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-grid [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)] opacity-60"
+        aria-hidden
+      />
 
       {/* Hero */}
-      <section className="grid items-start gap-8 pb-10 pt-2 md:grid-cols-[minmax(0,1fr)_240px] lg:grid-cols-[minmax(0,1fr)_300px] lg:pt-6" aria-labelledby="cc-title">
+      <section
+        className="grid items-start gap-8 pt-2 pb-10 md:grid-cols-[minmax(0,1fr)_240px] lg:grid-cols-[minmax(0,1fr)_300px] lg:pt-6"
+        aria-labelledby="cc-title"
+      >
         <div className="min-w-0">
-          <p className="text-2xs font-medium uppercase tracking-[0.16em] text-fg-subtle" suppressHydrationWarning>
+          <p className="text-2xs font-medium tracking-[0.16em] text-fg-subtle uppercase" suppressHydrationWarning>
             {greeting()}
             {name ? `, ${name}` : ""}
           </p>
-          <h1 id="cc-title" className="mt-2 text-balance-safe text-[28px] font-semibold leading-[1.1] tracking-[-0.03em] text-fg sm:text-4xl lg:text-[44px]">
+          <h1
+            id="cc-title"
+            className="mt-2 text-[28px] leading-[1.1] font-semibold tracking-[-0.03em] text-balance-safe text-fg sm:text-4xl lg:text-[44px]"
+          >
             Tell AgentOS what you want done.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-fg-muted sm:text-[15px]">
-            It plans the steps, asks before anything risky, runs them with your connected tools and verifies every result before calling it done.
+            It plans the steps, asks before anything risky, runs them with your connected tools and verifies every
+            result before calling it done.
           </p>
           <TaskComposer className="mt-6" />
         </div>
@@ -235,7 +293,11 @@ export function CommandCenter() {
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                coreState === "attention" ? "bg-warning" : coreState === "working" ? "bg-accent motion-safe:animate-signal" : "bg-fg-subtle",
+                coreState === "attention"
+                  ? "bg-warning"
+                  : coreState === "working"
+                    ? "bg-accent motion-safe:animate-signal"
+                    : "bg-fg-subtle",
               )}
               aria-hidden
             />
@@ -256,7 +318,11 @@ export function CommandCenter() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <div className="flex min-w-0 flex-col gap-8">
             <section aria-labelledby="cc-needs">
-              <SectionTitle count={needsCount} href={pendingApprovals.length ? "/app/approvals" : undefined} linkLabel="All approvals">
+              <SectionTitle
+                count={needsCount}
+                href={pendingApprovals.length ? "/app/approvals" : undefined}
+                linkLabel="All approvals"
+              >
                 <span id="cc-needs">Needs you</span>
               </SectionTitle>
               {needs.isLoading || approvals.isLoading ? (
@@ -265,7 +331,8 @@ export function CommandCenter() {
                 <ErrorState error={needs.error} compact onRetry={() => void needs.refetch()} />
               ) : needsCount === 0 ? (
                 <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-1/60 px-4 py-3.5 text-[13px] text-fg-muted">
-                  <CheckCircle2Icon className="size-4 text-success" aria-hidden /> All clear — nothing is waiting on you.
+                  <CheckCircle2Icon className="size-4 text-success" aria-hidden /> All clear — nothing is waiting on
+                  you.
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -288,7 +355,9 @@ export function CommandCenter() {
               ) : recent.error ? (
                 <ErrorState error={recent.error} compact onRetry={() => void recent.refetch()} />
               ) : active.length === 0 ? (
-                <p className="rounded-xl border border-line bg-surface-1/60 px-4 py-3.5 text-[13px] text-fg-muted">Nothing running right now. Start something above.</p>
+                <p className="rounded-xl border border-line bg-surface-1/60 px-4 py-3.5 text-[13px] text-fg-muted">
+                  Nothing running right now. Start something above.
+                </p>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {active.slice(0, 6).map((t) => (
@@ -306,7 +375,9 @@ export function CommandCenter() {
             {recent.isLoading ? (
               <RowsSkeleton rows={4} />
             ) : finished.length === 0 ? (
-              <p className="rounded-xl border border-line bg-surface-1/60 px-4 py-3.5 text-[13px] text-fg-muted">Finished tasks and their verified results will appear here.</p>
+              <p className="rounded-xl border border-line bg-surface-1/60 px-4 py-3.5 text-[13px] text-fg-muted">
+                Finished tasks and their verified results will appear here.
+              </p>
             ) : (
               <ul className="rounded-xl border border-line bg-surface-1 p-1.5">
                 {finished.map((t) => (

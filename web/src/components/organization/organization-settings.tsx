@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2Icon, ScrollTextIcon, SlidersHorizontalIcon, UsersIcon } from "lucide-react";
+import { ScrollTextIcon, SlidersHorizontalIcon, UsersIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/controls";
@@ -23,7 +23,11 @@ export function OrganizationSettings() {
   const params = useSearchParams();
   const raw = params.get("tab");
   const tab: Tab = (TABS as readonly string[]).includes(raw ?? "") ? (raw as Tab) : "general";
-  const org = useQuery({ queryKey: qk.organization.current, queryFn: ({ signal }) => organizationsApi.current({ signal }), staleTime: 60_000 });
+  const org = useQuery({
+    queryKey: qk.organization.current,
+    queryFn: ({ signal }) => organizationsApi.current({ signal }),
+    staleTime: 60_000,
+  });
 
   if (org.error) return <ErrorState error={org.error} onRetry={() => void org.refetch()} />;
 
@@ -35,22 +39,22 @@ export function OrganizationSettings() {
       >
         {org.data ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/12 text-lg font-bold uppercase text-accent">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/12 text-lg font-bold text-accent uppercase">
               {org.data.name.slice(0, 1)}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="text-2xs font-medium uppercase tracking-[0.14em] text-accent">Active organization</div>
+              <div className="text-2xs font-medium tracking-[0.14em] text-accent uppercase">Active organization</div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-lg font-semibold tracking-tight text-fg">{org.data.name}</h2>
                 {org.data.is_personal && <Badge tone="neutral">Personal</Badge>}
                 {org.data.status !== "active" && <Badge tone="danger">{humanize(org.data.status)}</Badge>}
               </div>
               <p className="text-xs text-fg-muted">
-                {humanize(org.data.plan)} plan · you are {org.data.role ? humanize(org.data.role).toLowerCase() : "a member"} · changes here apply to
-                everyone in this organization
+                {humanize(org.data.plan)} plan · you are{" "}
+                {org.data.role ? humanize(org.data.role).toLowerCase() : "a member"} · changes here apply to everyone in
+                this organization
               </p>
             </div>
-            <Building2Icon className="pointer-events-none absolute -right-4 -top-4 size-28 text-accent/[0.05]" aria-hidden />
           </div>
         ) : (
           <div className="flex items-center gap-3">
@@ -84,7 +88,9 @@ export function OrganizationSettings() {
             <ScrollTextIcon /> Policy
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="general">{org.data ? <OrganizationGeneral organization={org.data} /> : <Skeleton className="h-64 w-full rounded-xl" />}</TabsContent>
+        <TabsContent value="general">
+          {org.data ? <OrganizationGeneral organization={org.data} /> : <Skeleton className="h-64 w-full rounded-xl" />}
+        </TabsContent>
         <TabsContent value="members">
           <MembersPanel />
         </TabsContent>

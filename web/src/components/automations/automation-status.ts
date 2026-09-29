@@ -3,7 +3,14 @@
  * service.py). `AutomationOut.task_template/retry_policy/policy` are typed as open objects by the
  * API contract; the readers below extract the documented fields defensively.
  */
-import type { AutomationOut, AutomationPolicy, AutomationRunOut, AutomationRunStatus, RetryPolicy, TaskTemplate } from "@/lib/api";
+import type {
+  AutomationOut,
+  AutomationPolicy,
+  AutomationRunOut,
+  AutomationRunStatus,
+  RetryPolicy,
+  TaskTemplate,
+} from "@/lib/api";
 import { humanize } from "@/lib/format";
 import type { StatusMeta } from "@/lib/status";
 
@@ -13,14 +20,21 @@ export interface RunPresentation extends StatusMeta {
 }
 
 export const runStatusMeta: Record<AutomationRunStatus, StatusMeta> = {
-  created: { label: "Running", tone: "accent", live: true, description: "The run created its task, which is executing now." },
+  created: {
+    label: "Running",
+    tone: "accent",
+    live: true,
+    description: "The run created its task, which is executing now.",
+  },
   succeeded: { label: "Succeeded", tone: "success", terminal: true, description: "The run's task completed." },
   failed: { label: "Failed", tone: "danger", terminal: true, description: "The run or its task failed." },
   skipped: { label: "Skipped", tone: "neutral", terminal: true, description: "The occurrence was skipped." },
 };
 
 /** A run's state, refined by whether its task exists yet and whether a retry is scheduled. */
-export function presentRun(run: Pick<AutomationRunOut, "status" | "task_id" | "next_attempt_at" | "error">): RunPresentation {
+export function presentRun(
+  run: Pick<AutomationRunOut, "status" | "task_id" | "next_attempt_at" | "error">,
+): RunPresentation {
   if (run.status === "created") {
     if (!run.task_id && run.next_attempt_at) {
       return {
@@ -31,17 +45,26 @@ export function presentRun(run: Pick<AutomationRunOut, "status" | "task_id" | "n
         description: `Creating the task failed (${describeRunError(run.error) ?? "transient error"}); AgentOS retries automatically.`,
       };
     }
-    if (!run.task_id) return { label: "Starting", tone: "neutral", live: true, open: true, description: "Creating the run's task." };
+    if (!run.task_id)
+      return { label: "Starting", tone: "neutral", live: true, open: true, description: "Creating the run's task." };
     return { ...runStatusMeta.created, open: true };
   }
   const meta = (runStatusMeta as Record<string, StatusMeta>)[run.status];
-  return meta ? { ...meta, open: false } : { label: humanize(run.status), tone: "neutral", description: "", open: false };
+  return meta
+    ? { ...meta, open: false }
+    : { label: humanize(run.status), tone: "neutral", description: "", open: false };
 }
 
 /** `AutomationOut.last_status` (the latest run's status, or null before the first run). */
 export function presentLastStatus(status: string | null | undefined): StatusMeta | null {
   if (!status) return null;
-  return (runStatusMeta as Record<string, StatusMeta>)[status] ?? { label: humanize(status), tone: "neutral", description: "" };
+  return (
+    (runStatusMeta as Record<string, StatusMeta>)[status] ?? {
+      label: humanize(status),
+      tone: "neutral",
+      description: "",
+    }
+  );
 }
 
 const RUN_ERRORS: Record<string, string> = {
@@ -67,7 +90,8 @@ export function describeRunError(code: string | null | undefined): string | null
 export const disabledReasonMeta: Record<string, { label: string; description: string }> = {
   paused_after_failures: {
     label: "Paused after repeated failures",
-    description: "It failed too many times in a row. Fix the cause (for example a disconnected integration), then turn it back on.",
+    description:
+      "It failed too many times in a row. Fix the cause (for example a disconnected integration), then turn it back on.",
   },
   owner_access_lost: {
     label: "Disabled: permission lost",
@@ -89,12 +113,19 @@ export function presentAutomationState(a: Pick<AutomationOut, "enabled" | "disab
     const meta = disabledReasonMeta[a.disabled_reason];
     return {
       label: meta?.label ?? humanize(a.disabled_reason),
-      tone: a.disabled_reason === "paused_after_failures" || a.disabled_reason === "owner_access_lost" ? "danger" : "neutral",
+      tone:
+        a.disabled_reason === "paused_after_failures" || a.disabled_reason === "owner_access_lost"
+          ? "danger"
+          : "neutral",
       description: meta?.description ?? "",
       attention: a.disabled_reason === "paused_after_failures" || a.disabled_reason === "owner_access_lost",
     };
   }
-  return { label: "Paused", tone: "neutral", description: "Turned off by you. It won't run until you turn it back on." };
+  return {
+    label: "Paused",
+    tone: "neutral",
+    description: "Turned off by you. It won't run until you turn it back on.",
+  };
 }
 
 // ---------------------------------------------------------------------------- readers
@@ -102,7 +133,9 @@ export function presentAutomationState(a: Pick<AutomationOut, "enabled" | "disab
 const num = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
 const str = (v: unknown) => (typeof v === "string" ? v : null);
 
-export function readTemplate(raw: Record<string, unknown> | null | undefined): Required<Pick<TaskTemplate, "goal" | "priority">> & {
+export function readTemplate(raw: Record<string, unknown> | null | undefined): Required<
+  Pick<TaskTemplate, "goal" | "priority">
+> & {
   agent_id: string | null;
   context: string | null;
   max_duration_seconds: number | null;

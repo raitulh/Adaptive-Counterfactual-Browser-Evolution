@@ -4,7 +4,12 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // Baseline CSP that needs no per-request nonces (pages stay statically optimizable): no plugins,
 // no framing, no <base> hijacking, forms post only to this origin.
-const contentSecurityPolicy = ["base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'", "object-src 'none'"].join("; ");
+const contentSecurityPolicy = [
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+].join("; ");
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },

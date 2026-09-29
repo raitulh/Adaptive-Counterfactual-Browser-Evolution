@@ -6,8 +6,7 @@
  */
 
 export type OAuthReturn =
-  | { kind: "connected" }
-  | { kind: "error"; reason: string; title: string; message: string; retryable: boolean };
+  { kind: "connected" } | { kind: "error"; reason: string; title: string; message: string; retryable: boolean };
 
 interface ReasonCopy {
   title: string;
@@ -24,7 +23,8 @@ const REASONS: Record<string, ReasonCopy> = {
   },
   admin_policy_enforced: {
     title: "Blocked by your Google Workspace admin",
-    message: "Your organization's Google admin does not allow this app or one of the requested permissions. Ask them to allow AgentOS, or request fewer capabilities.",
+    message:
+      "Your organization's Google admin does not allow this app or one of the requested permissions. Ask them to allow AgentOS, or request fewer capabilities.",
     retryable: false,
   },
   org_internal: {

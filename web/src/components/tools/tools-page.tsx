@@ -22,7 +22,10 @@ export function ToolsPage() {
         title="Tool Center"
         description="Every tool an agent can request — its permission level, risk, required scopes and how its effect is verified — and the organization rules that govern it."
       />
-      <Tabs value={tab} onValueChange={(v) => router.replace(v === "catalog" ? pathname : `${pathname}?tab=${v}`, { scroll: false })}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => router.replace(v === "catalog" ? pathname : `${pathname}?tab=${v}`, { scroll: false })}
+      >
         <TabsList aria-label="Tool Center sections">
           <TabsTrigger value="catalog">
             <WrenchIcon /> Catalog
@@ -34,7 +37,13 @@ export function ToolsPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="catalog" className="mt-5">
-          <ToolCatalog tools={tools.data} isLoading={tools.isLoading} error={tools.error} onRetry={() => void tools.refetch()} rules={rules.data} />
+          <ToolCatalog
+            tools={tools.data}
+            isLoading={tools.isLoading}
+            error={tools.error}
+            onRetry={() => void tools.refetch()}
+            rules={rules.data}
+          />
         </TabsContent>
         <TabsContent value="policies" className="mt-5">
           <ToolPolicies

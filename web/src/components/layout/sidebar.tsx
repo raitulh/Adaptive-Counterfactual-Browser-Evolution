@@ -26,7 +26,17 @@ export function useVisibleNav() {
   })).filter((s) => s.items.length > 0);
 }
 
-function NavLink({ item, collapsed, badge, onNavigate }: { item: NavItem; collapsed: boolean; badge?: string | null; onNavigate?: () => void }) {
+function NavLink({
+  item,
+  collapsed,
+  badge,
+  onNavigate,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  badge?: string | null;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname() ?? "";
   const active = isActive(item, pathname);
   const Icon = item.icon;
@@ -36,7 +46,7 @@ function NavLink({ item, collapsed, badge, onNavigate }: { item: NavItem; collap
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50",
+        "group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
         active ? "text-fg" : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
         collapsed && "justify-center px-0",
       )}
@@ -49,14 +59,19 @@ function NavLink({ item, collapsed, badge, onNavigate }: { item: NavItem; collap
           aria-hidden
         />
       )}
-      {active && <span className="absolute -left-3 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-accent" aria-hidden />}
-      <Icon className={cn("relative size-4 shrink-0", active ? "text-accent" : "text-fg-subtle group-hover:text-fg-muted")} aria-hidden />
+      {active && (
+        <span className="absolute top-1/2 -left-3 h-4 w-0.5 -translate-y-1/2 rounded-full bg-accent" aria-hidden />
+      )}
+      <Icon
+        className={cn("relative size-4 shrink-0", active ? "text-accent" : "text-fg-subtle group-hover:text-fg-muted")}
+        aria-hidden
+      />
       {!collapsed && <span className="relative truncate">{item.label}</span>}
       {badge && (
         <span
           className={cn(
-            "relative ml-auto rounded-full bg-warning/15 px-1.5 text-2xs font-semibold tabular-nums text-warning",
-            collapsed && "absolute -right-1 -top-1 ml-0 px-1",
+            "relative ml-auto rounded-full bg-warning/15 px-1.5 text-2xs font-semibold text-warning tabular-nums",
+            collapsed && "absolute -top-1 -right-1 ml-0 px-1",
           )}
           aria-label={`${badge} pending`}
         >
@@ -83,7 +98,9 @@ export function SidebarNav({ collapsed = false, onNavigate }: { collapsed?: bool
       {sections.map((section) => (
         <div key={section.id} className="flex flex-col gap-0.5">
           {section.label && !collapsed && (
-            <div className="px-2.5 pb-1 text-2xs font-medium uppercase tracking-[0.14em] text-fg-subtle">{section.label}</div>
+            <div className="px-2.5 pb-1 text-2xs font-medium tracking-[0.14em] text-fg-subtle uppercase">
+              {section.label}
+            </div>
           )}
           {section.label && collapsed && <div className="mx-auto my-1 h-px w-5 bg-line" aria-hidden />}
           {section.items.map((item) => (
@@ -112,7 +129,11 @@ export function Sidebar() {
       )}
     >
       <div className={cn("flex h-14 items-center px-4", collapsed && "justify-center px-0")}>
-        <Link href="/app" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent/50" aria-label="AgentOS home">
+        <Link
+          href="/app"
+          className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          aria-label="AgentOS home"
+        >
           {collapsed ? <AgentCoreMark /> : <Wordmark />}
         </Link>
       </div>

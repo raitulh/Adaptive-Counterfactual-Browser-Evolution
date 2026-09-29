@@ -63,7 +63,15 @@ export function UploadQueuePanel({
 }
 
 /** After the server answered, the file's own status (polled while it's processing) is the truth. */
-function UploadedRow({ item, queue, onOpenFile }: { item: UploadItem; queue: UploadQueue; onOpenFile: (id: string) => void }) {
+function UploadedRow({
+  item,
+  queue,
+  onOpenFile,
+}: {
+  item: UploadItem;
+  queue: UploadQueue;
+  onOpenFile: (id: string) => void;
+}) {
   const detail = useFileDetail(item.result!.id);
   const server = detail.data ?? item.result!;
   return <UploadRow item={item} queue={queue} server={server} onOpen={() => onOpenFile(server.id)} />;
@@ -96,15 +104,24 @@ function UploadRow({
             <p className="min-w-0 truncate text-[13px] font-medium text-fg" title={item.name}>
               {item.name}
             </p>
-            <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{bytes(item.size)}</span>
-            {item.purpose === "temp" && <span className="shrink-0 text-2xs uppercase tracking-wider text-fg-subtle">Temporary</span>}
+            <span className="shrink-0 text-xs text-fg-subtle tabular-nums">{bytes(item.size)}</span>
+            {item.purpose === "temp" && (
+              <span className="shrink-0 text-2xs tracking-wider text-fg-subtle uppercase">Temporary</span>
+            )}
           </div>
-          <p className={cn("mt-0.5 text-xs", failed ? "text-danger" : statusMeta?.stage === "ready" ? "text-success" : "text-fg-muted")}>
+          <p
+            className={cn(
+              "mt-0.5 text-xs",
+              failed ? "text-danger" : statusMeta?.stage === "ready" ? "text-success" : "text-fg-muted",
+            )}
+          >
             <span aria-hidden>{label}</span>
             <span className="sr-only" aria-live="polite">
               {item.name}: {announce}
             </span>
-            {item.attempts > 1 && item.phase !== "done" && <span className="text-fg-subtle"> · attempt {item.attempts}</span>}
+            {item.attempts > 1 && item.phase !== "done" && (
+              <span className="text-fg-subtle"> · attempt {item.attempts}</span>
+            )}
           </p>
         </div>
         <FileStages stages={stages} className="hidden sm:flex" />
@@ -118,20 +135,35 @@ function UploadRow({
           )}
           {canRetry(item) && (
             <Tooltip content="Retry (safe: the same upload is never stored twice)">
-              <Button size="icon-xs" variant="ghost" aria-label={`Retry ${item.name}`} onClick={() => queue.retry(item.id)}>
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label={`Retry ${item.name}`}
+                onClick={() => queue.retry(item.id)}
+              >
                 <RotateCcwIcon />
               </Button>
             </Tooltip>
           )}
           {canCancel(item) ? (
             <Tooltip content="Cancel upload">
-              <Button size="icon-xs" variant="ghost" aria-label={`Cancel ${item.name}`} onClick={() => queue.cancel(item.id)}>
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label={`Cancel ${item.name}`}
+                onClick={() => queue.cancel(item.id)}
+              >
                 <XIcon />
               </Button>
             </Tooltip>
           ) : (
             <Tooltip content="Dismiss">
-              <Button size="icon-xs" variant="ghost" aria-label={`Dismiss ${item.name}`} onClick={() => queue.dismiss(item.id)}>
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label={`Dismiss ${item.name}`}
+                onClick={() => queue.dismiss(item.id)}
+              >
                 <XIcon />
               </Button>
             </Tooltip>

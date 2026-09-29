@@ -18,7 +18,15 @@ import { HighlightText } from "../search/highlight-text";
 /** The fields shared by a listed memory (MemoryOut) and a recalled one (RetrievedMemory). */
 export type MemoryLike = Pick<
   RetrievedMemory,
-  "id" | "content" | "memory_type" | "confidence" | "importance" | "freshness" | "source_type" | "source_reference" | "last_verified_at"
+  | "id"
+  | "content"
+  | "memory_type"
+  | "confidence"
+  | "importance"
+  | "freshness"
+  | "source_type"
+  | "source_reference"
+  | "last_verified_at"
 > & {
   subject_key?: string | null;
   status?: string;
@@ -48,7 +56,7 @@ export function MemoryCard({
       className={cn(
         "group/memory relative flex flex-col gap-4 rounded-xl border bg-surface-1 p-4 transition-[opacity,border-color,background-color] duration-200 sm:p-5",
         p.uncertain
-          ? "border-dashed border-line-strong bg-surface-1/50 opacity-80 hover:opacity-100 focus-within:opacity-100"
+          ? "border-dashed border-line-strong bg-surface-1/50 opacity-80 focus-within:opacity-100 hover:opacity-100"
           : "border-line hover:border-line-strong",
       )}
       aria-label={`${type.label} memory${p.tags.length ? ` (${p.tags.map((t) => t.label).join(", ")})` : ""}`}
@@ -60,7 +68,10 @@ export function MemoryCard({
         </span>
         {memory.subject_key && (
           <Tooltip content="Subject key — memories with the same key are checked for conflicts.">
-            <span tabIndex={0} className="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 px-1.5 font-mono text-2xs text-fg-subtle outline-none">
+            <span
+              tabIndex={0}
+              className="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 px-1.5 font-mono text-2xs text-fg-subtle outline-none"
+            >
               <KeyRoundIcon className="size-3" aria-hidden />
               {memory.subject_key}
             </span>
@@ -85,14 +96,22 @@ export function MemoryCard({
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <ConfidenceMeter value={memory.confidence} />
         <ImportanceMeter value={memory.importance} />
-        <FreshnessMeter memoryType={memory.memory_type} lastVerifiedAt={memory.last_verified_at} freshness={p.freshness} now={now} />
+        <FreshnessMeter
+          memoryType={memory.memory_type}
+          lastVerifiedAt={memory.last_verified_at}
+          freshness={p.freshness}
+          now={now}
+        />
         {memory.score !== undefined && <ScoreMeter value={memory.score} />}
       </div>
 
       <footer className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-3 text-xs text-fg-subtle">
         <span className="inline-flex items-center gap-1">
           {source.href ? (
-            <Link href={source.href} className="inline-flex items-center gap-0.5 text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+            <Link
+              href={source.href}
+              className="inline-flex items-center gap-0.5 text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+            >
               {source.label}
               <ArrowUpRightIcon className="size-3" aria-hidden />
             </Link>

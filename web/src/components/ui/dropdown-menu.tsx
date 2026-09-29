@@ -23,7 +23,7 @@ export const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-48 overflow-hidden rounded-xl border border-line-strong bg-surface-2 p-1 shadow-float data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98] data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+        "z-50 min-w-48 overflow-hidden rounded-xl border border-line-strong bg-surface-2 p-1 shadow-float data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]",
         className,
       )}
       {...props}
@@ -38,7 +38,11 @@ export const DropdownMenuItem = React.forwardRef<
 >(({ className, tone = "default", ...props }, ref) => (
   <D.Item
     ref={ref}
-    className={cn(itemBase, tone === "danger" && "text-danger data-[highlighted]:bg-danger/10 data-[highlighted]:text-danger", className)}
+    className={cn(
+      itemBase,
+      tone === "danger" && "text-danger data-[highlighted]:bg-danger/10 data-[highlighted]:text-danger",
+      className,
+    )}
     {...props}
   />
 ));
@@ -75,14 +79,23 @@ export const DropdownMenuRadioItem = React.forwardRef<
 DropdownMenuRadioItem.displayName = "DropdownMenuRadioItem";
 
 export function DropdownMenuLabel({ className, ...props }: React.ComponentPropsWithoutRef<typeof D.Label>) {
-  return <D.Label className={cn("px-2 py-1.5 text-2xs font-medium uppercase tracking-wider text-fg-subtle", className)} {...props} />;
+  return (
+    <D.Label
+      className={cn("px-2 py-1.5 text-2xs font-medium tracking-wider text-fg-subtle uppercase", className)}
+      {...props}
+    />
+  );
 }
 
 export function DropdownMenuSeparator({ className, ...props }: React.ComponentPropsWithoutRef<typeof D.Separator>) {
   return <D.Separator className={cn("-mx-1 my-1 h-px bg-line", className)} {...props} />;
 }
 
-export function DropdownMenuSubTrigger({ className, children, ...props }: React.ComponentPropsWithoutRef<typeof D.SubTrigger>) {
+export function DropdownMenuSubTrigger({
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof D.SubTrigger>) {
   return (
     <D.SubTrigger className={cn(itemBase, "data-[state=open]:bg-white/[0.06]", className)} {...props}>
       {children}

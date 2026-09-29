@@ -51,6 +51,13 @@ export function FilesView() {
 
 function useUploadQueue(): { queue: UploadQueue; items: ReturnType<UploadQueue["getSnapshot"]> } {
   const qc = useQueryClient();
+  // A list fetch still in flight may have been answered before this upload was stored. TanStack
+  // folds an invalidation into an in-flight *first* fetch (there is no data to keep), which would
+  // leave the list without the new file — so cancel in-flight list fetches, then refetch.
+  const refreshLists = async () => {
+    await qc.cancelQueries({ queryKey: ["files", "list"] });
+    await qc.invalidateQueries({ queryKey: ["files", "list"] });
+  };
   const [queue] = React.useState(() =>
     createUploadQueue({
       upload: (file, opts) => filesApi.upload(file, opts),
@@ -58,10 +65,10 @@ function useUploadQueue(): { queue: UploadQueue; items: ReturnType<UploadQueue["
       validate: (file) => validateUpload(file),
       onUploaded: (file) => {
         track("file_uploaded", { content_type: file.content_type, size_bytes: file.size_bytes, purpose: file.purpose });
-        void qc.invalidateQueries({ queryKey: ["files", "list"] });
+        void refreshLists();
       },
       onSettled: (item) => {
-        if (item.cancelledAfterSend) void qc.invalidateQueries({ queryKey: ["files", "list"] });
+        if (item.cancelledAfterSend) void refreshLists();
       },
     }),
   );
@@ -83,8 +90,12 @@ function FilesWorkspace() {
   const pathname = usePathname();
   const params = useSearchParams();
   const { can, isLoading: permsLoading } = usePermissions();
-  const purpose = (PURPOSES as string[]).includes(params.get("purpose") ?? "") ? (params.get("purpose") as PurposeFilter) : null;
-  const status = (STATUSES as string[]).includes(params.get("status") ?? "") ? (params.get("status") as StatusFilter) : null;
+  const purpose = (PURPOSES as string[]).includes(params.get("purpose") ?? "")
+    ? (params.get("purpose") as PurposeFilter)
+    : null;
+  const status = (STATUSES as string[]).includes(params.get("status") ?? "")
+    ? (params.get("status") as StatusFilter)
+    : null;
   const openFileId = params.get("file");
 
   const setParams = React.useCallback(
@@ -143,7 +154,12 @@ function FilesWorkspace() {
         );
       },
     },
-    { id: "size", header: "Size", hideBelow: "sm", cell: (f) => <span className="tabular-nums text-fg-muted">{bytes(f.size_bytes)}</span> },
+    {
+      id: "size",
+      header: "Size",
+      hideBelow: "sm",
+      cell: (f) => <span className="text-fg-muted tabular-nums">{bytes(f.size_bytes)}</span>,
+    },
     {
       id: "purpose",
       header: "Purpose",
@@ -159,7 +175,12 @@ function FilesWorkspace() {
         </span>
       ),
     },
-    { id: "uploaded", header: "Uploaded", hideBelow: "md", cell: (f) => <RelativeTime value={f.created_at} className="text-fg-muted" /> },
+    {
+      id: "uploaded",
+      header: "Uploaded",
+      hideBelow: "md",
+      cell: (f) => <RelativeTime value={f.created_at} className="text-fg-muted" />,
+    },
     {
       id: "actions",
       header: <span className="sr-only">Actions</span>,
@@ -191,7 +212,9 @@ function FilesWorkspace() {
             <h2 id="files-title" className="text-base font-semibold tracking-tight text-fg">
               Your files
             </h2>
-            <p className="mt-0.5 text-[13px] text-fg-muted">Newest first. Select a file for details, extracted text and downloads.</p>
+            <p className="mt-0.5 text-[13px] text-fg-muted">
+              Newest first. Select a file for details, extracted text and downloads.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Select value={purpose ?? "all"} onValueChange={(v) => setParams({ purpose: v === "all" ? null : v })}>
@@ -270,7 +293,11 @@ function FileRowActions({ file, canDelete }: { file: FileOut; canDelete: boolean
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const downloadable = file.status !== "quarantined";
   return (
-    <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div
+      className="flex items-center justify-end gap-0.5"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
       <Tooltip content={downloadable ? "Download" : "Quarantined files can't be downloaded"}>
         <span>
           <Button
@@ -279,7 +306,9 @@ function FileRowActions({ file, canDelete }: { file: FileOut; canDelete: boolean
             aria-label={`Download ${file.filename}`}
             disabled={!downloadable}
             loading={download.isPending}
-            onClick={() => download.mutate(file.id, { onError: (err) => toastError(err, "Couldn't start the download") })}
+            onClick={() =>
+              download.mutate(file.id, { onError: (err) => toastError(err, "Couldn't start the download") })
+            }
           >
             {!download.isPending && <DownloadIcon />}
           </Button>

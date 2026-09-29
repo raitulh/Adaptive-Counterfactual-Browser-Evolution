@@ -6,7 +6,11 @@ export const AGENT_STATUSES = ["active", "disabled"] as const;
 
 export const agentStatusMeta: Record<(typeof AGENT_STATUSES)[number], StatusMeta> = {
   active: { label: "Active", tone: "success", description: "Tasks can run with this agent's current version." },
-  disabled: { label: "Disabled", tone: "neutral", description: "New tasks cannot use this agent until it is re-enabled." },
+  disabled: {
+    label: "Disabled",
+    tone: "neutral",
+    description: "New tasks cannot use this agent until it is re-enabled.",
+  },
 };
 
 export function AgentStatusBadge({ status, className }: { status: string; className?: string }) {
@@ -23,7 +27,15 @@ export function AgentStatusBadge({ status, className }: { status: string; classN
   );
 }
 
-export function VersionBadge({ number, current, className }: { number: number | null | undefined; current?: boolean; className?: string }) {
+export function VersionBadge({
+  number,
+  current,
+  className,
+}: {
+  number: number | null | undefined;
+  current?: boolean;
+  className?: string;
+}) {
   if (!number) return null;
   return (
     <Badge tone={current ? "accent" : "neutral"} variant="outline" className={className}>

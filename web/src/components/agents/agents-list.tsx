@@ -21,7 +21,9 @@ function toolSummary(agent: AgentOut): string {
   const allowed = agent.current_version?.tool_policy?.allowed ?? ["*"];
   const denied = agent.current_version?.tool_policy?.denied ?? [];
   if (allowed.length === 0) return "No tools";
-  const base = allowed.includes("*") ? "All tools" : `${allowed.length} tool ${allowed.length === 1 ? "pattern" : "patterns"}`;
+  const base = allowed.includes("*")
+    ? "All tools"
+    : `${allowed.length} tool ${allowed.length === 1 ? "pattern" : "patterns"}`;
   return denied.length ? `${base} · ${denied.length} denied` : base;
 }
 
@@ -39,14 +41,22 @@ function AgentCard({ agent }: { agent: AgentOut }) {
             <BotIcon className="size-4" aria-hidden />
           </div>
           <h2 className="min-w-0 truncate text-sm font-semibold tracking-tight text-fg">
-            <Link href={`/app/agents/${agent.id}`} className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-accent/60">
+            <Link
+              href={`/app/agents/${agent.id}`}
+              className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-accent/60"
+            >
               {agent.name}
             </Link>
           </h2>
         </div>
         <AgentStatusBadge status={agent.status} />
       </div>
-      <p className={cn("line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed", agent.description ? "text-fg-muted" : "italic text-fg-subtle")}>
+      <p
+        className={cn(
+          "line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed",
+          agent.description ? "text-fg-muted" : "text-fg-subtle italic",
+        )}
+      >
         {agent.description || "No description"}
       </p>
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line pt-3 text-xs text-fg-subtle">
@@ -169,7 +179,11 @@ export function AgentsPage() {
               header: "Agent",
               cell: (a) => (
                 <div className="min-w-0">
-                  <Link href={`/app/agents/${a.id}`} className="font-medium text-fg hover:underline" onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={`/app/agents/${a.id}`}
+                    className="font-medium text-fg hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {a.name}
                   </Link>
                   {a.description && <p className="line-clamp-1 max-w-md text-xs text-fg-muted">{a.description}</p>}
@@ -177,9 +191,24 @@ export function AgentsPage() {
               ),
             },
             { id: "status", header: "Status", cell: (a) => <AgentStatusBadge status={a.status} /> },
-            { id: "version", header: "Version", cell: (a) => <VersionBadge number={a.current_version?.version_number} current />, hideBelow: "sm" },
-            { id: "tools", header: "Tools", cell: (a) => <span className="text-fg-muted">{toolSummary(a)}</span>, hideBelow: "md" },
-            { id: "updated", header: "Updated", cell: (a) => <RelativeTime value={a.updated_at} className="text-fg-muted" />, hideBelow: "sm" },
+            {
+              id: "version",
+              header: "Version",
+              cell: (a) => <VersionBadge number={a.current_version?.version_number} current />,
+              hideBelow: "sm",
+            },
+            {
+              id: "tools",
+              header: "Tools",
+              cell: (a) => <span className="text-fg-muted">{toolSummary(a)}</span>,
+              hideBelow: "md",
+            },
+            {
+              id: "updated",
+              header: "Updated",
+              cell: (a) => <RelativeTime value={a.updated_at} className="text-fg-muted" />,
+              hideBelow: "sm",
+            },
           ]}
         />
       )}

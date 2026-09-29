@@ -8,7 +8,14 @@
  * Desktop: LEFT details & controls · CENTER what needs you + timeline · RIGHT live state.
  * Mobile: one column, sticky controls, details and live state in a bottom sheet.
  */
-import { ArrowLeftIcon, ListTreeIcon, PanelRightOpenIcon, ScrollTextIcon, TerminalSquareIcon, WorkflowIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ListTreeIcon,
+  PanelRightOpenIcon,
+  ScrollTextIcon,
+  TerminalSquareIcon,
+  WorkflowIcon,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import * as React from "react";
@@ -31,7 +38,16 @@ import { useUiStore } from "@/stores/ui";
 import { ApprovalCard } from "@/components/approvals/approval-card";
 import { DeveloperPanel } from "./developer-panel";
 import { Elapsed } from "./elapsed";
-import { agentLabel, STREAM_END_STATUSES, useAgentsIndex, usePendingTaskApprovals, useTaskActions, useTaskDetail, useTaskLogs, useTaskSummary } from "./hooks";
+import {
+  agentLabel,
+  STREAM_END_STATUSES,
+  useAgentsIndex,
+  usePendingTaskApprovals,
+  useTaskActions,
+  useTaskDetail,
+  useTaskLogs,
+  useTaskSummary,
+} from "./hooks";
 import { InputRequest } from "./input-request";
 import { LiveStatePanel } from "./live-state-panel";
 import { RecoveryPanel } from "./recovery-panel";
@@ -46,7 +62,15 @@ import { TaskTimeline } from "./timeline/task-timeline";
 
 const RECOVERY_STATES = new Set(["recovering", "requires_reconciliation", "expired", "blocked", "failed"]);
 /** Resting states where "what happened so far" is the most useful thing to read. */
-const SUMMARY_STATES = new Set(["completed", "failed", "cancelled", "expired", "blocked", "requires_reconciliation", "paused"]);
+const SUMMARY_STATES = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "expired",
+  "blocked",
+  "requires_reconciliation",
+  "paused",
+]);
 
 function DetailSkeleton() {
   return (
@@ -83,7 +107,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const status = detail.data?.status;
   // Connect once the task is known; reconnect when it leaves (or enters) a stream-ending status,
   // e.g. after resuming a failed task — the backend ends the stream for resting tasks.
-  const stream = useTaskStream(taskId, { enabled: status !== undefined, restartKey: status ? STREAM_END_STATUSES.has(status) : null });
+  const stream = useTaskStream(taskId, {
+    enabled: status !== undefined,
+    restartKey: status ? STREAM_END_STATUSES.has(status) : null,
+  });
   React.useEffect(() => {
     streamStateRef.current = stream.state;
   }, [stream.state]);
@@ -110,25 +137,60 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
 function BackLink() {
   return (
-    <Link href="/app/tasks" className="inline-flex items-center gap-1.5 rounded text-xs text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50">
+    <Link
+      href="/app/tasks"
+      className="inline-flex items-center gap-1.5 rounded text-xs text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50"
+    >
       <ArrowLeftIcon className="size-3.5" aria-hidden /> Tasks
     </Link>
   );
 }
 
-function DetailsPanel({ task, agent }: { task: TaskDetailView; agent: { name: string; version: string | null | undefined } }) {
+function DetailsPanel({
+  task,
+  agent,
+}: {
+  task: TaskDetailView;
+  agent: { name: string; version: string | null | undefined };
+}) {
   const current = task.steps.filter((s) => s.plan_version === task.plan_version);
   const verified = current.filter((s) => s.verification_status === "passed").length;
   const rows: Array<[string, React.ReactNode]> = [
-    ["Agent", <span key="a">{agent.name}{agent.version && <span className="ml-1 font-mono text-2xs text-fg-subtle">{agent.version}</span>}</span>],
+    [
+      "Agent",
+      <span key="a">
+        {agent.name}
+        {agent.version && <span className="ml-1 font-mono text-2xs text-fg-subtle">{agent.version}</span>}
+      </span>,
+    ],
     ["Created", <RelativeTime key="c" value={task.created_at} />],
-    ["Started", task.started_at ? <RelativeTime key="s" value={task.started_at} /> : <span key="s" className="text-fg-subtle">Not yet</span>],
+    [
+      "Started",
+      task.started_at ? (
+        <RelativeTime key="s" value={task.started_at} />
+      ) : (
+        <span key="s" className="text-fg-subtle">
+          Not yet
+        </span>
+      ),
+    ],
     [task.completed_at ? "Finished" : "Updated", <RelativeTime key="u" value={task.completed_at ?? task.updated_at} />],
     ["Elapsed", <Elapsed key="e" task={task} />],
-    ["Plan", task.plan_version > 0 ? `v${task.plan_version} · ${current.length} step${current.length === 1 ? "" : "s"}` : "Not planned yet"],
+    [
+      "Plan",
+      task.plan_version > 0
+        ? `v${task.plan_version} · ${current.length} step${current.length === 1 ? "" : "s"}`
+        : "Not planned yet",
+    ],
     ["Verified", current.length ? `${verified} of ${current.length}` : "—"],
-    ["Priority", task.priority === 100 ? "Normal" : task.priority < 100 ? `Higher (${task.priority})` : `Lower (${task.priority})`],
-    ["Activity", `${task.tool_calls} tool call${task.tool_calls === 1 ? "" : "s"} · ${task.model_calls} model call${task.model_calls === 1 ? "" : "s"}`],
+    [
+      "Priority",
+      task.priority === 100 ? "Normal" : task.priority < 100 ? `Higher (${task.priority})` : `Lower (${task.priority})`,
+    ],
+    [
+      "Activity",
+      `${task.tool_calls} tool call${task.tool_calls === 1 ? "" : "s"} · ${task.model_calls} model call${task.model_calls === 1 ? "" : "s"}`,
+    ],
   ];
   return (
     <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px]">
@@ -142,7 +204,15 @@ function DetailsPanel({ task, agent }: { task: TaskDetailView; agent: { name: st
   );
 }
 
-function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView; stream: ReturnType<typeof useTaskStream>; refetchError: unknown }) {
+function TaskDetailLoaded({
+  task,
+  stream,
+  refetchError,
+}: {
+  task: TaskDetailView;
+  stream: ReturnType<typeof useTaskStream>;
+  refetchError: unknown;
+}) {
   const developerMode = useUiStore((s) => s.developerMode);
   const actions = useTaskActions(task.task_id);
   const agents = useAgentsIndex();
@@ -159,9 +229,18 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
 
   const meta = taskStatusMeta[task.status];
   const agent = agentLabel(task, agents.index, task.reproducibility.agent);
-  const currentSteps = React.useMemo(() => task.steps.filter((s) => s.plan_version === task.plan_version), [task.steps, task.plan_version]);
-  const olderSteps = React.useMemo(() => task.steps.filter((s) => s.plan_version !== task.plan_version), [task.steps, task.plan_version]);
-  const timeline = React.useMemo(() => buildTimeline(stream.events, { steps: task.steps, taskStatus: task.status }), [stream.events, task.steps, task.status]);
+  const currentSteps = React.useMemo(
+    () => task.steps.filter((s) => s.plan_version === task.plan_version),
+    [task.steps, task.plan_version],
+  );
+  const olderSteps = React.useMemo(
+    () => task.steps.filter((s) => s.plan_version !== task.plan_version),
+    [task.steps, task.plan_version],
+  );
+  const timeline = React.useMemo(
+    () => buildTimeline(stream.events, { steps: task.steps, taskStatus: task.status }),
+    [stream.events, task.steps, task.status],
+  );
   const pendingApprovals = approvals.data?.items ?? [];
   const latestVerification = React.useCallback(
     (stepId: string) => {
@@ -188,16 +267,28 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
   };
   const focusConfirm = () => {
     setDrawerOpen(false);
-    requestAnimationFrame(() => document.getElementById("confirm-outcome")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() =>
+      document.getElementById("confirm-outcome")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
   };
   const selectStep = (stepId: string) => {
     setDrawerOpen(false);
     setCenterTab("steps");
     setHighlightStep(stepId);
-    requestAnimationFrame(() => document.getElementById(`step-${stepId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    requestAnimationFrame(() =>
+      document.getElementById(`step-${stepId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
   };
 
-  const controls = <TaskControls task={task} actions={actions} onProvideInput={focusInput} onConfirmOutcome={focusConfirm} layout="stack" />;
+  const controls = (
+    <TaskControls
+      task={task}
+      actions={actions}
+      onProvideInput={focusInput}
+      onConfirmOutcome={focusConfirm}
+      layout="stack"
+    />
+  );
   const progressPct = Math.round(task.progress * 100);
 
   return (
@@ -206,12 +297,19 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
 
       {/* Header */}
       <header className="mt-3 flex flex-col gap-3 border-b border-line pb-5">
-        <h1 className="text-balance-safe text-xl font-semibold leading-tight tracking-tight text-fg sm:text-2xl">{task.goal}</h1>
+        <h1 className="text-xl leading-tight font-semibold tracking-tight text-balance-safe text-fg sm:text-2xl">
+          {task.goal}
+        </h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-fg-muted">
           <StatusBadge kind="task" value={task.status} size="md" />
           <div className="flex items-center gap-2">
-            <Progress value={progressPct} tone={meta.tone === "neutral" ? "accent" : meta.tone} className="w-24 sm:w-32" label="Task progress" />
-            <span className="tabular-nums text-fg">{percent(task.progress)}</span>
+            <Progress
+              value={progressPct}
+              tone={meta.tone === "neutral" ? "accent" : meta.tone}
+              className="w-24 sm:w-32"
+              label="Task progress"
+            />
+            <span className="text-fg tabular-nums">{percent(task.progress)}</span>
           </div>
           <span className="flex items-center gap-1">
             <span className="text-fg-subtle">Elapsed</span> <Elapsed task={task} className="text-fg" />
@@ -242,7 +340,9 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
 
         {/* CENTER */}
         <div className="flex min-w-0 flex-col gap-5">
-          {(live || task.status === "waiting_approval" || task.status === "waiting_input") && <LiveActivity current={timeline.current} status={task.status} last={timeline.entries.at(-1)} />}
+          {(live || task.status === "waiting_approval" || task.status === "waiting_input") && (
+            <LiveActivity current={timeline.current} status={task.status} last={timeline.entries.at(-1)} />
+          )}
 
           {pendingApprovals.length > 0 && (
             <section aria-label="Approvals needed" className="flex flex-col gap-3">
@@ -252,12 +352,23 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
             </section>
           )}
 
-          {task.status === "waiting_input" && <InputRequest ref={inputRef} questions={task.pending_questions ?? []} actions={actions} />}
+          {task.status === "waiting_input" && (
+            <InputRequest ref={inputRef} questions={task.pending_questions ?? []} actions={actions} />
+          )}
 
-          {RECOVERY_STATES.has(task.status) && <RecoveryPanel task={task} actions={actions} entries={timeline.entries} />}
+          {RECOVERY_STATES.has(task.status) && (
+            <RecoveryPanel task={task} actions={actions} entries={timeline.entries} />
+          )}
 
           {(summaryEnabled || summary.data?.direct_response) && (
-            <TaskSummary task={task} summary={summary.data} isLoading={summary.isLoading} error={summary.error} onRetry={() => void summary.refetch()} developerMode={developerMode} />
+            <TaskSummary
+              task={task}
+              summary={summary.data}
+              isLoading={summary.isLoading}
+              error={summary.error}
+              onRetry={() => void summary.refetch()}
+              developerMode={developerMode}
+            />
           )}
 
           <Tabs value={centerTab} onValueChange={setCenterTab}>
@@ -280,7 +391,12 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
               </TabsList>
               {developerMode && centerTab === "timeline" && (
                 <label className="ml-auto flex items-center gap-1.5 text-xs text-fg-muted">
-                  <input type="checkbox" checked={showAllEvents} onChange={(e) => setShowAllEvents(e.target.checked)} className="accent-[var(--color-accent)]" />
+                  <input
+                    type="checkbox"
+                    checked={showAllEvents}
+                    onChange={(e) => setShowAllEvents(e.target.checked)}
+                    className="accent-[var(--color-accent)]"
+                  />
                   Show every event
                 </label>
               )}
@@ -308,7 +424,13 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
                   taskStatus={task.status}
                   developerMode={developerMode}
                   showAllEvents={showAllEvents}
-                  empty={<EmptyState size="sm" title="Waiting for the first event" description="AgentOS received the goal; activity appears here the moment it starts." />}
+                  empty={
+                    <EmptyState
+                      size="sm"
+                      title="Waiting for the first event"
+                      description="AgentOS received the goal; activity appears here the moment it starts."
+                    />
+                  }
                 />
               )}
             </TabsContent>
@@ -319,21 +441,39 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
                   size="sm"
                   icon={<ListTreeIcon />}
                   title={task.plan_version === 0 ? "No plan yet" : "No actions needed"}
-                  description={task.plan_version === 0 ? "Steps appear once AgentOS has planned and validated the task." : "This task was answered directly, without taking any action."}
+                  description={
+                    task.plan_version === 0
+                      ? "Steps appear once AgentOS has planned and validated the task."
+                      : "This task was answered directly, without taking any action."
+                  }
                 />
               ) : (
                 <div className="flex flex-col gap-3">
                   {currentSteps.map((s) => (
                     <div key={s.id} id={`step-${s.id}`} className="scroll-mt-24">
-                      <StepCard step={s} verification={latestVerification(s.id)} total={currentSteps.length} developerMode={developerMode} highlighted={highlightStep === s.id || stepStatusNeedsAttention(s.status)} />
+                      <StepCard
+                        step={s}
+                        verification={latestVerification(s.id)}
+                        total={currentSteps.length}
+                        developerMode={developerMode}
+                        highlighted={highlightStep === s.id || stepStatusNeedsAttention(s.status)}
+                      />
                     </div>
                   ))}
                   {olderSteps.length > 0 && (
                     <details className="rounded-xl border border-line bg-surface-1/50 p-3 text-[13px] text-fg-muted">
-                      <summary className="cursor-pointer select-none">Earlier plan versions ({olderSteps.length} superseded steps)</summary>
+                      <summary className="cursor-pointer select-none">
+                        Earlier plan versions ({olderSteps.length} superseded steps)
+                      </summary>
                       <div className="mt-3 flex flex-col gap-3">
                         {olderSteps.map((s) => (
-                          <StepCard key={s.id} step={s} verification={latestVerification(s.id)} developerMode={developerMode} className="opacity-80" />
+                          <StepCard
+                            key={s.id}
+                            step={s}
+                            verification={latestVerification(s.id)}
+                            developerMode={developerMode}
+                            className="opacity-80"
+                          />
                         ))}
                       </div>
                     </details>
@@ -343,12 +483,23 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
             </TabsContent>
 
             <TabsContent value="logs">
-              <TaskLogs logs={logs.data} steps={task.steps} isLoading={logs.isLoading} error={logs.error} onRetry={() => void logs.refetch()} />
+              <TaskLogs
+                logs={logs.data}
+                steps={task.steps}
+                isLoading={logs.isLoading}
+                error={logs.error}
+                onRetry={() => void logs.refetch()}
+              />
             </TabsContent>
 
             {developerMode && (
               <TabsContent value="developer">
-                <DeveloperPanel task={task} lastSeq={stream.lastSeq} eventCount={stream.events.length} streamState={stream.state} />
+                <DeveloperPanel
+                  task={task}
+                  lastSeq={stream.lastSeq}
+                  eventCount={stream.events.length}
+                  streamState={stream.state}
+                />
               </TabsContent>
             )}
           </Tabs>
@@ -356,7 +507,7 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
 
         {/* RIGHT: live state (lg+) */}
         <aside className="hidden lg:block" aria-label="Live state">
-          <div className="sticky top-20 flex max-h-[calc(100dvh-6rem)] flex-col gap-5 overflow-y-auto pb-4 pr-1">
+          <div className="sticky top-20 flex max-h-[calc(100dvh-6rem)] flex-col gap-5 overflow-y-auto pr-1 pb-4">
             <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface-1 p-4 xl:hidden">
               <DetailsPanel task={task} agent={agent} />
               <div className="border-t border-line pt-4">{controls}</div>
@@ -370,7 +521,12 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <MobilePrimaryControls task={task} actions={actions} onProvideInput={focusInput} onConfirmOutcome={focusConfirm} />
+            <MobilePrimaryControls
+              task={task}
+              actions={actions}
+              onProvideInput={focusInput}
+              onConfirmOutcome={focusConfirm}
+            />
           </div>
           <Button variant="secondary" size="sm" onClick={() => setDrawerOpen(true)} aria-haspopup="dialog">
             <PanelRightOpenIcon /> Details
@@ -379,7 +535,7 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
       </div>
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent className="lg:hidden">
-          <div className="overflow-y-auto px-4 pb-8 pt-2">
+          <div className="overflow-y-auto px-4 pt-2 pb-8">
             <DrawerTitle className="text-base font-semibold text-fg">Task details</DrawerTitle>
             <DrawerDescription className="mt-0.5 text-xs text-fg-muted">{meta.description}</DrawerDescription>
             <div className="mt-4 flex flex-col gap-5">
@@ -395,7 +551,12 @@ function TaskDetailLoaded({ task, stream, refetchError }: { task: TaskDetailView
 }
 
 function stepStatusNeedsAttention(status: string): boolean {
-  return status === "waiting_approval" || status === "waiting_input" || status === "requires_reconciliation" || status === "blocked";
+  return (
+    status === "waiting_approval" ||
+    status === "waiting_input" ||
+    status === "requires_reconciliation" ||
+    status === "blocked"
+  );
 }
 
 /** The one or two most relevant controls for the sticky mobile bar. */

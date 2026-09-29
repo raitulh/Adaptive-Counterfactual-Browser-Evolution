@@ -67,7 +67,8 @@ export function diffLines(before: string | null | undefined, after: string | nul
       const lcs = new Int32Array((n + 1) * w);
       for (let i = n - 1; i >= 0; i--) {
         for (let j = m - 1; j >= 0; j--) {
-          lcs[i * w + j] = midA[i] === midB[j] ? lcs[(i + 1) * w + j + 1] + 1 : Math.max(lcs[(i + 1) * w + j], lcs[i * w + j + 1]);
+          lcs[i * w + j] =
+            midA[i] === midB[j] ? lcs[(i + 1) * w + j + 1] + 1 : Math.max(lcs[(i + 1) * w + j], lcs[i * w + j + 1]);
         }
       }
       let i = 0;
@@ -231,7 +232,11 @@ export const FIELD_LABELS: Record<SectionKey, Record<string, string>> = {
     fallbacks: "Fallback models",
   },
   tool_policy: { allowed: "Allowed tools", denied: "Denied tools" },
-  memory_policy: { enabled: "Memory enabled", max_items: "Memories per task", extract_after_task: "Extract after task" },
+  memory_policy: {
+    enabled: "Memory enabled",
+    max_items: "Memories per task",
+    extract_after_task: "Extract after task",
+  },
   execution_limits: {
     max_steps: "Max steps",
     max_tool_calls: "Max tool calls",
@@ -273,7 +278,11 @@ function sameList(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-function diffSection(section: SectionKey, before: Record<string, unknown>, after: Record<string, unknown>): SectionDiff {
+function diffSection(
+  section: SectionKey,
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+): SectionDiff {
   const labels = FIELD_LABELS[section];
   const fields = [...new Set([...Object.keys(labels), ...Object.keys(before), ...Object.keys(after)])];
   const changes: FieldDiff[] = [];
@@ -301,7 +310,14 @@ function diffSection(section: SectionKey, before: Record<string, unknown>, after
         reordered: added.length === 0 && removed.length === 0,
       });
     } else if ((b ?? null) !== (a ?? null)) {
-      changes.push({ kind: "scalar", section, field, label, before: (b ?? null) as Scalar, after: (a ?? null) as Scalar });
+      changes.push({
+        kind: "scalar",
+        section,
+        field,
+        label,
+        before: (b ?? null) as Scalar,
+        after: (a ?? null) as Scalar,
+      });
     }
   }
   return { section, label: SECTION_LABELS[section], changes };
@@ -319,7 +335,10 @@ export interface VersionDiff {
   identical: boolean;
 }
 
-export function diffConfigs(before: Partial<AgentVersionIn> | null | undefined, after: Partial<AgentVersionIn> | null | undefined): VersionDiff {
+export function diffConfigs(
+  before: Partial<AgentVersionIn> | null | undefined,
+  after: Partial<AgentVersionIn> | null | undefined,
+): VersionDiff {
   const b = normalizeConfig(before);
   const a = normalizeConfig(after);
   const instructions = diffLines(b.instructions, a.instructions);
@@ -331,7 +350,15 @@ export function diffConfigs(before: Partial<AgentVersionIn> | null | undefined, 
   );
   const changedSections = sections.filter((s) => s.changes.length > 0);
   const changeCount = changedSections.reduce((n, s) => n + s.changes.length, 0) + (instructionsChanged ? 1 : 0);
-  return { instructions, instructionStats, instructionsChanged, sections, changedSections, changeCount, identical: changeCount === 0 };
+  return {
+    instructions,
+    instructionStats,
+    instructionsChanged,
+    sections,
+    changedSections,
+    changeCount,
+    identical: changeCount === 0,
+  };
 }
 
 // ----------------------------------------------------------------------------- value display
@@ -345,9 +372,11 @@ export function formatFieldValue(section: SectionKey, field: string, value: Scal
   }
   if (typeof value === "boolean") return value ? "On" : "Off";
   if (section === "execution_limits" && field === "max_cost_usd" && typeof value === "number") return usd(value);
-  if (section === "execution_limits" && field === "max_duration_seconds" && typeof value === "number") return formatSeconds(value);
+  if (section === "execution_limits" && field === "max_duration_seconds" && typeof value === "number")
+    return formatSeconds(value);
   if (section === "verification_policy" && field === "readback_delay_ms") return `${value} ms`;
-  if (section === "model_policy" && field === "planning_tier") return String(value).charAt(0).toUpperCase() + String(value).slice(1);
+  if (section === "model_policy" && field === "planning_tier")
+    return String(value).charAt(0).toUpperCase() + String(value).slice(1);
   return String(value);
 }
 

@@ -32,9 +32,7 @@ export const experimentsApi = {
   start: (experimentId: string) =>
     call(api.POST("/api/v1/experiments/{experiment_id}/start", { params: { path: { experiment_id: experimentId } } })),
   decide: (experimentId: string) =>
-    call(
-      api.POST("/api/v1/experiments/{experiment_id}/decide", { params: { path: { experiment_id: experimentId } } }),
-    ),
+    call(api.POST("/api/v1/experiments/{experiment_id}/decide", { params: { path: { experiment_id: experimentId } } })),
   rollout: (experimentId: string, body: RolloutRequest) =>
     call(
       api.POST("/api/v1/experiments/{experiment_id}/rollout", {

@@ -47,19 +47,19 @@ export function SheetContent({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { side?: "right" | "left" }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed inset-y-0 z-50 flex w-full max-w-md flex-col border-line-strong bg-surface-1 shadow-float outline-none duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "fixed inset-y-0 z-50 flex w-full max-w-md flex-col border-line-strong bg-surface-1 shadow-float duration-300 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
           side === "right"
-            ? "right-0 border-l data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
-            : "left-0 border-r data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
+            ? "right-0 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+            : "left-0 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
           className,
         )}
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 text-fg-subtle hover:bg-white/5 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50">
+        <DialogPrimitive.Close className="absolute top-3 right-3 rounded-md p-1.5 text-fg-subtle hover:bg-white/5 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/50">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
